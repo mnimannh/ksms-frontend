@@ -51,6 +51,7 @@ export default {
       this.message = '';
 
       try {
+        // Send credentials to backend (hashing happens server-side)
         const res = await fetch('http://localhost:3000/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -60,29 +61,29 @@ export default {
         const data = await res.json();
 
         if (res.ok) {
-          // Store token in localStorage
+          // Store JWT securely
           localStorage.setItem('userToken', data.token);
 
+          // Show success message + last login
           this.messageType = 'success';
-          this.message = 'Login successful! Redirecting...';
+          this.message = `Login successful! Last login: ${
+            data.last_login ? new Date(data.last_login).toLocaleString() : 'First time login'
+          }`;
 
           // Role-based redirect
           setTimeout(() => {
             if (data.role === 'admin') {
-              this.$router.push('/adminDashboard');
-            } else if (data.role === 'student') {
-              this.$router.push('/studentDashboard');
+              this.$router.push('/admin/dashboard');
             } else {
-              this.message = 'Unknown role';
+              this.$router.push('/staff/dashboard');
             }
           }, 500);
-
         } else {
           this.messageType = 'error';
           this.message = data.message || 'Login failed';
         }
       } catch (err) {
-        console.error(err);
+        console.error('Login error:', err);
         this.messageType = 'error';
         this.message = 'Unable to connect to server';
       } finally {

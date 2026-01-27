@@ -1,47 +1,44 @@
 <template>
-  <div class="admin-dashboard">
-    <AdminSidebar />
+  <div class="staff-dashboard">
+    <StaffSidebar />
     <div class="main-content">
-      <h1>Admin Dashboard</h1>
-      <p>Welcome! Add your dashboard content here.</p>
+      <h1>Staff Dashboard</h1>
+      <p>Welcome! Your courses, assignments, and grades will appear here.</p>
     </div>
   </div>
 </template>
 
 <script>
-import AdminSidebar from "@/components/adminSidebar.vue";
+import StaffSidebar from "@/components/staffSidebar.vue";
 
 export default {
-  name: "AdminDashboard",
+  name: "StaffDashboard",
   components: {
-    AdminSidebar,
+    StaffSidebar,
   },
   mounted() {
-    // Get token from localStorage
     const token = localStorage.getItem('userToken');
-
     if (!token) {
-      // No token, redirect to login
       window.location.href = "/";
       return;
     }
 
-    // Call backend to verify token
+    // Check session with backend
     fetch("http://localhost:3000/auth/checkSession", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then(res => {
-        if (!res.ok) {
-          // Invalid or expired token, redirect to login
-          localStorage.removeItem('userToken'); // optional: clear invalid token
+      .then(res => res.json())
+      .then(data => {
+        if (!data.user || data.user.role !== 'staff') {
+          // Invalid role or session, redirect
+          localStorage.removeItem('userToken');
           window.location.href = "/";
         }
       })
       .catch(() => {
-        // Any network error, redirect to login
         window.location.href = "/";
       });
   },
@@ -49,7 +46,7 @@ export default {
 </script>
 
 <style scoped>
-.admin-dashboard {
+.staff-dashboard {
   display: flex;
   height: 100vh;
   background-color: #f8fafc;

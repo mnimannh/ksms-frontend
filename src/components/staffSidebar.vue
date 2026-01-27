@@ -1,6 +1,6 @@
 <template>
-  <div class="student-sidebar">
-    <h2 class="logo">Student Portal</h2>
+  <div class="staff-sidebar">
+    <h2 class="logo">Staff Portal</h2>
     <ul class="nav">
       <li><a href="#">Dashboard</a></li>
       <li><a href="#">Courses</a></li>
@@ -16,7 +16,7 @@
 
 <script>
 export default {
-  name: "StudentSidebar",
+  name: "StaffSidebar",
   methods: {
     handleLogout() {
       // Remove token from localStorage
@@ -30,7 +30,7 @@ export default {
 </script>
 
 <style scoped>
-.student-sidebar {
+.staff-sidebar {
   width: 220px;
   height: 100vh;
   background-color: #1e293b;
