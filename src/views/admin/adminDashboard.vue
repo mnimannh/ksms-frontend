@@ -1,24 +1,41 @@
 <template>
-  <div class="dashboard">
-    <h1>Admin Dashboard</h1>
+  <div class="layout">
+    <!-- Sidebar -->
+    <AdminSidebar />
 
-    <div class="cards">
-      <div class="card">Total Staff</div>
-      <div class="card">Total Sales</div>
-      <div class="card">Inventory Status</div>
-      <div class="card">Today's Attendance</div>
+    <!-- Main Dashboard -->
+    <div class="dashboard">
+      <h1>Admin Dashboard</h1>
+
+      <div class="cards">
+        <div class="card">Total Staff</div>
+        <div class="card">Total Sales</div>
+        <div class="card">Inventory Status</div>
+        <div class="card">Today's Attendance</div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import AdminSidebar from "@/components/adminSidebar.vue";
+
 export default {
-  name: 'AdminDashboard',
+  name: "AdminDashboard",
+  components: {
+    AdminSidebar
+  }
 };
 </script>
 
 <style scoped>
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
 .dashboard {
+  flex: 1;
   padding: 20px;
 }
 
