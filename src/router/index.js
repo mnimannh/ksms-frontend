@@ -6,15 +6,17 @@ import Login from '../views/login.vue';
 // Admin views
 import AdminDashboard from '../views/admin/adminDashboard.vue';
 import AdminPOS from '../views/admin/adminPOS.vue';
-import InventoryManagement from '../views/admin/inventoryManagement.vue';
-import AdminPayroll from '../views/admin/payrollManagement.vue';
-import ShiftAssignment from '../views/admin/shiftAssignment.vue';
+import AdminInventory from '../views/admin/adminInventory.vue';
+import AdminPayroll from '../views/admin/adminPayroll.vue';
+import AdminShift from '../views/admin/adminShift.vue';
+import AdminAlarm from '../views/admin/adminAlarm.vue';
+import AdminReport from '../views/admin/adminReport.vue';
 
 // Staff views
 import StaffDashboard from '../views/staff/staffDashboard.vue';
 import StaffPOS from '../views/staff/staffPOS.vue';
-import StaffPayroll from '../views/staff/payrollManagement.vue';
-import ShiftViewing from '../views/staff/shiftViewing.vue';
+import StaffPayroll from '../views/staff/staffPayroll.vue';
+import ShiftViewing from '../views/staff/staffShift.vue';
 
 // -----------------------------
 // Helper: decode user from JWT
@@ -57,24 +59,36 @@ const routes = [
     component: AdminPOS,
     meta: { requiresAuth: true, role: 'admin' },
   },
-  {
-    path: '/admin/inventory',
-    name: 'InventoryManagement',
-    component: InventoryManagement,
-    meta: { requiresAuth: true, role: 'admin' },
-  },
+{
+  path: '/admin/inventory',
+  name: 'AdminInventory',
+  component: AdminInventory,
+  meta: { requiresAuth: true, role: 'admin' },
+},
   {
     path: '/admin/payroll',
     name: 'AdminPayroll',
     component: AdminPayroll,
     meta: { requiresAuth: true, role: 'admin' },
   },
+{
+  path: '/admin/shift',
+  name: 'AdminShift',
+  component: AdminShift,
+  meta: { requiresAuth: true, role: 'admin' },
+},
   {
-    path: '/admin/shift-assignment',
-    name: 'ShiftAssignment',
-    component: ShiftAssignment,
-    meta: { requiresAuth: true, role: 'admin' },
-  },
+  path: '/admin/alarm',
+  name: 'AdminAlarm',
+  component: AdminAlarm,
+  meta: { requiresAuth: true, role: 'admin' },
+},
+{
+  path: '/admin/report',
+  name: 'AdminReport',
+  component: AdminReport,
+  meta: { requiresAuth: true, role: 'admin' },
+},
 
   // ================= STAFF =================
   {
@@ -101,6 +115,7 @@ const routes = [
     component: ShiftViewing,
     meta: { requiresAuth: true, role: 'staff' },
   },
+
 ];
 
 const router = createRouter({

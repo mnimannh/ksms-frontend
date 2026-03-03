@@ -1,7 +1,7 @@
 <template>
   <div>
     <StaffSidebar />
-    <!-- Add your POS page content below -->
+    <!-- Add your shift viewing content below -->
   </div>
 </template>
 
@@ -9,11 +9,11 @@
 import StaffSidebar from '@/components/StaffSidebar.vue'
 
 export default {
-  name: 'StaffPOS',
+  name: 'StaffShift',
   components: { StaffSidebar }
 }
 </script>
 
 <style scoped>
-/* Optional: styles for staff POS page wrapper */
+/* Optional: styles for staff shift page wrapper */
 </style>

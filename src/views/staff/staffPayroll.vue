@@ -1,7 +1,7 @@
 <template>
   <div>
     <StaffSidebar />
-    <!-- Add your POS page content below -->
+    <!-- Add your payroll page content below -->
   </div>
 </template>
 
@@ -9,11 +9,11 @@
 import StaffSidebar from '@/components/StaffSidebar.vue'
 
 export default {
-  name: 'StaffPOS',
+  name: 'StaffPayroll',
   components: { StaffSidebar }
 }
 </script>
 
 <style scoped>
-/* Optional: styles for staff POS page wrapper */
+/* Optional: styles for staff payroll page wrapper */
 </style>
