@@ -69,7 +69,15 @@ export default {
       }
     };
   },
-  mounted() {
+    mounted() {
+    // Load from localStorage first
+    const savedName = localStorage.getItem("userName");
+    const savedRole = localStorage.getItem("userRole");
+
+    if (savedName) this.user.fullName = savedName;
+    if (savedRole) this.user.role = savedRole;
+
+    // Fetch fresh info from backend
     this.fetchUserInfo();
   },
   methods: {
@@ -78,30 +86,34 @@ export default {
         const token = localStorage.getItem("userToken");
         if (!token) return;
 
-        const res = await fetch("http://127.0.0.1:3000/api/user/me", {
+        // Updated API path to match backend route
+        const response = await fetch("http://127.0.0.1:3000/auth/me", {
           headers: {
-            Authorization: `Bearer ${token}`
+            "Authorization": `Bearer ${token}`
           }
         });
 
-        if (!res.ok) throw new Error("Failed");
+        if (!response.ok) throw new Error("Failed to fetch user info");
 
-        const data = await res.json();
-        console.log("User:", data);
+        const data = await response.json();
 
-        this.user.fullName =
-          data.fullName || data.fullname || data.name || "Staff";
+        // Update sidebar
+        this.user.fullName = data.fullName || "Admin";
+        this.user.role = data.role || "Administrator";
 
-        this.user.role = data.role || "Employee";
-      } catch (err) {
-        console.error(err);
+        // Update localStorage so it persists on refresh
+        localStorage.setItem("userName", this.user.fullName);
+        localStorage.setItem("userRole", this.user.role);
+      } catch (error) {
+        console.error("Error fetching user info:", error);
       }
     },
 
     handleLogout() {
       localStorage.removeItem("userToken");
+      localStorage.removeItem("userName");
       localStorage.removeItem("userRole");
-      this.$router.push("/");
+      window.location.href = "/";
     }
   }
 };

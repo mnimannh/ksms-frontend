@@ -64,7 +64,7 @@
 </td>
               <td>
                 <button @click="openEditModal(user)">Edit</button>
-                <button @click="deleteUser(user.id)">Delete</button>
+                <!-- <button @click="deleteUser(user.id)">Delete</button> -->
               </td>
             </tr>
           </tbody>
