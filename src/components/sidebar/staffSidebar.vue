@@ -36,9 +36,9 @@
     <!-- FOOTER -->
     <div class="sidebar-footer">
       <div class="user-info d-flex align-items-center">
-        <div class="avatar">
+        <!-- <div class="avatar">
           {{ user.fullName ? user.fullName.charAt(0) : "S" }}
-        </div>
+        </div> -->
         <div class="ms-2">
           <div class="user-name">{{ user.fullName || "Staff" }}</div>
           <div class="user-role">{{ user.role || "Employee" }}</div>

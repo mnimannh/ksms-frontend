@@ -32,7 +32,7 @@
     <!-- FOOTER -->
     <div class="sidebar-footer">
       <div class="user-info">
-        <div class="avatar">{{ user.fullName.charAt(0) || "A" }}</div>
+        <!-- <div class="avatar">{{ user.fullName.charAt(0) || "A" }}</div> -->
         <div>
           <div class="user-name">{{ user.fullName || "Admin" }}</div>
           <div class="user-role">{{ user.role || "Administrator" }}</div>
@@ -200,5 +200,15 @@ export default {
   border-radius: 8px;
   color: white;
   cursor: pointer;
+}
+
+.sidebar-nav {
+  list-style: none;   
+  padding: 0;          
+  margin: 0;       
+}
+
+.nav-item {
+  list-style: none;     
 }
 </style>
