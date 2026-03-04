@@ -77,8 +77,8 @@
 </template>
 
 <script>
-import AdminSidebar from "@/components/adminSidebar.vue";
-import CategoryCard from "@/components/CategoryCard.vue";
+import AdminSidebar from '@/components/sidebar/AdminSidebar.vue';
+import CategoryCard from "@/components/admin-inventory/CategoryCard.vue";
 import axios from "axios";
 
 export default {

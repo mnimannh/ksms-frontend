@@ -6,7 +6,7 @@
 </template>
 
 <script>
-import AdminSidebar from '@/components/AdminSidebar.vue'
+import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
 
 export default {
   name: 'AdminReport',

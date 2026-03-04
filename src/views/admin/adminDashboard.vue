@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import AdminSidebar from "@/components/adminSidebar.vue";
+import AdminSidebar from '@/components/sidebar/AdminSidebar.vue';
 
 export default {
   name: "AdminDashboard",

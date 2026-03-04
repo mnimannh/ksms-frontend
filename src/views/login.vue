@@ -66,9 +66,7 @@ export default {
 
           // Show success message + last login
           this.messageType = 'success';
-          this.message = `Login successful! Last login: ${
-            data.last_login ? new Date(data.last_login).toLocaleString() : 'First time login'
-          }`;
+          this.message = `Login successful!`;
 
           // Role-based redirect
           setTimeout(() => {

@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import StaffSidebar from "@/components/staffSidebar.vue";
+import StaffSidebar from "@/components/sidebar/staffSidebar.vue";
 
 export default {
   name: "StaffDashboard",

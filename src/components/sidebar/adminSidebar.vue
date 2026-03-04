@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="sidebar-header">
       <div class="logo-container">
-        <router-link to="/" class="logo-icon">
+        <router-link to="" class="logo-icon">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2"/>
             <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2"/>
@@ -57,7 +57,8 @@ export default {
         { name: "Payroll", path: "/admin/payroll" },
         { name: "Shift", path: "/admin/shift" },
         { name: "Alarm", path: "/admin/alarm" },
-        { name: "Report", path: "/admin/report" }
+        { name: "Report", path: "/admin/report" },
+        { name: "User", path: "/admin/user" }
       ],
       user: {
         fullName: "",

@@ -42,10 +42,10 @@
 </template>
 
 <script>
-import StaffSidebar from '@/components/StaffSidebar.vue'
-import CategoryFilter from '@/components/CategoryFilter.vue'
-import ProductCard from '@/components/ProductCard.vue'
-import OrderSidebar from '@/components/OrderSidebar.vue'
+import StaffSidebar from "@/components/sidebar/staffSidebar.vue"
+import CategoryFilter from '@/components/pos/CategoryFilter.vue'
+import ProductCard from '@/components/pos/ProductCard.vue'
+import OrderSidebar from '@/components/pos/OrderSidebar.vue'
 import axios from 'axios'
 
 export default {

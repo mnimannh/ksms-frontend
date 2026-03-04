@@ -6,7 +6,7 @@
 </template>
 
 <script>
-import StaffSidebar from '@/components/StaffSidebar.vue'
+import StaffSidebar from "@/components/sidebar/staffSidebar.vue"
 
 export default {
   name: 'StaffShift',
