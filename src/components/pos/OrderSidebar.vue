@@ -1,209 +1,382 @@
 <template>
-  <div class="order-sidebar">
+  <div class="sidebar">
     <!-- Header -->
-    <div class="header">
-      <h2>Order</h2>
-      <button class="new-order-btn" @click="$emit('new-order')">
-        New Order
-      </button>
+    <div class="sidebar-header">
+      <div>
+        <h2 class="sidebar-title">Current Order</h2>
+        <p class="sidebar-count" v-if="cart && cart.length > 0">
+          {{ cart.length }} item{{ cart.length !== 1 ? 's' : '' }}
+        </p>
+      </div>
+      <button class="btn-new" @click="$emit('new-order')">New Order</button>
     </div>
 
-    <!-- Table -->
-    <table class="order-table">
-      <thead>
-        <tr>
-          <th>Item Name</th>
-          <th>Qty</th>
-          <th>Total</th>
-          <th></th>
-        </tr>
-      </thead>
+    <!-- Divider -->
+    <div class="divider" />
 
-      <tbody>
-        <!-- Empty -->
-        <tr v-if="!cart || cart.length === 0">
-          <td colspan="4" class="empty">No items yet</td>
-        </tr>
+    <!-- Items -->
+    <div class="item-list">
+      <!-- Empty -->
+      <div v-if="!cart || cart.length === 0" class="empty-state">
+        <div class="empty-icon">○</div>
+        <p>No items added yet</p>
+        <span>Tap a product to add it here</span>
+      </div>
 
-        <!-- Items -->
-        <tr v-for="item in cart" :key="item.id">
-          <td>{{ item.variant_name }}</td>
+      <!-- Cart Rows -->
+      <div v-for="item in cart" :key="item.id" class="cart-row">
+        <div class="cart-row-info">
+          <p class="item-name">{{ item.variant_name }}</p>
+          <p class="item-unit">{{ formatCurrency(item.price) }} / unit</p>
+        </div>
 
-          <td>
-            <input
-              type="number"
-              class="qty-input"
-              :value="item.orderQty"
-              min="1"
-              @input="onQtyChange(item.id, $event)"
-            />
-          </td>
-
-          <td>{{ formatCurrency(item.price * item.orderQty) }}</td>
-
-          <td>
-            <button
-              class="remove-btn"
-              @click="$emit('remove', item.id)"
-            >
-              x
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- TOTALS: Qty + Price -->
-    <div class="totals">
-      <div class="row total">
-        <span>Total Qty: {{ totalQty }}</span>
-        <span>Total Price: {{ formatCurrency(total) }}</span>
+        <div class="cart-row-controls">
+          <input
+            type="number"
+            class="qty-input"
+            :value="item.orderQty"
+            min="1"
+            @input="onQtyChange(item.id, $event)"
+          />
+          <span class="item-total">{{ formatCurrency(item.price * item.orderQty) }}</span>
+          <button class="btn-remove" @click="$emit('remove', item.id)" title="Remove item">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Pay -->
-    <button
-      class="pay-btn"
-      :disabled="!cart || cart.length === 0"
-      @click="$emit('checkout')"
-    >
-      Pay
-    </button>
+    <!-- Summary -->
+    <div class="sidebar-footer" v-if="cart && cart.length > 0">
+      <div class="divider" />
+      <div class="summary">
+        <div class="summary-row">
+          <span class="summary-label">Total Items</span>
+          <span class="summary-value">{{ totalQty }}</span>
+        </div>
+        <div class="summary-row summary-total">
+          <span class="summary-label">Total</span>
+          <span class="summary-value total-price">{{ formatCurrency(total) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pay Button -->
+    <div class="pay-wrap">
+      <button
+        class="btn-pay"
+        :disabled="!cart || cart.length === 0"
+        @click="$emit('checkout')"
+      >
+        <span>Proceed to Pay</span>
+        <span v-if="cart && cart.length > 0" class="pay-amount">{{ formatCurrency(total) }}</span>
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = defineProps({
   cart: {
     type: Array,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const emit = defineEmits(['remove', 'checkout', 'update-qty', 'new-order'])
+const emit = defineEmits(['remove', 'checkout', 'update-qty', 'new-order']);
 
 const onQtyChange = (id, event) => {
-  let qty = Number(event.target.value)
-  if (!qty || qty < 1) qty = 1
-  emit('update-qty', { id, qty })
-}
+  let qty = Number(event.target.value);
+  if (!qty || qty < 1) qty = 1;
+  emit('update-qty', { id, qty });
+};
 
-// Compute total price
-const total = computed(() => {
-  return props.cart.reduce(
-    (sum, item) => sum + item.price * item.orderQty,
-    0
-  )
-})
+const total = computed(() =>
+  props.cart.reduce((sum, item) => sum + item.price * item.orderQty, 0)
+);
 
-// Compute total quantity
-const totalQty = computed(() => {
-  return props.cart.reduce((sum, item) => sum + item.orderQty, 0)
-})
+const totalQty = computed(() =>
+  props.cart.reduce((sum, item) => sum + item.orderQty, 0)
+);
 
-// Format currency
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'MYR'
-  }).format(value || 0)
-}
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MYR' }).format(value || 0);
 </script>
 
 <style scoped>
-.order-sidebar {
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  height: 100%;
+.sidebar {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  background: #ffffff;
 }
 
-.header {
+/* ── Header ── */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 20px;
+}
+
+.sidebar-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: #1a1a18;
+  line-height: 1;
+}
+
+.sidebar-count {
+  font-size: 12px;
+  color: #9e9b93;
+  margin-top: 4px;
+}
+
+.btn-new {
+  background: transparent;
+  border: 1px solid #dedad2;
+  color: #6b6860;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-new:hover {
+  border-color: #1a1a18;
+  color: #1a1a18;
+}
+
+/* ── Divider ── */
+.divider {
+  height: 1px;
+  background: #eeece7;
+  margin: 0 24px;
+}
+
+/* ── Item list ── */
+.item-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item-list::-webkit-scrollbar {
+  width: 3px;
+}
+.item-list::-webkit-scrollbar-thumb {
+  background: #dedad2;
+  border-radius: 2px;
+}
+
+/* Empty */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 0;
+  color: #9e9b93;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 28px;
+  color: #d8d5cc;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.empty-state p {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b6860;
+}
+
+.empty-state span {
+  font-size: 12px;
+  color: #b5b2a9;
+}
+
+/* Cart rows */
+.cart-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0ede6;
+  gap: 12px;
 }
 
-.new-order-btn {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
+.cart-row:last-child {
+  border-bottom: none;
 }
 
-.order-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
+.cart-row-info {
+  flex: 1;
+  min-width: 0;
 }
 
-th {
-  text-align: left;
-  color: #666;
-  font-size: 12px;
-}
-
-td {
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+.item-name {
   font-size: 13px;
+  font-weight: 500;
+  color: #1a1a18;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.empty {
-  text-align: center;
-  color: #999;
-  padding: 20px 0;
+.item-unit {
+  font-size: 11px;
+  color: #b5b2a9;
+  margin-top: 2px;
+}
+
+.cart-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .qty-input {
-  width: 50px;
+  width: 44px;
+  height: 32px;
+  border: 1px solid #dedad2;
+  border-radius: 6px;
   text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: #1a1a18;
+  background: #faf8f3;
+  outline: none;
+  transition: border-color 0.15s;
 }
 
-.remove-btn {
-  background: #ef4444;
-  color: white;
+.qty-input:focus {
+  border-color: #c9a96e;
+}
+
+.item-total {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a18;
+  min-width: 68px;
+  text-align: right;
+}
+
+.btn-remove {
+  background: transparent;
   border: none;
-  border-radius: 4px;
+  color: #c4bfb5;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s;
 }
 
-.totals {
-  margin-top: 20px;
-  border-top: 2px solid #eee;
-  padding-top: 10px;
+.btn-remove:hover {
+  color: #c0524f;
 }
 
-.row.total {
+/* ── Footer Summary ── */
+.sidebar-footer {
+  padding: 0 0 4px;
+}
+
+.summary {
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: bold;
-  font-size: 16px;
-  color: #111;
-  gap: 20px;
 }
 
-.pay-btn {
+.summary-label {
+  font-size: 12px;
+  color: #9e9b93;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a18;
+}
+
+.summary-total .summary-label {
+  font-size: 13px;
+  color: #1a1a18;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.total-price {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a18;
+}
+
+/* ── Pay button ── */
+.pay-wrap {
+  padding: 16px 24px 24px;
+}
+
+.btn-pay {
   width: 100%;
   background: #10b981;
-  color: white;
+  color: #f5f4f0;
   border: none;
-  padding: 12px;
-  border-radius: 6px;
-  margin-top: auto;
+  border-radius: 10px;
+  padding: 14px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s ease, transform 0.15s ease;
+  letter-spacing: 0.01em;
 }
 
-.pay-btn:disabled {
-  background: #9ca3af;
+.btn-pay:hover:not(:disabled) {
+  background: #2e2e2a;
+  transform: translateY(-1px);
+}
+
+.btn-pay:disabled {
+  background: #d8d5cc;
+  color: #9e9b93;
   cursor: not-allowed;
+  transform: none;
+}
+
+.pay-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: #11111;
 }
 </style>

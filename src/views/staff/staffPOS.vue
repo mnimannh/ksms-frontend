@@ -14,7 +14,12 @@
 
       <!-- LEFT: PRODUCTS -->
       <section class="item-section">
-        <h2>Point of Sale (POS)</h2>
+        <div class="item-section-header">
+          <div>
+            <h2 class="pos-title">Point of Sale</h2>
+            <p class="pos-sub">Admin · {{ filteredProducts.length }} products</p>
+          </div>
+        </div>
 
         <CategoryFilter
           :categories="categories"
@@ -111,11 +116,15 @@ export default {
 
     // Keyboard shortcuts
     window.addEventListener("keydown", this.handleKeydown);
+      // Start polling for products every 5 seconds
+  this.productPollInterval = setInterval(this.loadProducts, 5000);
   },
 
   beforeUnmount() {
     document.removeEventListener("click", this.focusScanner);
     window.removeEventListener("keydown", this.handleKeydown);
+      // Stop polling
+  clearInterval(this.productPollInterval);
   },
 
   methods: {
@@ -162,14 +171,20 @@ export default {
       this.cart = [];
     },
 
-    async loadProducts() {
-      try {
-        const prodRes = await axios.get("http://localhost:3000/api/variants");
-        this.products = prodRes.data;
-      } catch (err) {
-        console.error("Failed to load products", err);
-      }
-    },
+async loadProducts() {
+  try {
+    const prodRes = await axios.get("http://localhost:3000/api/variants");
+    const newProducts = prodRes.data;
+
+    // Merge new stock data into existing products
+    this.products = newProducts.map((p) => {
+      const inCart = this.cart.find((c) => c.id === p.id);
+      return { ...p, orderQty: inCart ? inCart.orderQty : 0 };
+    });
+  } catch (err) {
+    console.error("Failed to load products", err);
+  }
+},
 
     handleKeydown(event) {
       if (event.key === "Delete") this.resetCart();
@@ -229,41 +244,91 @@ async handleBarcode() {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=DM+Serif+Display&display=swap');
+
 .pos-wrapper {
   display: flex;
-  background: #f8f9fa;
+  background: #f5f4f0;
   min-height: 100vh;
+  font-family: 'DM Sans', sans-serif;
+  color: #1a1a18;
 }
 
 .pos-content {
-  flex: 1;
   display: flex;
-  padding: 20px;
-  gap: 20px;
-  margin-left: 250px;
+  padding: 24px;
+  gap: 24px;
+  margin-left: 250px; /* staff sidebar width */
+  min-height: 100vh;
 }
 
+/* Left: Products (8/12 columns) */
 .item-section {
-  flex: 2;
-  background: white;
-  border-radius: 8px;
-  padding: 15px;
+  flex: 8;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #e8e6e0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.item-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.pos-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: #1a1a18;
+  line-height: 1;
+}
+
+.pos-sub {
+  font-size: 12px;
+  color: #9e9b93;
+  margin-top: 5px;
+  letter-spacing: 0.03em;
 }
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 14px;
 }
 
+/* ── Right: Order ── */
 .order-section {
-  flex: 1;
-  min-width: 350px;
+  flex: 4;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e8e6e0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
+/* ── Hidden barcode input ── */
 .barcode-input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
+}
+
+/* ── Scrollbars ── */
+.item-section::-webkit-scrollbar {
+  width: 4px;
+}
+.item-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+.item-section::-webkit-scrollbar-thumb {
+  background: #d8d5cc;
+  border-radius: 2px;
 }
 </style>
