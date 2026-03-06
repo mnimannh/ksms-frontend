@@ -377,6 +377,6 @@ const formatCurrency = (value) =>
 .pay-amount {
   font-size: 14px;
   font-weight: 600;
-  color: #11111;
+  color: #111111;
 }
 </style>

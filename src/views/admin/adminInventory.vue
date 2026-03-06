@@ -6,7 +6,7 @@
       <!-- Header -->
       <div class="page-header">
         <div class="header-left">
-          <span class="page-label">WAREHOUSE</span>
+          <span class="page-label">ADMINISTRATION</span>
           <h1 class="page-title">Inventory</h1>
         </div>
         <div class="header-actions">
@@ -112,7 +112,7 @@
                   </div>
                 </div>
               </td>
-              <td class="price-cell">₱{{ item.price.toLocaleString() }}</td>
+              <td class="price-cell">RM{{ item.price.toLocaleString() }}</td>
               <td>
                 <span class="status-badge" :class="item.status.toLowerCase().replace(' ', '-')">
                   {{ item.status }}
@@ -161,7 +161,7 @@
             <span class="sku-badge">{{ item.sku }}</span>
             <div class="grid-stats">
               <div><span class="stat-label">Stock</span><span class="stat-val" :class="{ low: item.stock < 20 }">{{ item.stock }}</span></div>
-              <div><span class="stat-label">Price</span><span class="stat-val">₱{{ item.price.toLocaleString() }}</span></div>
+              <div><span class="stat-label">Price</span><span class="stat-val">RM{{ item.price.toLocaleString() }}</span></div>
               <div><span class="stat-label">Category</span><span class="stat-val">{{ item.category }}</span></div>
             </div>
           </div>
@@ -210,7 +210,7 @@
                 <input v-model.number="form.stock" type="number" placeholder="0" min="0" />
               </div>
               <div class="form-group">
-                <label>Unit Price (₱)</label>
+                <label>Unit Price (RM)</label>
                 <input v-model.number="form.price" type="number" placeholder="0.00" min="0" />
               </div>
             </div>
@@ -273,7 +273,7 @@ export default {
         { label: 'Total Items',    value: '1,284',  trend: '+12 this month', trendUp: true,  bg: 'linear-gradient(135deg,#e0f2fe,#bae6fd)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>' },
         { label: 'Low Stock',      value: '38',     trend: '+5 since last week', trendUp: false, bg: 'linear-gradient(135deg,#fef9c3,#fde68a)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
         { label: 'Out of Stock',   value: '7',      trend: '-2 restocked', trendUp: true,  bg: 'linear-gradient(135deg,#fee2e2,#fecaca)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' },
-        { label: 'Total Value',    value: '₱2.4M',  trend: '+8.3% this quarter', trendUp: true,  bg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>' },
+        { label: 'Total Value',    value: 'RM2.4M',  trend: '+8.3% this quarter', trendUp: true,  bg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>' },
       ],
 
       items: [

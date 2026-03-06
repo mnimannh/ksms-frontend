@@ -114,9 +114,13 @@
         </table>
       </div>
 
-      <footer class="pagination">
-        Showing <strong>{{ filteredAlarms.length }}</strong> of <strong>{{ alarms.length }}</strong> alerts
-      </footer>
+<footer class="pagination">
+  <span>Showing</span>
+  <strong>{{ filteredAlarms.length }}</strong>
+  <span>of</span>
+  <strong>{{ alarms.length }}</strong>
+  <span>alerts</span>
+</footer>
     </main>
   </div>
 </template>
@@ -605,6 +609,8 @@ export default {
   text-align: right;
   font-size: 12px;
   color: #9ca3af;
+    display: flex;
+  gap: 4px;
 }
 
 .pagination strong { color: #374151; }

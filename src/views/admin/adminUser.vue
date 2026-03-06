@@ -89,9 +89,13 @@
       </div>
   </div>
 </div>
-      <footer class="pagination">
-        Showing <strong>{{ filteredUsers.length }}</strong> of <strong>{{ users.length }}</strong> users
-      </footer>
+<footer class="pagination">
+  <span>Showing</span>
+  <strong>{{ filteredUsers.length }}</strong>
+  <span>of</span>
+  <strong>{{ users.length }}</strong>
+  <span>users</span>
+</footer>
     </main>
 
     <UserModal
@@ -532,6 +536,8 @@ export default {
   text-align: right;
   font-size: 12px;
   color: #9ca3af;
+    display: flex;
+  gap: 4px;
 }
 
 .pagination strong { color: #374151; }
