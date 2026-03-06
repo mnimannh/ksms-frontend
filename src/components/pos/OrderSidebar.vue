@@ -70,8 +70,7 @@
         :disabled="!cart || cart.length === 0"
         @click="$emit('checkout')"
       >
-        <span>Proceed to Pay</span>
-        <span v-if="cart && cart.length > 0" class="pay-amount">{{ formatCurrency(total) }}</span>
+        <span>Pay</span>
       </button>
     </div>
   </div>
@@ -352,10 +351,9 @@ const formatCurrency = (value) =>
   border-radius: 10px;
   padding: 14px 20px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 800;
   cursor: pointer;
-  display: flex;
   justify-content: space-between;
   align-items: center;
   transition: background 0.2s ease, transform 0.15s ease;

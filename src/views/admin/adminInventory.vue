@@ -1,800 +1,544 @@
 <template>
-  <div class="admin-layout">
+  <div class="admin-root">
     <AdminSidebar />
 
-    <main class="inventory-main">
+    <!-- Main Content -->
+    <main class="main-content">
       <!-- Header -->
-      <div class="page-header">
-        <div class="header-left">
-          <span class="page-label">ADMINISTRATION</span>
-          <h1 class="page-title">Inventory</h1>
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <h1 class="page-title">{{ currentTab.label }}</h1>
+          <span class="page-subtitle">{{ currentTab.subtitle }}</span>
         </div>
-        <div class="header-actions">
-          <button class="btn-export">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export
-          </button>
-          <button class="btn-add" @click="showAddModal = true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Item
-          </button>
-        </div>
-      </div>
-
-      <!-- KPI Cards -->
-      <div class="kpi-grid">
-        <div class="kpi-card" v-for="kpi in kpiCards" :key="kpi.label">
-          <div class="kpi-icon" :style="{ background: kpi.bg }">
-            <span v-html="kpi.icon"></span>
+        <div class="top-bar-right">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input v-model="searchQuery" class="search-input" :placeholder="`Search ${currentTab.label}...`" />
           </div>
-          <div class="kpi-data">
-            <span class="kpi-value">{{ kpi.value }}</span>
-            <span class="kpi-label">{{ kpi.label }}</span>
-          </div>
-          <div class="kpi-trend" :class="kpi.trendUp ? 'up' : 'down'">
-            <span>{{ kpi.trend }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <div class="search-wrap">
-          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input
-            v-model="searchQuery"
-            class="search-input"
-            type="text"
-            placeholder="Search items, SKU, supplier..."
-          />
-        </div>
-        <div class="filters">
-          <select v-model="selectedCategory" class="filter-select">
-            <option value="">All Categories</option>
-            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-          </select>
-          <select v-model="selectedStatus" class="filter-select">
-            <option value="">All Status</option>
-            <option value="In Stock">In Stock</option>
-            <option value="Low Stock">Low Stock</option>
-            <option value="Out of Stock">Out of Stock</option>
-          </select>
-        </div>
-        <div class="view-toggle">
-          <button :class="['toggle-btn', viewMode === 'table' ? 'active' : '']" @click="viewMode = 'table'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          </button>
-          <button :class="['toggle-btn', viewMode === 'grid' ? 'active' : '']" @click="viewMode = 'grid'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <button class="btn-primary" @click="handleAdd">
+            <span>+</span> Add {{ currentTab.singular }}
           </button>
         </div>
+      </header>
+
+      <!-- Tab Nav -->
+      <div class="tab-nav">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="tab-btn"
+          :class="{ active: activeTab === tab.key }"
+          @click="activeTab = tab.key; searchQuery = ''"
+        >
+          <span class="tab-icon">{{ tab.icon }}</span>
+          {{ tab.label }}
+          <span class="tab-count">
+            {{ tab.key === 'categories' ? categories.length : tab.key === 'inventory' ? inventory.length : allVariants.length }}
+          </span>
+        </button>
+
+        <div class="tab-spacer"></div>
+
       </div>
 
-      <!-- Table View -->
-      <div v-if="viewMode === 'table'" class="table-wrapper">
-        <table class="inventory-table">
-          <thead>
-            <tr>
-              <th><input type="checkbox" @change="toggleAll" class="check-input" /></th>
-              <th @click="sortBy('name')" class="sortable">
-                Product <span class="sort-arrow">↕</span>
-              </th>
-              <th @click="sortBy('sku')" class="sortable">SKU <span class="sort-arrow">↕</span></th>
-              <th @click="sortBy('category')" class="sortable">Category <span class="sort-arrow">↕</span></th>
-              <th @click="sortBy('stock')" class="sortable">Stock <span class="sort-arrow">↕</span></th>
-              <th @click="sortBy('price')" class="sortable">Unit Price <span class="sort-arrow">↕</span></th>
-              <th>Status</th>
-              <th>Supplier</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in filteredItems" :key="item.id" class="table-row" :class="{ selected: selectedItems.includes(item.id) }">
-              <td>
-                <input type="checkbox" :value="item.id" v-model="selectedItems" class="check-input" />
-              </td>
-              <td>
-                <div class="product-cell">
-                  <div class="product-avatar" :style="{ background: item.color }">{{ item.name[0] }}</div>
-                  <div>
-                    <span class="product-name">{{ item.name }}</span>
-                    <span class="product-id">#{{ item.id }}</span>
-                  </div>
-                </div>
-              </td>
-              <td><span class="sku-badge">{{ item.sku }}</span></td>
-              <td>{{ item.category }}</td>
-              <td>
-                <div class="stock-cell">
-                  <span class="stock-number" :class="{ low: item.stock < 20, critical: item.stock === 0 }">{{ item.stock }}</span>
-                  <div class="stock-bar-bg">
-                    <div class="stock-bar-fill" :style="{ width: Math.min((item.stock / item.maxStock) * 100, 100) + '%', background: item.stock < 20 ? '#f59e0b' : '#10b981' }"></div>
-                  </div>
-                </div>
-              </td>
-              <td class="price-cell">RM{{ item.price.toLocaleString() }}</td>
-              <td>
-                <span class="status-badge" :class="item.status.toLowerCase().replace(' ', '-')">
-                  {{ item.status }}
-                </span>
-              </td>
-              <td class="supplier-cell">{{ item.supplier }}</td>
-              <td>
-                <div class="action-menu">
-                  <button class="action-btn edit" @click="editItem(item)" title="Edit">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button class="action-btn delete" @click="confirmDelete(item)" title="Delete">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Panels -->
+      <CategoriesPanel
+        v-if="activeTab === 'categories'"
+        :categories="filteredCategories"
+        :inventory="inventory"
+        @edit="openEditCategory"
+        @delete="deleteCategory"
+        @add="openAddCategory"
+      />
 
-        <div class="table-footer">
-          <span class="table-count">Showing {{ filteredItems.length }} of {{ items.length }} items</span>
-          <div class="pagination">
-            <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">‹</button>
-            <button
-              v-for="p in totalPages"
-              :key="p"
-              class="page-btn"
-              :class="{ active: currentPage === p }"
-              @click="currentPage = p"
-            >{{ p }}</button>
-            <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">›</button>
-          </div>
-        </div>
-      </div>
+      <InventoryPanel
+        v-else-if="activeTab === 'inventory'"
+        :inventory="filteredInventory"
+        :categories="categories"
+        :variants="variants"
+        @edit="openEditInventory"
+        @delete="deleteInventory"
+        @view-variants="openVariants"
+        @add="openAddInventory"
+      />
 
-      <!-- Grid View -->
-      <div v-else class="grid-view">
-        <div v-for="item in filteredItems" :key="item.id" class="grid-card">
-          <div class="grid-card-header" :style="{ background: item.color }">
-            <span class="grid-initial">{{ item.name[0] }}</span>
-            <span class="status-badge" :class="item.status.toLowerCase().replace(' ', '-')">{{ item.status }}</span>
-          </div>
-          <div class="grid-card-body">
-            <h3 class="grid-name">{{ item.name }}</h3>
-            <span class="sku-badge">{{ item.sku }}</span>
-            <div class="grid-stats">
-              <div><span class="stat-label">Stock</span><span class="stat-val" :class="{ low: item.stock < 20 }">{{ item.stock }}</span></div>
-              <div><span class="stat-label">Price</span><span class="stat-val">RM{{ item.price.toLocaleString() }}</span></div>
-              <div><span class="stat-label">Category</span><span class="stat-val">{{ item.category }}</span></div>
-            </div>
-          </div>
-          <div class="grid-card-footer">
-            <button class="action-btn edit" @click="editItem(item)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Edit
-            </button>
-            <button class="action-btn delete" @click="confirmDelete(item)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Add/Edit Modal -->
-      <div v-if="showAddModal || showEditModal" class="modal-overlay" @click.self="closeModals">
-        <div class="modal">
-          <div class="modal-header">
-            <h2>{{ showEditModal ? 'Edit Item' : 'Add New Item' }}</h2>
-            <button class="modal-close" @click="closeModals">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Product Name</label>
-                <input v-model="form.name" type="text" placeholder="e.g. Office Chair" />
-              </div>
-              <div class="form-group">
-                <label>SKU</label>
-                <input v-model="form.sku" type="text" placeholder="e.g. CHR-001" />
-              </div>
-              <div class="form-group">
-                <label>Category</label>
-                <select v-model="form.category">
-                  <option v-for="cat in categories" :key="cat">{{ cat }}</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Supplier</label>
-                <input v-model="form.supplier" type="text" placeholder="Supplier name" />
-              </div>
-              <div class="form-group">
-                <label>Stock Quantity</label>
-                <input v-model.number="form.stock" type="number" placeholder="0" min="0" />
-              </div>
-              <div class="form-group">
-                <label>Unit Price (RM)</label>
-                <input v-model.number="form.price" type="number" placeholder="0.00" min="0" />
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-cancel" @click="closeModals">Cancel</button>
-            <button class="btn-save" @click="saveItem">{{ showEditModal ? 'Update Item' : 'Add Item' }}</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Delete Confirm Modal -->
-      <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
-        <div class="modal modal-sm">
-          <div class="modal-header">
-            <h2>Confirm Delete</h2>
-            <button class="modal-close" @click="showDeleteModal = false">×</button>
-          </div>
-          <div class="modal-body">
-            <p class="delete-warning">Are you sure you want to remove <strong>{{ itemToDelete?.name }}</strong> from inventory? This action cannot be undone.</p>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-cancel" @click="showDeleteModal = false">Cancel</button>
-            <button class="btn-delete" @click="deleteItem">Delete Item</button>
-          </div>
-        </div>
-      </div>
+      <VariantsPanel
+        v-else-if="activeTab === 'variants'"
+        :variants="filteredVariants"
+        :inventory="inventory"
+        @edit="openEditVariant"
+        @delete="deleteVariant"
+        @view-images="openImageViewer"
+        @add="openAddVariant"
+      />
     </main>
+
+    <!-- MODALS -->
+    <CategoryModal
+      v-if="modals.category"
+      :editing="editingItem"
+      @save="saveCategory"
+      @close="modals.category = false"
+    />
+
+    <InventoryModal
+      v-if="modals.inventory"
+      :editing="editingItem"
+      :categories="categories"
+      @save="saveInventory"
+      @close="modals.inventory = false"
+    />
+
+    <VariantModal
+      v-if="modals.variant"
+      :editing="editingItem"
+      :inventory="inventory"
+      @save="saveVariant"
+      @close="modals.variant = false"
+    />
+
+    <ImageViewerModal
+      v-if="modals.images"
+      :variant="selectedVariant"
+      @close="modals.images = false"
+      @update-images="updateVariantImages"
+    />
+
+    <!-- Toast -->
+    <transition name="toast">
+      <div v-if="toast.show" class="toast" :class="toast.type">
+        <span class="toast-icon">{{ toast.type === 'success' ? '✓' : '✕' }}</span>
+        {{ toast.message }}
+      </div>
+    </transition>
+
+    <!-- Delete Confirm -->
+    <ConfirmDialog
+      v-if="confirmDialog.show"
+      :message="confirmDialog.message"
+      @confirm="confirmDialog.action(); confirmDialog.show = false"
+      @cancel="confirmDialog.show = false"
+    />
   </div>
 </template>
 
 <script>
 import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
+import CategoriesPanel from '@/components/admin-inventory/CategoriesPanel.vue'
+import InventoryPanel from '@/components/admin-inventory/InventoryPanel.vue'
+import VariantsPanel from '@/components/admin-inventory/VariantsPanel.vue'
+import CategoryModal from '@/components/admin-inventory/CategoryModal.vue'
+import InventoryModal from '@/components/admin-inventory/InventoryModal.vue'
+import VariantModal from '@/components/admin-inventory/VariantModal.vue'
+import ImageViewerModal from '@/components/admin-inventory/ImageViewerModal.vue'
+import ConfirmDialog from '@/components/admin-inventory/ConfirmDialog.vue'
 
 export default {
   name: 'AdminInventory',
-  components: { AdminSidebar },
-
+  components: {
+    AdminSidebar,
+    CategoriesPanel, InventoryPanel, VariantsPanel,
+    CategoryModal, InventoryModal, VariantModal,
+    ImageViewerModal, ConfirmDialog,
+  },
   data() {
     return {
+      activeTab: 'categories',
       searchQuery: '',
-      selectedCategory: '',
-      selectedStatus: '',
-      viewMode: 'table',
-      currentPage: 1,
-      itemsPerPage: 8,
-      selectedItems: [],
-      showAddModal: false,
-      showEditModal: false,
-      showDeleteModal: false,
-      itemToDelete: null,
-      sortKey: 'name',
-      sortOrder: 1,
+      editingItem: null,
+      selectedVariant: null,
+      modals: { category: false, inventory: false, variant: false, images: false },
+      toast: { show: false, message: '', type: 'success' },
+      confirmDialog: { show: false, message: '', action: null },
 
-      form: { name: '', sku: '', category: '', supplier: '', stock: 0, price: 0 },
-
-      categories: ['Furniture', 'Electronics', 'Office Supplies', 'Equipment', 'Cleaning', 'Beverages'],
-
-      kpiCards: [
-        { label: 'Total Items',    value: '1,284',  trend: '+12 this month', trendUp: true,  bg: 'linear-gradient(135deg,#e0f2fe,#bae6fd)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>' },
-        { label: 'Low Stock',      value: '38',     trend: '+5 since last week', trendUp: false, bg: 'linear-gradient(135deg,#fef9c3,#fde68a)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-        { label: 'Out of Stock',   value: '7',      trend: '-2 restocked', trendUp: true,  bg: 'linear-gradient(135deg,#fee2e2,#fecaca)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' },
-        { label: 'Total Value',    value: 'RM2.4M',  trend: '+8.3% this quarter', trendUp: true,  bg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>' },
+      tabs: [
+        { key: 'categories', label: 'Categories', singular: 'Category', icon: '⊞', subtitle: 'Manage product categories' },
+        { key: 'inventory',  label: 'Inventory',  singular: 'Product',  icon: '◫', subtitle: 'Manage products & stock'  },
+        { key: 'variants',   label: 'Variants',   singular: 'Variant',  icon: '◈', subtitle: 'Manage SKUs & pricing'    },
       ],
 
-      items: [
-        { id: 1001, name: 'Ergonomic Chair',     sku: 'CHR-001', category: 'Furniture',       stock: 45,  maxStock: 100, price: 8500,  status: 'In Stock',    supplier: 'FurniPro Inc.',    color: '#6366f1' },
-        { id: 1002, name: 'Standing Desk',        sku: 'DSK-002', category: 'Furniture',       stock: 12,  maxStock: 50,  price: 15000, status: 'Low Stock',   supplier: 'DeskMaster Co.',   color: '#8b5cf6' },
-        { id: 1003, name: 'HP LaserJet Printer',  sku: 'PRT-003', category: 'Electronics',     stock: 0,   maxStock: 20,  price: 22000, status: 'Out of Stock',supplier: 'TechGear PH',      color: '#06b6d4' },
-        { id: 1004, name: 'Whiteboard 4x6ft',     sku: 'WBD-004', category: 'Office Supplies', stock: 28,  maxStock: 60,  price: 3200,  status: 'In Stock',    supplier: 'OfficeHub',        color: '#10b981' },
-        { id: 1005, name: 'Conference Projector', sku: 'PRJ-005', category: 'Electronics',     stock: 6,   maxStock: 15,  price: 45000, status: 'Low Stock',   supplier: 'TechGear PH',      color: '#f59e0b' },
-        { id: 1006, name: 'Paper Ream (500s)',    sku: 'PPR-006', category: 'Office Supplies', stock: 210, maxStock: 500, price: 280,   status: 'In Stock',    supplier: 'PaperWorld PH',    color: '#3b82f6' },
-        { id: 1007, name: 'Coffee Machine',       sku: 'CFM-007', category: 'Beverages',       stock: 4,   maxStock: 10,  price: 18500, status: 'Low Stock',   supplier: 'BrewMaster Corp',  color: '#ef4444' },
-        { id: 1008, name: 'Industrial Vacuum',    sku: 'VAC-008', category: 'Cleaning',        stock: 9,   maxStock: 20,  price: 12000, status: 'In Stock',    supplier: 'CleanTech PH',     color: '#14b8a6' },
-        { id: 1009, name: 'UPS Battery 1500VA',   sku: 'UPS-009', category: 'Equipment',       stock: 17,  maxStock: 30,  price: 6800,  status: 'In Stock',    supplier: 'PowerSafe Inc.',   color: '#f97316' },
-        { id: 1010, name: 'Filing Cabinet',       sku: 'CAB-010', category: 'Furniture',       stock: 0,   maxStock: 25,  price: 4500,  status: 'Out of Stock',supplier: 'FurniPro Inc.',    color: '#a855f7' },
+      // --- HARDCODED DATA ---
+      categories: [
+        { id: 1, name: 'Beverages',    created_at: '2024-01-10' },
+        { id: 2, name: 'Snacks',       created_at: '2024-01-12' },
+        { id: 3, name: 'Dairy',        created_at: '2024-01-15' },
+        { id: 4, name: 'Frozen Foods', created_at: '2024-02-01' },
+      ],
+      inventory: [
+        { id: 1, inventoryName: 'Air Milo Tin',          category_id: 1, description: 'Classic chocolate malt drink in tin', default_threshold: 10, lastUpdated: '2024-06-01' },
+        { id: 2, inventoryName: 'Teh Tarik',             category_id: 1, description: 'Malaysian pulled milk tea',           default_threshold: 15, lastUpdated: '2024-06-03' },
+        { id: 3, inventoryName: 'Keropok Lekor',         category_id: 2, description: 'Malaysian fish cracker sticks',      default_threshold: 20, lastUpdated: '2024-06-05' },
+        { id: 4, inventoryName: 'Dutch Lady Fresh Milk', category_id: 3, description: 'Full cream fresh milk',              default_threshold:  8, lastUpdated: '2024-06-07' },
+        { id: 5, inventoryName: 'Nestle Ice Cream',      category_id: 4, description: 'Vanilla ice cream tub',              default_threshold:  5, lastUpdated: '2024-06-08' },
+      ],
+      variants: [
+        { id: 1, inventory_id: 1, variant_name: 'Air Milo Tin 500ml',          quantity: 120, price:  3.50, barcode: 'MLO-500-TIN',  threshold: 10, lastUpdated: '2024-06-01', images: [
+          { id: 1, image_url: 'https://placehold.co/400x400/1a1a2e/ffffff?text=Milo+500ml',      is_main: 1, image_order: 1 },
+          { id: 2, image_url: 'https://placehold.co/400x400/16213e/ffffff?text=Milo+500ml+Side', is_main: 0, image_order: 2 },
+        ]},
+        { id: 2, inventory_id: 1, variant_name: 'Air Milo Tin 1000ml',         quantity:  45, price:  6.20, barcode: 'MLO-1000-TIN', threshold: 10, lastUpdated: '2024-06-01', images: [
+          { id: 3, image_url: 'https://placehold.co/400x400/0f3460/ffffff?text=Milo+1000ml', is_main: 1, image_order: 1 },
+        ]},
+        { id: 3, inventory_id: 2, variant_name: 'Teh Tarik 250ml',             quantity: 200, price:  1.80, barcode: 'TTK-250',      threshold: 20, lastUpdated: '2024-06-03', images: [] },
+        { id: 4, inventory_id: 2, variant_name: 'Teh Tarik 500ml',             quantity:   8, price:  3.00, barcode: 'TTK-500',      threshold: 15, lastUpdated: '2024-06-03', images: [] },
+        { id: 5, inventory_id: 3, variant_name: 'Keropok Lekor Original 100g', quantity:   0, price:  2.50, barcode: 'KPK-100-ORI', threshold: 20, lastUpdated: '2024-06-05', images: [] },
+        { id: 6, inventory_id: 3, variant_name: 'Keropok Lekor Spicy 100g',    quantity:  55, price:  2.80, barcode: 'KPK-100-SPY', threshold: 20, lastUpdated: '2024-06-05', images: [] },
+        { id: 7, inventory_id: 4, variant_name: 'Dutch Lady 1L',               quantity:  30, price:  7.90, barcode: 'DL-FRESH-1L', threshold:  8, lastUpdated: '2024-06-07', images: [] },
+        { id: 8, inventory_id: 5, variant_name: 'Nestle Vanilla 750ml',        quantity:   3, price: 12.50, barcode: 'NST-VAN-750', threshold:  5, lastUpdated: '2024-06-08', images: [] },
       ],
     }
   },
-
   computed: {
-    filteredItems() {
-      return this.items
-        .filter(item => {
-          const q = this.searchQuery.toLowerCase()
-          const matchSearch = !q || item.name.toLowerCase().includes(q) || item.sku.toLowerCase().includes(q) || item.supplier.toLowerCase().includes(q)
-          const matchCat    = !this.selectedCategory || item.category === this.selectedCategory
-          const matchStatus = !this.selectedStatus   || item.status   === this.selectedStatus
-          return matchSearch && matchCat && matchStatus
-        })
-        .sort((a, b) => {
-          const va = a[this.sortKey], vb = b[this.sortKey]
-          return va < vb ? -this.sortOrder : va > vb ? this.sortOrder : 0
-        })
+    currentTab()     { return this.tabs.find(t => t.key === this.activeTab) },
+    allVariants()    { return this.variants },
+    lowStockCount()  { return this.variants.filter(v => v.quantity > 0 && v.quantity <= v.threshold).length },
+    outOfStockCount(){ return this.variants.filter(v => v.quantity === 0).length },
+    filteredCategories() {
+      if (!this.searchQuery) return this.categories
+      return this.categories.filter(c => c.name.toLowerCase().includes(this.searchQuery.toLowerCase()))
     },
-    totalPages() {
-      return Math.ceil(this.filteredItems.length / this.itemsPerPage)
+    filteredInventory() {
+      if (!this.searchQuery) return this.inventory
+      return this.inventory.filter(i => i.inventoryName.toLowerCase().includes(this.searchQuery.toLowerCase()))
+    },
+    filteredVariants() {
+      if (!this.searchQuery) return this.variants
+      return this.variants.filter(v =>
+        v.variant_name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+        v.barcode.toLowerCase().includes(this.searchQuery.toLowerCase())
+      )
     },
   },
-
   methods: {
-    sortBy(key) {
-      if (this.sortKey === key) this.sortOrder *= -1
-      else { this.sortKey = key; this.sortOrder = 1 }
+    handleAdd() {
+      this.editingItem = null
+      if      (this.activeTab === 'categories') this.modals.category  = true
+      else if (this.activeTab === 'inventory')  this.modals.inventory = true
+      else                                      this.modals.variant   = true
     },
-    toggleAll(e) {
-      this.selectedItems = e.target.checked ? this.filteredItems.map(i => i.id) : []
-    },
-    editItem(item) {
-      this.form = { ...item }
-      this.showEditModal = true
-    },
-    confirmDelete(item) {
-      this.itemToDelete = item
-      this.showDeleteModal = true
-    },
-    deleteItem() {
-      this.items = this.items.filter(i => i.id !== this.itemToDelete.id)
-      this.showDeleteModal = false
-      this.itemToDelete = null
-    },
-    saveItem() {
-      if (this.showEditModal) {
-        const idx = this.items.findIndex(i => i.id === this.form.id)
-        if (idx !== -1) {
-          this.form.status = this.form.stock === 0 ? 'Out of Stock' : this.form.stock < 20 ? 'Low Stock' : 'In Stock'
-          this.$set(this.items, idx, { ...this.items[idx], ...this.form })
-        }
+
+    openEditCategory(cat)   { this.editingItem = { ...cat };  this.modals.category  = true },
+    openEditInventory(item) { this.editingItem = { ...item }; this.modals.inventory = true },
+    openEditVariant(v)      { this.editingItem = { ...v };    this.modals.variant   = true },
+    openAddCategory()       { this.editingItem = null; this.modals.category  = true },
+    openAddInventory()      { this.editingItem = null; this.modals.inventory = true },
+    openAddVariant()        { this.editingItem = null; this.modals.variant   = true },
+
+    openVariants(item)        { this.activeTab = 'variants'; this.searchQuery = item.inventoryName },
+    openImageViewer(variant)  { this.selectedVariant = variant; this.modals.images = true },
+
+    saveCategory(data) {
+      if (data.id) {
+        const i = this.categories.findIndex(c => c.id === data.id)
+        this.categories.splice(i, 1, data)
+        this.showToast('Category updated successfully')
       } else {
-        const newItem = {
-          ...this.form,
-          id: Date.now(),
-          maxStock: this.form.stock * 2 || 100,
-          status: this.form.stock === 0 ? 'Out of Stock' : this.form.stock < 20 ? 'Low Stock' : 'In Stock',
-          color: `hsl(${Math.floor(Math.random() * 360)}, 65%, 55%)`,
-        }
-        this.items.push(newItem)
+        this.categories.push({ ...data, id: Date.now(), created_at: new Date().toISOString().split('T')[0] })
+        this.showToast('Category created successfully')
       }
-      this.closeModals()
+      this.modals.category = false
     },
-    closeModals() {
-      this.showAddModal  = false
-      this.showEditModal = false
-      this.form = { name: '', sku: '', category: '', supplier: '', stock: 0, price: 0 }
+    deleteCategory(id) {
+      this.confirmDelete('Delete this category? All linked products will be removed.', () => {
+        this.categories = this.categories.filter(c => c.id !== id)
+        this.inventory  = this.inventory.filter(i => i.category_id !== id)
+        this.showToast('Category deleted')
+      })
+    },
+
+    saveInventory(data) {
+      if (data.id) {
+        const i = this.inventory.findIndex(p => p.id === data.id)
+        this.inventory.splice(i, 1, data)
+        this.showToast('Product updated successfully')
+      } else {
+        this.inventory.push({ ...data, id: Date.now(), lastUpdated: new Date().toISOString().split('T')[0] })
+        this.showToast('Product created successfully')
+      }
+      this.modals.inventory = false
+    },
+    deleteInventory(id) {
+      this.confirmDelete('Delete this product? All variants will be removed.', () => {
+        this.inventory = this.inventory.filter(p => p.id !== id)
+        this.variants  = this.variants.filter(v => v.inventory_id !== id)
+        this.showToast('Product deleted')
+      })
+    },
+
+    saveVariant(data) {
+      if (data.id) {
+        const i = this.variants.findIndex(v => v.id === data.id)
+        this.variants.splice(i, 1, { ...this.variants[i], ...data })
+        this.showToast('Variant updated successfully')
+      } else {
+        this.variants.push({ ...data, id: Date.now(), lastUpdated: new Date().toISOString().split('T')[0], images: [] })
+        this.showToast('Variant created successfully')
+      }
+      this.modals.variant = false
+    },
+    deleteVariant(id) {
+      this.confirmDelete('Delete this variant permanently?', () => {
+        this.variants = this.variants.filter(v => v.id !== id)
+        this.showToast('Variant deleted')
+      })
+    },
+
+    updateVariantImages({ variantId, images }) {
+      const v = this.variants.find(v => v.id === variantId)
+      if (v) v.images = images
+    },
+
+    confirmDelete(message, action) {
+      this.confirmDialog = { show: true, message, action }
+    },
+    showToast(message, type = 'success') {
+      this.toast = { show: true, message, type }
+      setTimeout(() => { this.toast.show = false }, 3000)
     },
   },
 }
 </script>
 
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-.admin-layout {
+:root {
+  --bg:            #f1f5f9;
+  --surface:       #FFFFFF;
+  --border:        #E8E5DF;
+  --border-strong: #D0CBC3;
+  --text-primary:  #1C1917;
+  --text-secondary:#78716C;
+  --text-muted:    #A8A29E;
+  --accent:        #1C1917;
+  --accent-hover:  #44403C;
+  --green:         #16A34A;
+  --green-bg:      #DCFCE7;
+  --amber:         #D97706;
+  --amber-bg:      #FEF3C7;
+  --red:           #DC2626;
+  --red-bg:        #FEE2E2;
+  --radius:        12px;
+  --radius-sm:     8px;
+  --shadow:        0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:     0 12px 40px rgba(0,0,0,0.12);
+}
+
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); }
+
+.admin-root {
   display: flex;
   min-height: 100vh;
-  background: #f4f6fb;
-  font-family: 'Sora', sans-serif;
+  background: var(--bg);
 }
 
-/* ── MAIN ── */
-.inventory-main {
+/* MAIN — offset by AdminSidebar width via CSS var; override --sidebar-width in AdminSidebar if needed */
+.main-content {
   flex: 1;
-  padding: 36px 40px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 0 36px 36px;
+  margin-left: var(--sidebar-width);
 }
 
-/* ── HEADER ── */
-.page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 32px;
+/* TOP BAR */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 32px 0 20px; gap: 16px;
 }
-.page-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  color: #94a3b8;
-  margin-bottom: 4px;
-}
+.top-bar-left { display: flex; align-items: baseline; gap: 12px; }
 .page-title {
-  font-size: 30px;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.5px;
+  font-family: 'Syne', sans-serif;
+  font-size: 24px; font-weight: 700; letter-spacing: -0.5px;
+  color: var(--text-primary);
 }
-.header-actions { display: flex; gap: 12px; }
+.page-subtitle { font-size: 13px; color: var(--text-muted); }
+.top-bar-right { display: flex; align-items: center; gap: 12px; }
 
-.btn-export, .btn-add {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .2s;
-  border: none;
+/* TAB NAV */
+.tab-nav {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 24px;
 }
-.btn-export {
-  background: #fff;
-  color: #475569;
-  border: 1.5px solid #e2e8f0;
+.tab-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 16px;
+  border: none; background: transparent;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 400;
+  color: var(--text-muted); cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all 0.15s; white-space: nowrap;
 }
-.btn-export:hover { background: #f8fafc; border-color: #cbd5e1; }
-.btn-add {
-  background: #1e3a5f;
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(30,58,95,.25);
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--text-primary); }
+.tab-icon { font-size: 15px; opacity: 0.7; }
+.tab-count {
+  font-size: 11px; font-weight: 600;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text-muted); padding: 1px 7px; border-radius: 20px;
 }
-.btn-add:hover { background: #162d4a; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(30,58,95,.3); }
+.tab-btn.active .tab-count { background: var(--text-primary); border-color: var(--text-primary); color: #fff; }
+.tab-spacer { flex: 1; }
+.stock-pills { display: flex; gap: 8px; align-items: center; padding-bottom: 2px; }
+.stock-pill {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500;
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-secondary);
+}
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; }
+.pill-dot.amber { background: var(--amber); }
+.pill-dot.red   { background: var(--red);   }
 
-/* ── KPI CARDS ── */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 28px;
-}
-.kpi-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 22px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border: 1.5px solid #f1f5f9;
-  transition: transform .2s, box-shadow .2s;
-}
-.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.07); }
-.kpi-icon {
-  width: 48px; height: 48px;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.kpi-data { flex: 1; }
-.kpi-value { display: block; font-size: 22px; font-weight: 700; color: #0f172a; }
-.kpi-label { font-size: 12px; color: #94a3b8; font-weight: 500; }
-.kpi-trend { font-size: 11px; font-weight: 600; white-space: nowrap; }
-.kpi-trend.up   { color: #10b981; }
-.kpi-trend.down { color: #f59e0b; }
-
-/* ── TOOLBAR ── */
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 20px;
-}
-.search-wrap {
-  position: relative;
-  flex: 1;
-  max-width: 360px;
-}
+/* SEARCH */
+.search-wrap { position: relative; display: flex; align-items: center; }
 .search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
+  position: absolute; left: 12px;
+  font-size: 18px; color: var(--text-muted);
+  pointer-events: none; line-height: 1;
 }
 .search-input {
-  width: 100%;
-  padding: 10px 14px 10px 42px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  background: #fff;
-  color: #0f172a;
-  outline: none;
-  transition: border-color .2s;
+  padding: 9px 14px 9px 36px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text-primary);
+  width: 220px; outline: none; transition: border-color 0.15s;
 }
-.search-input:focus { border-color: #1e3a5f; }
-.filters { display: flex; gap: 10px; }
-.filter-select {
-  padding: 10px 14px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: #475569;
-  background: #fff;
-  outline: none;
-  cursor: pointer;
-  transition: border-color .2s;
-}
-.filter-select:focus { border-color: #1e3a5f; }
-.view-toggle {
-  display: flex;
-  background: #fff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-left: auto;
-}
-.toggle-btn {
-  padding: 9px 13px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: #94a3b8;
-  transition: all .15s;
-}
-.toggle-btn.active { background: #1e3a5f; color: #fff; }
+.search-input:focus { border-color: var(--accent); }
+.search-input::placeholder { color: var(--text-muted); }
 
-/* ── TABLE ── */
-.table-wrapper {
-  background: #fff;
-  border-radius: 16px;
-  border: 1.5px solid #f1f5f9;
-  overflow: hidden;
+/* BUTTONS */
+.btn-primary {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 18px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
 }
-.inventory-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.inventory-table thead tr {
-  background: #f8fafc;
-  border-bottom: 1.5px solid #f1f5f9;
-}
-.inventory-table th {
-  padding: 14px 16px;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #94a3b8;
-  white-space: nowrap;
-}
-.sortable { cursor: pointer; user-select: none; }
-.sortable:hover { color: #475569; }
-.sort-arrow { opacity: .5; font-size: 10px; }
+.btn-primary:hover { background: var(--accent-hover); }
 
-.table-row {
-  border-bottom: 1px solid #f8fafc;
-  transition: background .15s;
+.btn-ghost {
+  padding: 6px 12px; background: transparent; color: var(--text-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400;
+  cursor: pointer; transition: all 0.15s;
 }
-.table-row:hover { background: #f8fafc; }
-.table-row.selected { background: #eff6ff; }
-.table-row td { padding: 14px 16px; font-size: 13px; color: #334155; vertical-align: middle; }
+.btn-ghost:hover { background: var(--bg); border-color: var(--border-strong); color: var(--text-primary); }
 
-.check-input {
-  width: 16px; height: 16px;
-  accent-color: #1e3a5f;
-  cursor: pointer;
-}
-
-.product-cell { display: flex; align-items: center; gap: 12px; }
-.product-avatar {
-  width: 36px; height: 36px;
-  border-radius: 10px;
+.btn-icon {
+  width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 15px; color: #fff;
-  flex-shrink: 0;
+  background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 14px; color: var(--text-secondary); transition: all 0.15s;
 }
-.product-name { display: block; font-weight: 600; color: #0f172a; font-size: 13px; }
-.product-id   { display: block; font-size: 11px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; }
+.btn-icon:hover { background: var(--bg); border-color: var(--border-strong); color: var(--text-primary); }
+.btn-icon.danger:hover { background: var(--red-bg); border-color: var(--red); color: var(--red); }
 
-.sku-badge {
-  background: #f1f5f9;
-  color: #475569;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-weight: 500;
+/* CARDS */
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; transition: box-shadow 0.15s, border-color 0.15s;
 }
+.card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); }
 
-.stock-cell { display: flex; align-items: center; gap: 10px; }
-.stock-number { font-weight: 700; font-size: 14px; color: #0f172a; min-width: 28px; }
-.stock-number.low      { color: #f59e0b; }
-.stock-number.critical { color: #ef4444; }
-.stock-bar-bg {
-  width: 60px; height: 6px;
-  background: #f1f5f9;
-  border-radius: 99px;
-  overflow: hidden;
+/* BADGES */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.3px;
 }
-.stock-bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width .4s;
-}
+.badge-green   { background: var(--green-bg); color: var(--green); }
+.badge-amber   { background: var(--amber-bg); color: var(--amber); }
+.badge-red     { background: var(--red-bg);   color: var(--red);   }
+.badge-neutral { background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); }
 
-.price-cell { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #0f172a; }
-.supplier-cell { color: #64748b; font-size: 12px; }
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.data-table th {
+  text-align: left; padding: 10px 14px;
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap;
+}
+.data-table td {
+  padding: 13px 14px; border-bottom: 1px solid var(--border);
+  color: var(--text-primary); vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #FAFAF8; }
+.data-table .actions { display: flex; gap: 6px; justify-content: flex-end; }
 
-.status-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 99px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.status-badge.in-stock     { background: #d1fae5; color: #065f46; }
-.status-badge.low-stock    { background: #fef3c7; color: #92400e; }
-.status-badge.out-of-stock { background: #fee2e2; color: #991b1b; }
-
-.action-menu { display: flex; gap: 6px; }
-.action-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  transition: all .15s;
-}
-.action-btn.edit   { background: #eff6ff; color: #1d4ed8; }
-.action-btn.delete { background: #fff1f2; color: #be123c; }
-.action-btn.edit:hover   { background: #dbeafe; }
-.action-btn.delete:hover { background: #ffe4e6; }
-
-.table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-top: 1.5px solid #f1f5f9;
-}
-.table-count { font-size: 12px; color: #94a3b8; }
-.pagination { display: flex; gap: 4px; }
-.page-btn {
-  min-width: 32px; height: 32px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
-  background: #fff;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: #475569;
-  cursor: pointer;
-  transition: all .15s;
-}
-.page-btn.active { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
-.page-btn:disabled { opacity: .4; cursor: not-allowed; }
-.page-btn:not(:disabled):not(.active):hover { background: #f8fafc; }
-
-/* ── GRID VIEW ── */
-.grid-view {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
-}
-.grid-card {
-  background: #fff;
-  border-radius: 16px;
-  border: 1.5px solid #f1f5f9;
-  overflow: hidden;
-  transition: transform .2s, box-shadow .2s;
-}
-.grid-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,.08); }
-.grid-card-header {
-  padding: 24px 20px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-.grid-initial {
-  width: 44px; height: 44px;
-  background: rgba(255,255,255,.25);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 18px; color: #fff;
-}
-.grid-card-body { padding: 16px 20px; }
-.grid-name { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
-.grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-.grid-stats > div { display: flex; flex-direction: column; gap: 2px; }
-.stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 600; }
-.stat-val   { font-size: 13px; font-weight: 700; color: #0f172a; }
-.stat-val.low { color: #f59e0b; }
-.grid-card-footer {
-  padding: 14px 20px;
-  border-top: 1px solid #f1f5f9;
-  display: flex; gap: 10px;
-}
-.grid-card-footer .action-btn { flex: 1; justify-content: center; }
-
-/* ── MODAL ── */
+/* MODAL */
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15,23,42,.45);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  animation: fadeIn .2s ease;
+  position: fixed; inset: 0;
+  background: rgba(28,25,23,0.45); backdrop-filter: blur(4px);
+  z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px;
 }
-@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-
-.modal {
-  background: #fff;
-  border-radius: 20px;
-  width: 600px;
-  max-width: 95vw;
-  box-shadow: 0 25px 60px rgba(0,0,0,.18);
-  animation: slideUp .25s ease;
+.modal-box {
+  background: var(--surface); border-radius: 16px;
+  width: 100%; max-width: 500px;
+  box-shadow: var(--shadow-lg); overflow: hidden; animation: modalIn 0.2s ease;
 }
-.modal.modal-sm { width: 420px; }
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
-
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 24px 28px 20px;
-  border-bottom: 1.5px solid #f1f5f9;
+  padding: 22px 24px 0; margin-bottom: 20px;
 }
-.modal-header h2 { font-size: 18px; font-weight: 700; color: #0f172a; }
+.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .modal-close {
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: #f1f5f9;
-  color: #64748b;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background .15s;
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  border: none; background: var(--bg); border-radius: 50%;
+  cursor: pointer; font-size: 16px; color: var(--text-secondary); transition: all 0.15s;
 }
-.modal-close:hover { background: #e2e8f0; }
-
-.modal-body { padding: 24px 28px; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 12px; font-weight: 600; color: #64748b; }
-.form-group input,
-.form-group select {
-  padding: 10px 14px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: #0f172a;
-  outline: none;
-  transition: border-color .2s;
-  background: #fff;
-}
-.form-group input:focus,
-.form-group select:focus { border-color: #1e3a5f; }
-
-.delete-warning { font-size: 14px; color: #475569; line-height: 1.6; }
-.delete-warning strong { color: #0f172a; }
-
+.modal-close:hover { background: var(--border); color: var(--text-primary); }
+.modal-body { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 16px; }
 .modal-footer {
-  display: flex; gap: 12px; justify-content: flex-end;
-  padding: 20px 28px 24px;
-  border-top: 1.5px solid #f1f5f9;
+  padding: 16px 24px; background: var(--bg); border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 10px;
 }
-.btn-cancel, .btn-save, .btn-delete {
-  padding: 10px 22px;
-  border-radius: 10px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all .15s;
-}
-.btn-cancel { background: #f1f5f9; color: #475569; }
-.btn-cancel:hover { background: #e2e8f0; }
-.btn-save   { background: #1e3a5f; color: #fff; }
-.btn-save:hover { background: #162d4a; }
-.btn-delete { background: #ef4444; color: #fff; }
-.btn-delete:hover { background: #dc2626; }
 
-/* ── RESPONSIVE ── */
-@media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) {
-  .inventory-main { padding: 24px 20px; }
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .toolbar  { flex-wrap: wrap; }
-  .form-grid { grid-template-columns: 1fr; }
+/* FORMS */
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
+.form-input, .form-select, .form-textarea {
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 14px;
+  color: var(--text-primary); outline: none; transition: border-color 0.15s; width: 100%;
 }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { resize: vertical; min-height: 80px; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--text-primary); color: #fff;
+  padding: 12px 20px; border-radius: var(--radius-sm); font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: var(--shadow-lg); z-index: 999; font-family: 'DM Sans', sans-serif;
+}
+.toast.error { background: var(--red); }
+.toast-icon { font-size: 16px; }
+.toast-enter-active, .toast-leave-active { transition: all 0.25s ease; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(10px); }
+
+/* EMPTY STATE */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 64px 24px; gap: 12px;
+  color: var(--text-muted); text-align: center;
+}
+.empty-icon  { font-size: 40px; opacity: 0.3; }
+.empty-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 600; color: var(--text-secondary); }
+.empty-desc  { font-size: 13px; }
 </style>
