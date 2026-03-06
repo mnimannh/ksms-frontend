@@ -485,7 +485,7 @@ export default {
 .staff-shift-page {
   display: flex;
   min-height: 100vh;
-  background: #f7f7f5;
+  background: #f6f7fb;
   font-family: 'DM Sans', sans-serif;
 }
 

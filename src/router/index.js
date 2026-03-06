@@ -49,6 +49,11 @@ const routes = [
 
   // ================= ADMIN =================
   {
+  path: '/admin',
+  redirect: '/admin/dashboard',
+  meta: { requiresAuth: true, role: 'admin' },
+},
+  {
     path: '/admin/dashboard',
     name: 'AdminDashboard',
     component: AdminDashboard,
@@ -97,8 +102,12 @@ const routes = [
   meta: { requiresAuth: true, role: 'admin' },
 },
 
-
   // ================= STAFF =================
+  {
+  path: '/staff',
+  redirect: '/staff/dashboard',
+  meta: { requiresAuth: true, role: 'staff' },
+},
   {
     path: '/staff/dashboard',
     name: 'StaffDashboard',
@@ -123,7 +132,6 @@ const routes = [
     component: ShiftViewing,
     meta: { requiresAuth: true, role: 'staff' },
   },
-
 ];
 
 const router = createRouter({
