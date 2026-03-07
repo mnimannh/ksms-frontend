@@ -57,29 +57,20 @@
 </template>
 
 <script>
+import API_BASE_URL from '@/services/api';
+import axios from 'axios';
+
 export default {
   name: "StaffSidebar",
   data() {
     return {
       menu: [
-        {
-          name: "Dashboard", path: "/staff/dashboard",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>`
-        },
-        {
-          name: "POS", path: "/staff/pos",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h2m2 0h2M5 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 9v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
-        },
-        {
-          name: "Shift", path: "/staff/shifts",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-        },
-        {
-          name: "Payroll", path: "/staff/payroll",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 6v4M6 7.5c0-.83.67-1.5 1.5-1.5h1a1.5 1.5 0 010 3h-1A1.5 1.5 0 006 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
-        },
+        { name: "Dashboard", path: "/staff/dashboard", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>` },
+        { name: "POS", path: "/staff/pos", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h2m2 0h2M5 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 9v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+        { name: "Shift", path: "/staff/shifts", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+        { name: "Payroll", path: "/staff/payroll", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 6v4M6 7.5c0-.83.67-1.5 1.5-1.5h1a1.5 1.5 0 010 3h-1A1.5 1.5 0 006 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
       ],
-      user: { fullName: "", role: "" }
+      user: { fullName: "", role: "" },
     };
   },
   mounted() {
@@ -90,30 +81,33 @@ export default {
     this.fetchUserInfo();
   },
   methods: {
-    async fetchUserInfo() {
-      try {
-        const token = localStorage.getItem("userToken");
-        if (!token) return;
-        const response = await fetch("http://127.0.0.1:3000/auth/me", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (!response.ok) throw new Error("Failed to fetch user info");
-        const data = await response.json();
-        this.user.fullName = data.fullName || "Staff";
-        this.user.role = data.role || "Employee";
-        localStorage.setItem("userName", this.user.fullName);
-        localStorage.setItem("userRole", this.user.role);
-      } catch (error) {
-        console.error("Error fetching user info:", error);
-      }
-    },
+   async fetchUserInfo() {
+  try {
+    const token = localStorage.getItem("userToken");
+    if (!token) return;
+
+    // ✅ Correct endpoint to match backend
+    const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    this.user.fullName = res.data.fullName || "Staff";
+    this.user.role = res.data.role || "Employee";
+
+    localStorage.setItem("userName", this.user.fullName);
+    localStorage.setItem("userRole", this.user.role);
+
+  } catch (err) {
+    console.error("Error fetching user info:", err);
+  }
+},
     handleLogout() {
       localStorage.removeItem("userToken");
       localStorage.removeItem("userName");
       localStorage.removeItem("userRole");
       window.location.href = "/";
-    }
-  }
+    },
+  },
 };
 </script>
 

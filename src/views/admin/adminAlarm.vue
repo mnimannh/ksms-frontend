@@ -126,7 +126,9 @@
 </template>
 
 <script>
+import API_BASE_URL from "@/services/api";
 import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
+import axios from 'axios'
 
 export default {
   name: 'AdminAlarm',
@@ -194,12 +196,11 @@ export default {
     }
   },
 
-  methods: {
+ methods: {
     async fetchAlarms() {
       try {
-        const res = await fetch('http://localhost:3000/api/alarm')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        this.alarms = await res.json()
+        const res = await axios.get(`${API_BASE_URL}/api/alarm`)
+        this.alarms = res.data
       } catch (err) {
         console.error('Failed to fetch alarms:', err)
       }
@@ -207,8 +208,7 @@ export default {
 
     async markAsRead(id) {
       try {
-        const res = await fetch(`http://localhost:3000/api/alarm/read/${id}`, { method: 'PATCH' })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        await axios.patch(`${API_BASE_URL}/api/alarm/read/${id}`)
         const alarm = this.alarms.find(a => a.id === id)
         if (alarm) alarm.is_read = 1
       } catch (err) {
@@ -225,7 +225,7 @@ export default {
   },
 
   mounted() {
-    // this.fetchAlarms()
+    this.fetchAlarms()
   }
 }
 </script>

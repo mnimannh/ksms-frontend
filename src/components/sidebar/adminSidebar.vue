@@ -57,6 +57,8 @@
 </template>
 
 <script>
+import API_BASE_URL from '@/services/api';
+import axios from 'axios';
 export default {
   name: "AdminSidebar",
   data() {
@@ -102,28 +104,32 @@ export default {
     this.fetchUserInfo();
   },
   methods: {
-    async fetchUserInfo() {
-      try {
-        const token = localStorage.getItem("userToken");
-        if (!token) return;
-        const response = await fetch("http://127.0.0.1:3000/auth/me", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (!response.ok) throw new Error("Failed to fetch user info");
-        const data = await response.json();
-        this.user.fullName = data.fullName || "Admin";
-        this.user.role = data.role || "Administrator";
-        localStorage.setItem("userName", this.user.fullName);
-        localStorage.setItem("userRole", this.user.role);
-      } catch (error) {
-        console.error("Error fetching user info:", error);
-      }
-    },
+async fetchUserInfo() {
+  try {
+    const token = localStorage.getItem("userToken");
+    if (!token) return;
+
+    const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    this.user.fullName = response.data.fullName || "Admin";
+    this.user.role = response.data.role || "Administrator";
+    localStorage.setItem("userName", this.user.fullName);
+    localStorage.setItem("userRole", this.user.role);
+
+  } catch (error) {
+    console.error("Error fetching user info:", error);
+  }
+},
     handleLogout() {
       localStorage.removeItem("userToken");
       localStorage.removeItem("userName");
       localStorage.removeItem("userRole");
       window.location.href = "/";
+    },
+    isActive(path) {
+      return this.$route.path.startsWith(path);
     }
   }
 };

@@ -108,6 +108,7 @@
 </template>
 
 <script>
+import API_BASE_URL from "@/services/api";
 import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
 import UserModal from '@/components/admin-user/UserModal.vue'
 import axios from 'axios'
@@ -142,30 +143,16 @@ export default {
   methods: {
     async fetchUsers() {
       try {
-        const res = await axios.get('http://localhost:3000/api/users')
+        const res = await axios.get(`${API_BASE_URL}/api/users`)
         this.users = res.data
       } catch (err) {
         console.error('Error fetching users:', err)
       }
     },
-    formatDate(dateStr) {
-      if (!dateStr) return '—'
-      const d = new Date(dateStr)
-      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    },
-    searchUsers() {},
-    openAddModal() {
-      this.selectedUser = null
-      this.showModal = true
-    },
-    openEditModal(user) {
-      this.selectedUser = user
-      this.showModal = true
-    },
     async deleteUser(id) {
       if (!confirm('Are you sure you want to delete this user?')) return
       try {
-        await axios.delete(`http://localhost:3000/api/users/${id}`)
+        await axios.delete(`${API_BASE_URL}/api/users/${id}`)
         this.users = this.users.filter(u => u.id !== id)
       } catch (err) {
         console.error('Error deleting user:', err)
@@ -173,6 +160,19 @@ export default {
     },
     refreshUsers() {
       this.fetchUsers()
+    },
+    formatDate(dateStr) {
+      if (!dateStr) return '—'
+      const d = new Date(dateStr)
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    },
+    openAddModal() {
+      this.selectedUser = null
+      this.showModal = true
+    },
+    openEditModal(user) {
+      this.selectedUser = user
+      this.showModal = true
     },
     setRoleFilter(role) {
       this.selectedRole = role

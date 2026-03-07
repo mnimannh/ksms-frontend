@@ -5,7 +5,6 @@
 
     <!-- Main Content -->
     <div class="shift-content">
-
       <!-- Header -->
       <div class="page-header">
         <div class="header-left">
@@ -64,187 +63,61 @@
               </div>
               <button class="modal-close" @click="selectedShift = null">✕</button>
             </div>
-<div class="modal-body">
-  <div class="modal-row">
-    <span class="modal-field">Date</span>
-    <span class="modal-value">{{ formatDate(selectedShift.startTime) }}</span>
-  </div>
-  <div class="modal-row">
-    <span class="modal-field">Start</span>
-    <span class="modal-value">{{ formatTime(selectedShift.startTime) }}</span>
-  </div>
-  <div class="modal-row">
-    <span class="modal-field">End</span>
-    <span class="modal-value">{{ formatTime(selectedShift.endTime) }}</span>
-  </div>
-  <div class="modal-row">
-    <span class="modal-field">Duration</span>
-    <span class="modal-value">{{ getDuration(selectedShift.startTime, selectedShift.endTime) }}</span>
-  </div>
-  <div class="modal-row">
-    <span class="modal-field">Assigned By</span>
-    <span class="modal-value">{{ selectedShift.assignedBy }}</span>
-  </div>
-
-  <!-- New Fields -->
-  <div class="modal-row">
-    <span class="modal-field">Actual Check-In</span>
-    <span class="modal-value">
-      {{ selectedShift.actualCheckIn ? formatTime(selectedShift.actualCheckIn) : '—' }}
-    </span>
-  </div>
-  <div class="modal-row">
-    <span class="modal-field">Actual Check-Out</span>
-    <span class="modal-value">
-      {{ selectedShift.actualCheckOut ? formatTime(selectedShift.actualCheckOut) : '—' }}
-    </span>
-  </div>
-  <div class="modal-row">
-    <span class="modal-field">Status</span>
-    <span class="modal-value">
-      {{ selectedShift.status || 'Pending' }}
-    </span>
-  </div>
-
-  <div class="modal-row notes-row" v-if="selectedShift.notes">
-    <span class="modal-field">Notes</span>
-    <span class="modal-value notes">{{ selectedShift.notes }}</span>
-  </div>
-</div>
+            <div class="modal-body">
+              <div class="modal-row">
+                <span class="modal-field">Date</span>
+                <span class="modal-value">{{ formatDate(selectedShift.startTime) }}</span>
+              </div>
+              <div class="modal-row">
+                <span class="modal-field">Start</span>
+                <span class="modal-value">{{ formatTime(selectedShift.startTime) }}</span>
+              </div>
+              <div class="modal-row">
+                <span class="modal-field">End</span>
+                <span class="modal-value">{{ formatTime(selectedShift.endTime) }}</span>
+              </div>
+              <div class="modal-row">
+                <span class="modal-field">Duration</span>
+                <span class="modal-value">{{ getDuration(selectedShift.startTime, selectedShift.endTime) }}</span>
+              </div>
+              <div class="modal-row">
+                <span class="modal-field">Assigned By</span>
+                <span class="modal-value">{{ selectedShift.assignedByName }}</span>
+              </div>
+              <div class="modal-row">
+                <span class="modal-field">Actual Check-In</span>
+                <span class="modal-value">
+                  {{ selectedShift.actualCheckIn ? formatTime(selectedShift.actualCheckIn) : '—' }}
+                </span>
+              </div>
+              <div class="modal-row">
+                <span class="modal-field">Actual Check-Out</span>
+                <span class="modal-value">
+                  {{ selectedShift.actualCheckOut ? formatTime(selectedShift.actualCheckOut) : '—' }}
+                </span>
+              </div>
+              <div class="modal-row">
+                <span class="modal-field">Status</span>
+                <span class="modal-value">
+                  {{ selectedShift.status || 'Pending' }}
+                </span>
+              </div>
+              <div class="modal-row notes-row" v-if="selectedShift.notes">
+                <span class="modal-field">Notes</span>
+                <span class="modal-value notes">{{ selectedShift.notes }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </transition>
-
     </div>
   </div>
 </template>
 
 <script>
+import API_BASE_URL from "@/services/api";
 import StaffSidebar from "@/components/sidebar/staffSidebar.vue";
-
-// Hardcoded shift data based on shift_assignment table structure
-const hardcodedShifts = [
-  {
-    id: 1,
-    userID: 5,
-    assignedBy: "Abu John (Manager)",
-    startTime: "2025-03-03T07:00:00",
-    endTime: "2025-03-03T15:00:00",
-    shiftType: "Morning",
-    notes: "Open the store. Check inventory first.",
-    created_at: "2025-02-20T10:00:00"
-  },
-  {
-    id: 2,
-    userID: 5,
-    assignedBy: "Sarah Chen (Manager)",
-    startTime: "2025-03-05T14:00:00",
-    endTime: "2025-03-05T22:00:00",
-    shiftType: "Evening",
-    notes: "Closing shift. Ensure all systems are locked.",
-    created_at: "2025-02-20T10:00:00"
-  },
-  {
-    id: 3,
-    userID: 5,
-    assignedBy: "Ahmad Raza (Supervisor)",
-    startTime: "2025-03-07T07:00:00",
-    endTime: "2025-03-07T15:00:00",
-    shiftType: "Morning",
-    notes: null,
-    created_at: "2025-02-22T09:00:00"
-  },
-  {
-    id: 4,
-    userID: 5,
-    assignedBy: "Sarah Chen (Manager)",
-    startTime: "2025-03-10T14:00:00",
-    endTime: "2025-03-10T22:00:00",
-    shiftType: "Evening",
-    notes: "Team briefing at 14:30.",
-    created_at: "2025-02-22T09:00:00"
-  },
-  {
-    id: 5,
-    userID: 5,
-    assignedBy: "Ahmad Raza (Supervisor)",
-    startTime: "2025-03-12T07:00:00",
-    endTime: "2025-03-12T15:00:00",
-    shiftType: "Morning",
-    notes: null,
-    created_at: "2025-02-25T11:00:00"
-  },
-  {
-    id: 6,
-    userID: 5,
-    assignedBy: "Sarah Chen (Manager)",
-    startTime: "2025-03-14T07:00:00",
-    endTime: "2025-03-14T15:00:00",
-    shiftType: "Morning",
-    notes: "Training new recruit — show floor procedures.",
-    created_at: "2025-02-25T11:00:00"
-  },
-  {
-    id: 7,
-    userID: 5,
-    assignedBy: "Sarah Chen (Manager)",
-    startTime: "2025-03-17T14:00:00",
-    endTime: "2025-03-17T22:00:00",
-    shiftType: "Evening",
-    notes: null,
-    created_at: "2025-03-01T08:00:00"
-  },
-  {
-    id: 8,
-    userID: 5,
-    assignedBy: "Ahmad Raza (Supervisor)",
-    startTime: "2025-03-19T07:00:00",
-    endTime: "2025-03-19T15:00:00",
-    shiftType: "Morning",
-    notes: "Monthly stock audit.",
-    created_at: "2025-03-01T08:00:00"
-  },
-  {
-    id: 9,
-    userID: 5,
-    assignedBy: "Sarah Chen (Manager)",
-    startTime: "2025-03-21T14:00:00",
-    endTime: "2025-03-21T22:00:00",
-    shiftType: "Evening",
-    notes: null,
-    created_at: "2025-03-05T07:00:00"
-  },
-  {
-    id: 10,
-    userID: 5,
-    assignedBy: "Ahmad Raza (Supervisor)",
-    startTime: "2025-03-24T07:00:00",
-    endTime: "2025-03-24T15:00:00",
-    shiftType: "Morning",
-    notes: "Weekly debrief with team at 08:00.",
-    created_at: "2025-03-05T07:00:00"
-  },
-  {
-    id: 11,
-    userID: 5,
-    assignedBy: "Sarah Chen (Manager)",
-    startTime: "2025-03-26T14:00:00",
-    endTime: "2025-03-26T22:00:00",
-    shiftType: "Evening",
-    notes: null,
-    created_at: "2025-03-05T07:00:00"
-  },
-  {
-    id: 12,
-    userID: 5,
-    assignedBy: "Ahmad Raza (Supervisor)",
-    startTime: "2025-03-28T07:00:00",
-    endTime: "2025-03-28T15:00:00",
-    shiftType: "Morning",
-    notes: "Prep for end-of-month reporting.",
-    created_at: "2025-03-05T07:00:00"
-  }
-];
+import axios from "axios";
 
 export default {
   name: "StaffShift",
@@ -254,7 +127,8 @@ export default {
     return {
       selectedShift: null,
       calendar: null,
-      shifts: hardcodedShifts,
+      shifts: [],
+      loading: false,
     };
   },
 
@@ -296,7 +170,7 @@ export default {
   },
 
   mounted() {
-    this.loadFullCalendar();
+    this.fetchShifts();
   },
 
   beforeUnmount() {
@@ -304,45 +178,95 @@ export default {
   },
 
   methods: {
-    loadFullCalendar() {
-      // Load FullCalendar CSS
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css";
-      document.head.appendChild(link);
+async fetchShifts() {
+  this.loading = true;
+  try {
+    const token = localStorage.getItem("userToken");
+    if (!token) return;
 
-      // Load FullCalendar JS
-      const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js";
-      script.onload = () => this.initCalendar();
-      document.head.appendChild(script);
+    // 1️⃣ Fetch all shifts for the current staff
+    const { data: shiftsData } = await axios.get(`${API_BASE_URL}/api/shifts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // 2️⃣ Fetch attendance for each shift
+    const shiftsWithAttendance = await Promise.all(
+      shiftsData.map(async (shift) => {
+        try {
+          const { data: attendanceLogs } = await axios.get(
+            `${API_BASE_URL}/api/attendance/shift/${shift.id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          const log = attendanceLogs[0] || {};
+          return {
+            ...shift,
+            actualCheckIn: log.checkIn || null,
+            actualCheckOut: log.checkOut || null,
+            status: log.status || "Pending",
+          };
+        } catch (err) {
+          console.error(`Error fetching attendance for shift ${shift.id}:`, err);
+          return { ...shift, actualCheckIn: null, actualCheckOut: null, status: "Pending" };
+        }
+      })
+    );
+
+    // 3️⃣ Update component state
+    this.shifts = shiftsWithAttendance;
+
+    // 4️⃣ Update or initialize FullCalendar
+    if (this.calendar) {
+      this.calendar.getEventSources().forEach((source) => source.remove());
+      this.calendar.addEventSource(this.calendarEvents);
+    } else {
+      this.loadFullCalendar();
+    }
+
+  } catch (err) {
+    console.error("Error fetching shifts:", err);
+  } finally {
+    this.loading = false;
+  }
+},
+
+    loadFullCalendar() {
+      // Avoid appending duplicate link/script tags if they already exist
+      if (!document.getElementById("fc-min-css")) {
+        const link = document.createElement("link");
+        link.id = "fc-min-css";
+        link.rel = "stylesheet";
+        link.href = "https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css";
+        document.head.appendChild(link);
+      }
+
+      if (!window.FullCalendar) {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js";
+        script.onload = () => this.initCalendar();
+        document.head.appendChild(script);
+      } else {
+        this.initCalendar();
+      }
     },
 
     initCalendar() {
       const el = document.getElementById("calendar");
-      if (!el || !window.FullCalendar) return;
+      if (!el || !window.FullCalendar || this.calendar) return;
 
       const self = this;
       this.calendar = new window.FullCalendar.Calendar(el, {
         initialView: "dayGridMonth",
-        initialDate: "2025-03-01",
         headerToolbar: {
           left: "prev,next today",
           center: "title",
           right: "dayGridMonth,timeGridWeek,listMonth"
         },
         height: "auto",
+        // Load events once during initialization
         events: this.calendarEvents,
         eventClick(info) {
-          const props = info.event.extendedProps;
-          self.selectedShift = { ...props };
-        },
-        eventMouseEnter(info) {
-          info.el.style.transform = "scale(1.02)";
-          info.el.style.transition = "transform 0.15s ease";
-        },
-        eventMouseLeave(info) {
-          info.el.style.transform = "scale(1)";
+          self.selectedShift = { ...info.event.extendedProps };
         },
         dayMaxEvents: 3,
         eventDisplay: "block",
@@ -519,7 +443,7 @@ export default {
 }
 
 .page-title {
-  font-family: 'DM Serif Display', Georgia, serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 2.2rem;
   color: #111;
   margin: 0;

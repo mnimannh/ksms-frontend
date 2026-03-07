@@ -92,12 +92,10 @@
           <!-- GENERATE MODE -->
           <div v-else class="generate-area">
             <div class="generate-controls">
-              <!-- Prefix (hidden for EAN-13) -->
               <div class="gen-field" v-if="genFormat !== 'EAN13'">
                 <label class="gen-sublabel">Prefix</label>
                 <input v-model="genPrefix" class="form-input gen-input" placeholder="e.g. MLO" maxlength="6" @input="generateBarcode" />
               </div>
-              <!-- Format -->
               <div class="gen-field">
                 <label class="gen-sublabel">Format</label>
                 <select v-model="genFormat" class="form-select gen-input" @change="generateBarcode">
@@ -105,7 +103,6 @@
                   <option value="EAN13">EAN-13</option>
                 </select>
               </div>
-              <!-- Regenerate -->
               <button class="btn-regen" type="button" @click="generateBarcode" title="Regenerate">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
@@ -113,12 +110,11 @@
               </button>
             </div>
 
-            <!-- JsBarcode SVG preview -->
+            <!-- FIX: stable id instead of $refs for reliable querySelector -->
             <div class="barcode-preview" v-if="form.barcode">
-              <svg ref="barcodesvg"></svg>
+              <svg id="barcode-preview-svg"></svg>
             </div>
 
-            <!-- Action row -->
             <div class="generate-actions">
               <div class="gen-result-wrap">
                 <input :value="form.barcode" class="form-input gen-result" readonly />
@@ -155,8 +151,9 @@
       </div>
     </div>
 
-    <!-- ── PRINT PAGE (full-screen overlay) ──────────────────────── -->
-    <div class="print-page-overlay" v-else>
+    <!-- ── PRINT PAGE ──────────────────────────────────────────── -->
+    <!-- FIX: id added so renderAllLabels can scope its querySelector to this element -->
+    <div class="print-page-overlay" v-else id="printPageOverlay">
       <div class="print-toolbar no-print">
         <div class="pt-left">
           <button class="pt-back" @click="showPrintPage = false">
@@ -168,13 +165,7 @@
         <div class="pt-right">
           <div class="pt-control">
             <label>Copies per barcode</label>
-            <input
-              :value="printCopies"
-              type="number"
-              class="pt-num"
-              readonly
-              tabindex="-1"
-            />
+            <input :value="printCopies" type="number" class="pt-num" readonly tabindex="-1" />
           </div>
           <div class="pt-control">
             <label>Label size</label>
@@ -193,19 +184,19 @@
         </div>
       </div>
 
-      <!-- A4 sheet -->
       <div class="a4-wrap">
         <div class="a4-sheet" id="printSheet">
-          <div class="a4-header no-print-hide">
+          <div class="a4-header">
             <div class="a4-store-name">Koperasi Smart Management System (KSMS)</div>
             <div class="a4-meta">Generated: {{ printDate }} · Variant: {{ form.variant_name || '—' }}</div>
           </div>
+          <!-- FIX: SVGs identified by class, not :ref callbacks -->
           <div class="label-grid" :class="`size-${labelSize}`">
             <div v-for="n in printCopies" :key="n" class="label-cell">
               <div class="label-product">{{ selectedProductName }}</div>
               <div class="label-variant">{{ form.variant_name }}</div>
               <div class="label-bars">
-                <svg :ref="el => { if (el) labelSvgEls[n] = el }"></svg>
+                <svg class="label-barcode-svg"></svg>
               </div>
               <div class="label-code">{{ form.barcode }}</div>
               <div class="label-price" v-if="form.price">RM {{ Number(form.price).toFixed(2) }}</div>
@@ -241,17 +232,14 @@ export default {
       },
       errors: {},
 
-      // barcode
-      barcodeMode: 'scan', // 'scan' | 'generate'
+      barcodeMode: 'scan',
       isScanning: false,
       genPrefix: '',
       genFormat: 'CODE128',
       justCopied: false,
 
-      // print
       showPrintPage: false,
       labelSize: 'medium',
-      labelSvgEls: {},
       printDate: new Date().toLocaleDateString('en-MY', {
         day: 'numeric', month: 'short', year: 'numeric',
       }),
@@ -269,14 +257,9 @@ export default {
   },
 
   watch: {
-    'form.barcode'() {
-      if (this.barcodeMode === 'generate') {
+    'form.barcode'(val) {
+      if (this.barcodeMode === 'generate' && val) {
         this.$nextTick(() => this.renderPreview())
-      }
-    },
-    showPrintPage(val) {
-      if (val) {
-        this.$nextTick(() => this.renderAllLabels())
       }
     },
     labelSize() {
@@ -292,6 +275,29 @@ export default {
   },
 
   methods: {
+    // ── Safe JsBarcode wrapper ──────────────────────────────────────
+    // Reads JsBarcode from window so it works regardless of how it was imported.
+    // Logs a clear error if the library isn't loaded at all.
+    _renderBarcode(svgEl, value, extraOptions = {}) {
+      if (!svgEl || !value) return
+      if (typeof window.JsBarcode !== 'function') {
+        console.error('[VariantModal] JsBarcode not found on window. Make sure the script tag is included before this component.')
+        return
+      }
+      try {
+        window.JsBarcode(svgEl, value, {
+          format: this.genFormat,
+          displayValue: false,
+          lineColor: '#000000',
+          background: '#ffffff',
+          margin: 4,
+          ...extraOptions,
+        })
+      } catch (e) {
+        console.warn('[VariantModal] JsBarcode render error:', e.message)
+      }
+    },
+
     switchMode(mode) {
       this.barcodeMode = mode
       if (mode === 'generate' && !this.form.barcode) {
@@ -317,42 +323,30 @@ export default {
     },
 
     renderPreview() {
-      const el = this.$refs.barcodesvg
-      if (!el || !this.form.barcode) return
-      try {
-        JsBarcode(el, this.form.barcode, {
-          format: this.genFormat,
-          width: 1.8,
-          height: 48,
-          displayValue: false,
-          margin: 4,
-          lineColor: '#0f172a',
-          background: '#ffffff',
-        })
-      } catch (e) {
-        // invalid value — silently skip
-      }
+      // FIX: getElementById is reliable after v-if re-mounts the element.
+      // $refs.barcodesvg can be stale if the v-if toggled since last render.
+      const el = document.getElementById('barcode-preview-svg')
+      this._renderBarcode(el, this.form.barcode, { width: 1.8, height: 48, lineColor: '#0f172a' })
     },
 
     renderAllLabels() {
+      if (!this.form.barcode) return
+
       const barcodeHeight = this.labelSize === 'small' ? 18 : this.labelSize === 'large' ? 32 : 22
       const barcodeWidth  = this.labelSize === 'small' ? 1.0 : this.labelSize === 'large' ? 1.6 : 1.2
 
-      for (let n = 1; n <= this.printCopies; n++) {
-        const el = this.labelSvgEls[n]
-        if (!el || !this.form.barcode) continue
-        try {
-          JsBarcode(el, this.form.barcode, {
-            format: this.genFormat,
-            width: barcodeWidth,
-            height: barcodeHeight,
-            displayValue: false,
-            margin: 2,
-            lineColor: '#000000',
-            background: '#ffffff',
-          })
-        } catch (e) {}
-      }
+      // FIX: querySelector on the print overlay instead of :ref callbacks.
+      // The :ref="el => obj[n] = el" pattern in v-for is unreliable in Vue 3 —
+      // the callback fires with null on unmount/remount cycles and the timing
+      // relative to nextTick is not guaranteed. querySelectorAll on the live
+      // DOM element always returns the actual rendered nodes.
+      const container = document.getElementById('printPageOverlay')
+      if (!container) return
+
+      const svgEls = container.querySelectorAll('svg.label-barcode-svg')
+      svgEls.forEach(el => {
+        this._renderBarcode(el, this.form.barcode, { width: barcodeWidth, height: barcodeHeight, margin: 2 })
+      })
     },
 
     rerenderLabels() {
@@ -371,42 +365,33 @@ export default {
 
     openPrintPage() {
       if (!this.form.barcode) this.generateBarcode()
-      this.labelSvgEls = {}
       this.showPrintPage = true
+
+      // FIX: two $nextTick calls + setTimeout ensures:
+      //   tick 1 → Vue flips showPrintPage, schedules DOM update
+      //   tick 2 → DOM update is flushed, label cells exist in DOM
+      //   setTimeout 50ms → browser has painted, querySelectorAll is safe
+      this.$nextTick(() => {
+        this.$nextTick(() => {
+          setTimeout(() => this.renderAllLabels(), 50)
+        })
+      })
     },
 
-doPrint() {
-  const printContents = document.getElementById('printSheet').outerHTML
-  const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-    .map(el => el.outerHTML)
-    .join('')
-
-  const printWindow = window.open('', '_blank')
-  printWindow.document.open()
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>Print Barcodes</title>
-        ${styles}
-        <style>
-          body { margin: 0; padding: 0; }
-        </style>
-      </head>
-      <body>${printContents}</body>
-    </html>
-  `)
-  printWindow.document.close()
-  printWindow.focus()
-  printWindow.print()
-  printWindow.close()
-},
+    // FIX: window.print() prints the live DOM which already has barcodes rendered.
+    // The old approach (new window + outerHTML) copied blank SVG shells because
+    // JsBarcode writes directly into live DOM nodes — that state is NOT captured
+    // in outerHTML / innerHTML snapshots.
+    doPrint() {
+      window.print()
+    },
 
     validate() {
       this.errors = {}
-      if (!this.form.inventory_id)        this.errors.inventory_id  = 'Please select a product.'
-      if (!this.form.variant_name?.trim()) this.errors.variant_name  = 'Variant name is required.'
+      if (!this.form.inventory_id)         this.errors.inventory_id = 'Please select a product.'
+      if (!this.form.variant_name?.trim())  this.errors.variant_name = 'Variant name is required.'
       if (!this.form.price || this.form.price < 0) this.errors.price = 'Valid price is required.'
-      if (!this.form.barcode?.trim())      this.errors.barcode       = 'Barcode is required.'
+      if (!this.form.barcode?.trim())       this.errors.barcode      = 'Barcode is required.'
       return Object.keys(this.errors).length === 0
     },
 
@@ -424,7 +409,6 @@ doPrint() {
 </script>
 
 <style scoped>
-/* ── Barcode mode tabs ──────────────────────────────────────────── */
 .barcode-mode-tabs {
   display: flex;
   gap: 0;
@@ -455,7 +439,6 @@ doPrint() {
 .mode-tab:hover { color: var(--text-primary); background: var(--surface); }
 .mode-tab.active { background: var(--accent); color: #fff; font-weight: 500; }
 
-/* ── Scan area ──────────────────────────────────────────────────── */
 .scan-area { display: flex; flex-direction: column; gap: 8px; }
 .scan-input-wrap {
   position: relative;
@@ -504,7 +487,6 @@ doPrint() {
   padding: 7px 11px;
 }
 
-/* ── Generate area ──────────────────────────────────────────────── */
 .generate-area { display: flex; flex-direction: column; gap: 10px; }
 .generate-controls { display: flex; gap: 8px; align-items: flex-end; }
 .gen-field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
@@ -537,7 +519,6 @@ doPrint() {
   transform: rotate(180deg);
 }
 
-/* ── Barcode SVG preview ────────────────────────────────────────── */
 .barcode-preview {
   display: flex;
   flex-direction: column;
@@ -549,7 +530,6 @@ doPrint() {
 }
 .barcode-preview svg { max-width: 100%; display: block; }
 
-/* ── Generate actions ────────────────────────────────────────────── */
 .generate-actions { display: flex; gap: 8px; align-items: stretch; }
 .gen-result-wrap { flex: 1; position: relative; display: flex; }
 .gen-result {
@@ -598,7 +578,6 @@ doPrint() {
 }
 .btn-print-trigger:hover { background: var(--accent); color: #fff; }
 
-/* ── Shared form helpers ──────────────────────────────────────────── */
 .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-error { color: var(--red); font-size: 12px; margin-top: 2px; }
 
@@ -614,8 +593,6 @@ doPrint() {
   flex-direction: column;
   overflow: auto;
 }
-
-/* Toolbar */
 .print-toolbar {
   position: sticky;
   top: 0;
@@ -660,7 +637,6 @@ doPrint() {
   font-size: 13px;
   text-align: center;
   outline: none;
-  /* readonly styling */
   cursor: default;
   color: var(--text-muted);
   user-select: none;
@@ -693,7 +669,6 @@ doPrint() {
 }
 .pt-print-btn:hover { background: var(--accent-hover); }
 
-/* A4 paper */
 .a4-wrap { display: flex; justify-content: center; padding: 32px 24px 48px; }
 .a4-sheet {
   width: 210mm;
@@ -714,7 +689,6 @@ doPrint() {
 .a4-store-name { font-size: 15px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; }
 .a4-meta { font-size: 10px; color: #94a3b8; font-family: 'DM Mono', monospace; }
 
-/* Label grid */
 .label-grid { display: grid; }
 .label-grid.size-small  { grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(7, auto); gap: 3mm; }
 .label-grid.size-medium { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(7, auto); gap: 4mm; }
@@ -747,7 +721,6 @@ doPrint() {
 .label-code { font-family: 'DM Mono', monospace; font-size: 7px; color: #374151; letter-spacing: 0.08em; text-align: center; }
 .label-price { font-size: 9px; font-weight: 700; color: #0f172a; margin-top: 0.5mm; }
 
-/* ── Print media query ───────────────────────────────────────────── */
 @media print {
   .no-print { display: none !important; }
   .print-page-overlay {

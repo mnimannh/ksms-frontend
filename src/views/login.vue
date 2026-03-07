@@ -91,6 +91,7 @@
 </template>
 
 <script>
+import API_BASE_URL from '@/services/api'
 export default {
   name: 'LoginView',
   data() {
@@ -115,8 +116,8 @@ export default {
       if (!this.validate()) return
       this.loading = true
       try {
-        const res = await fetch('http://127.0.0.1:3000/auth/login', {
-          method: 'POST',
+           const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: this.form.email, password: this.form.password })
         })

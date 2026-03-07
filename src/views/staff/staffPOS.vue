@@ -94,6 +94,7 @@
 </template>
 
 <script>
+import API_BASE_URL from '@/services/api';
 import StaffSidebar from '@/components/sidebar/staffSidebar.vue';
 import CategoryFilter from '@/components/pos/CategoryFilter.vue';
 import ProductCard from '@/components/pos/ProductCard.vue';
@@ -121,13 +122,16 @@ export default {
   computed: {
     filteredProducts() {
       let list = this.products;
-      if (this.selectedCategoryId !== 0)
+      if (this.selectedCategoryId !== 0) {
         list = list.filter((p) => p.category_id === this.selectedCategoryId);
-      if (this.searchQuery.trim())
-        list = list.filter((p) =>
-          p.variant_name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          p.inventoryName?.toLowerCase().includes(this.searchQuery.toLowerCase())
+      }
+      if (this.searchQuery.trim()) {
+        list = list.filter(
+          (p) =>
+            p.variant_name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+            p.inventoryName?.toLowerCase().includes(this.searchQuery.toLowerCase())
         );
+      }
       return list;
     },
     total() {
@@ -138,8 +142,8 @@ export default {
   async created() {
     try {
       const [catRes, prodRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/categories'),
-        axios.get('http://localhost:3000/api/variants'),
+        axios.get(`${API_BASE_URL}/api/categories`),
+        axios.get(`${API_BASE_URL}/api/variants`),
       ]);
       this.categories = [{ id: 0, name: 'All' }, ...catRes.data];
       this.products = prodRes.data;
@@ -162,8 +166,7 @@ export default {
   },
 
   methods: {
-    onDocClick(e) {
-      // Don't steal focus from search input
+    onDocClick() {
       if (!this.pauseScanner) this.focusScanner();
     },
 
@@ -196,9 +199,14 @@ export default {
       const item = this.cart.find((i) => i.id === id);
       if (!item) return;
       const max = item.quantity;
-      if (qty > max) { alert('Exceeds stock limit'); item.orderQty = max; }
-      else if (qty < 1) { item.orderQty = 1; }
-      else { item.orderQty = qty; }
+      if (qty > max) {
+        alert('Exceeds stock limit');
+        item.orderQty = max;
+      } else if (qty < 1) {
+        item.orderQty = 1;
+      } else {
+        item.orderQty = qty;
+      }
     },
 
     resetCart() {
@@ -208,7 +216,7 @@ export default {
     // ── Product polling ───────────────────────────────────────
     async loadProducts() {
       try {
-        const prodRes = await axios.get('http://localhost:3000/api/variants');
+        const prodRes = await axios.get(`${API_BASE_URL}/api/variants`);
         this.products = prodRes.data.map((p) => {
           const inCart = this.cart.find((c) => c.id === p.id);
           return { ...p, orderQty: inCart ? inCart.orderQty : 0 };
@@ -229,15 +237,13 @@ export default {
       if (!this.barcode) return;
       const cleanedBarcode = this.barcode.trim().replace(/[\r\n]/g, '');
       try {
-        const res = await axios.get(
-          `http://localhost:3000/api/variants/barcode/${cleanedBarcode}`
-        );
+        const res = await axios.get(`${API_BASE_URL}/api/variants/barcode/${cleanedBarcode}`);
         if (res.data) {
           this.addToCart(res.data);
         } else {
           alert('Product not found!');
         }
-      } catch (err) {
+      } catch {
         alert('Product not found!');
       } finally {
         this.barcode = '';
@@ -249,7 +255,7 @@ export default {
     async processPayment() {
       if (!this.cart.length) return;
       try {
-        await axios.post('http://localhost:3000/api/orders', {
+        await axios.post(`${API_BASE_URL}/api/orders`, {
           items: this.cart.map((i) => ({ id: i.id, quantity: i.orderQty })),
         });
         alert('Payment successful!');
