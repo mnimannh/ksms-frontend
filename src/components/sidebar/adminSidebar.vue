@@ -89,7 +89,7 @@ export default {
           icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
         },
         {
-          name: "Shift Payroll Report", path: "/admin/shiftpayrollreport",
+          name: "Shift & Payroll Report", path: "/admin/shiftpayrollreport",
           icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
         },
         {
