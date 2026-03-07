@@ -5,7 +5,7 @@
       <header class="modal-header">
         <div class="modal-title-group">
           <span class="modal-eyebrow">{{ user ? 'Edit' : 'New' }} User</span>
-          <h2>{{ user ? user.fullName : 'Add a user' }}</h2>
+          <h2>{{ user ? user.fullName : 'Add new user' }}</h2>
         </div>
         <button class="close-btn" @click="closeModal">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -481,7 +481,7 @@ input[type="checkbox"]:checked + .checkbox-box {
   font-size: 13px;
   font-weight: 500;
   color: #fff;
-  background: #111827;
+  background: #16a34a;
   border: none;
   padding: 9px 20px;
   border-radius: 8px;

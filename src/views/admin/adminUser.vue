@@ -9,7 +9,7 @@
           <h1>Manage Users</h1>
         </div>
         <button class="btn-add" @click="openAddModal">
-          <span class="btn-icon">+</span> New User
+          <span class="">+</span> New User
         </button>
       </header>
 
@@ -233,7 +233,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
-  background-color: #111827;
+  background-color: #16a34a;
   color: #fff;
   border: none;
   padding: 9px 18px;

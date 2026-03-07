@@ -47,7 +47,7 @@
               </svg>
             </div>
             <div>
-              <p class="doc-store">KSMS Store System</p>
+              <p class="doc-store">KSMS</p>
               <h1 class="doc-title">Inventory Report</h1>
             </div>
           </div>

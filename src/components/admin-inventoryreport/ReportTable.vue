@@ -38,7 +38,6 @@
             <th class="col-num sortable" @click="sort('potentialRevenue')">
               Potential Rev. <span class="arr" :class="sortBy==='potentialRevenue' ? sortDir : ''">↕</span>
             </th>
-            <th class="col-status">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -61,12 +60,9 @@
             <td class="col-num td-mono td-indigo">{{ row.remaining }}</td>
             <td class="col-num td-mono td-green fw-bold">{{ fmt(row.revenue) }}</td>
             <td class="col-num td-mono td-indigo">{{ fmt(row.potentialRevenue) }}</td>
-            <td class="col-status">
-              <span class="status-pill" :class="statusClass(row)">{{ statusText(row) }}</span>
-            </td>
           </tr>
           <tr v-if="sortedRows.length === 0">
-            <td colspan="10" class="td-empty">No records match your search.</td>
+            <td colspan="9" class="td-empty">No records match your search.</td>
           </tr>
         </tbody>
         <tfoot>
@@ -77,7 +73,6 @@
             <td class="col-num td-mono td-bold td-indigo">{{ totals.remaining }}</td>
             <td class="col-num td-mono td-bold td-green">{{ fmt(totals.revenue) }}</td>
             <td class="col-num td-mono td-bold td-indigo">{{ fmt(totals.potentialRevenue) }}</td>
-            <td />
           </tr>
         </tfoot>
       </table>
@@ -98,7 +93,7 @@ const CAT_COLORS = {
 export default {
   name: 'ReportTable',
   props: {
-    rows: { type: Array, required: true }, // enriched rows
+    rows: { type: Array, required: true },
   },
 
   data() {
@@ -147,19 +142,6 @@ export default {
     },
 
     catColor(cat) { return CAT_COLORS[cat] || '#6366f1' },
-
-    statusClass(row) {
-      if (row.stock === 0)      return 'st-out'
-      if (row.stock <= 5)       return 'st-low'
-      if (row.sold > row.stock) return 'st-high'
-      return 'st-ok'
-    },
-    statusText(row) {
-      if (row.stock === 0)      return 'Out of Stock'
-      if (row.stock <= 5)       return 'Low Stock'
-      if (row.sold > row.stock) return 'High Turnover'
-      return 'Adequate'
-    },
 
     fmt(val) {
       return Number(val).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -261,5 +243,11 @@ export default {
   .report-table tfoot td  { padding: 7px 6px !important; }
   .tr-row:hover td        { background: transparent !important; }
   .status-pill, .cat-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }
 </style>
