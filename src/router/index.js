@@ -10,7 +10,8 @@ import AdminInventory from '../views/admin/adminInventory.vue';
 import AdminPayroll from '../views/admin/adminPayroll.vue';
 import AdminShift from '../views/admin/adminShift.vue';
 import AdminAlarm from '../views/admin/adminAlarm.vue';
-import AdminReport from '../views/admin/adminReport.vue';
+import adminInventoryReport from '../views/admin/adminInventoryReport.vue';
+import adminShiftPayrollReport from '../views/admin/adminShiftPayrollReport.vue';
 import adminUser from '../views/admin/adminUser.vue';
 
 // Staff views
@@ -18,6 +19,7 @@ import StaffDashboard from '../views/staff/staffDashboard.vue';
 import StaffPOS from '../views/staff/staffPOS.vue';
 import StaffPayroll from '../views/staff/staffPayroll.vue';
 import ShiftViewing from '../views/staff/staffShift.vue';
+import AdminShiftPayrollReport from '../views/admin/adminShiftPayrollReport.vue';
 
 // -----------------------------
 // Helper: decode user from JWT
@@ -90,11 +92,19 @@ const routes = [
   meta: { requiresAuth: true, role: 'admin' },
 },
 {
-  path: '/admin/report',
-  name: 'AdminReport',
-  component: AdminReport,
+  path: '/admin/inventoryreport',
+  name: 'AdminInventoryReport',
+  component: adminInventoryReport,
   meta: { requiresAuth: true, role: 'admin' },
 },
+
+{
+  path: '/admin/shiftpayrollreport',
+  name: 'AdminShiftPayrollReport',
+  component: AdminShiftPayrollReport,
+  meta: { requiresAuth: true, role: 'admin' },
+},
+
 {
   path: '/admin/user',
   name: 'AdminUser',

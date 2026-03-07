@@ -85,7 +85,11 @@ export default {
           icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 015 5v3l1 2H2l1-2v-3a5 5 0 015-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
         },
         {
-          name: "Report", path: "/admin/report",
+          name: "Inventory Report", path: "/admin/inventoryreport",
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+        },
+        {
+          name: "Shift Payroll Report", path: "/admin/shiftpayrollreport",
           icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
         },
         {

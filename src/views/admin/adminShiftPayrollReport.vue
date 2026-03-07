@@ -9,7 +9,7 @@
 import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
 
 export default {
-  name: 'AdminReport',
+  name: 'AdminShiftPayrollReport',
   components: { AdminSidebar }
 }
 </script>
