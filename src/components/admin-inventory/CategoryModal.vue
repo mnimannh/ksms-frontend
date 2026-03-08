@@ -1,5 +1,4 @@
 <template>
-  <Teleport to="body">
   <div class="modal-backdrop" @click.self="$emit('close')">
     <div class="modal">
       <div class="modal-header">
@@ -23,7 +22,6 @@
       </div>
     </div>
   </div>
-  </Teleport>
 </template>
 
 <script>
@@ -56,7 +54,7 @@ export default {
 
 <style scoped>
 .modal-backdrop {
-  position: fixed; inset: 0; z-index: 50;
+  position: fixed; inset: 0; z-index: 0;
   background: rgba(15,23,42,.45);
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
