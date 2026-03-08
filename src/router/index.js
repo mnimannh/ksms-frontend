@@ -142,12 +142,19 @@ const routes = [
     component: ShiftViewing,
     meta: { requiresAuth: true, role: 'staff' },
   },
+
+  { 
+  path: '/inventory/barcodes', 
+  name: 'BarcodeSheet',  
+  component: () => import('@/views/BarcodeSheet.vue') 
+},
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
 });
+
 
 // -----------------------------
 // Global Route Guard

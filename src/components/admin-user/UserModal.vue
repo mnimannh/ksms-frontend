@@ -493,7 +493,7 @@ input[type="checkbox"]:checked + .checkbox-box {
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1f2937;
+  background: #124f29;
   transform: translateY(-1px);
 }
 

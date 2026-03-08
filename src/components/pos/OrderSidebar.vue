@@ -26,6 +26,7 @@
       <!-- Cart Rows -->
       <div v-for="item in cart" :key="item.id" class="cart-row">
         <div class="cart-row-info">
+          <p class="item-inventory">{{ item.inventoryName }}</p>
           <p class="item-name">{{ item.variant_name }}</p>
           <p class="item-unit">{{ formatCurrency(item.price) }} / unit</p>
         </div>
@@ -226,6 +227,15 @@ const formatCurrency = (value) =>
 .cart-row-info {
   flex: 1;
   min-width: 0;
+}
+
+.item-inventory {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b6860;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .item-name {

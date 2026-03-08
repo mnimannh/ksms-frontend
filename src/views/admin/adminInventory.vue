@@ -1,544 +1,507 @@
 <template>
-  <div class="admin-root">
+  <div class="app-layout">
     <AdminSidebar />
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Header -->
-      <header class="top-bar">
-        <div class="top-bar-left">
-          <h1 class="page-title">{{ currentTab.label }}</h1>
-          <span class="page-subtitle">{{ currentTab.subtitle }}</span>
+    <main class="inv-main">
+
+      <!-- ── Page Header ── -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Inventory</h1>
+          <p class="page-sub">Manage categories, products and variants</p>
         </div>
-        <div class="top-bar-right">
-          <div class="search-wrap">
-            <span class="search-icon">⌕</span>
-            <input v-model="searchQuery" class="search-input" :placeholder="`Search ${currentTab.label}...`" />
+        <div class="header-stats">
+          <div class="stat-chip">
+            <span class="sc-val">{{ allCategories.length }}</span>
+            <span class="sc-lbl">Categories</span>
           </div>
-          <button class="btn-primary" @click="handleAdd">
-            <span>+</span> Add {{ currentTab.singular }}
-          </button>
+          <div class="stat-chip">
+            <span class="sc-val">{{ allInventory.length }}</span>
+            <span class="sc-lbl">Products</span>
+          </div>
+          <div class="stat-chip">
+            <span class="sc-val">{{ allVariants.length }}</span>
+            <span class="sc-lbl">Variants</span>
+          </div>
         </div>
-      </header>
+      </div>
 
-      <!-- Tab Nav -->
-      <div class="tab-nav">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          class="tab-btn"
-          :class="{ active: activeTab === tab.key }"
-          @click="activeTab = tab.key; searchQuery = ''"
-        >
-          <span class="tab-icon">{{ tab.icon }}</span>
-          {{ tab.label }}
-          <span class="tab-count">
-            {{ tab.key === 'categories' ? categories.length : tab.key === 'inventory' ? inventory.length : allVariants.length }}
-          </span>
-        </button>
+      <!-- ── Three-Panel Layout ── -->
+      <div class="panels-layout">
 
-        <div class="tab-spacer"></div>
+        <!-- Panel 1: Categories -->
+        <CategoryPanel
+          :categories="allCategories"
+          :selected-id="selectedCategoryId"
+          :inventory-counts="inventoryCounts"
+          @select="selectCategory"
+          @add="openCategoryModal('add')"
+          @edit="openCategoryModal('edit', $event)"
+          @delete="confirmDelete('category', $event)"
+        />
+
+        <!-- Panel 2: Inventory (shown when category selected) -->
+        <div class="panel-transition" :class="{ visible: selectedCategoryId }">
+          <div class="panel-arrow no-panel" v-if="!selectedCategoryId">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <p>Select a category</p>
+          </div>
+          <InventoryPanel
+            v-if="selectedCategoryId"
+            :items="filteredInventory"
+            :selected-id="selectedInventoryId"
+            :category-name="selectedCategory?.name || ''"
+            :cat-color="catColorFor(selectedCategoryId)"
+            :variant-counts="variantCounts"
+            @select="selectInventory"
+            @add="openInventoryModal('add')"
+            @edit="openInventoryModal('edit', $event)"
+            @delete="confirmDelete('inventory', $event)"
+          />
+        </div>
+
+        <!-- Panel 3: Variants (shown when inventory selected) -->
+        <div class="panel-transition wide-panel" :class="{ visible: selectedInventoryId }">
+          <div class="panel-arrow no-panel" v-if="!selectedInventoryId">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <p>Select a product</p>
+          </div>
+          <VariantTable
+            v-if="selectedInventoryId"
+            :variants="filteredVariants"
+            :inventory-name="selectedInventory?.inventoryName || ''"
+            :image-counts="imageCounts"
+            @add="openVariantModal('add')"
+            @edit="openVariantModal('edit', $event)"
+            @delete="confirmDelete('variant', $event)"
+            @viewBarcode="goToBarcodes($event)"
+            @manageImages="openImageModal($event)"
+          />
+        </div>
 
       </div>
 
-      <!-- Panels -->
-      <CategoriesPanel
-        v-if="activeTab === 'categories'"
-        :categories="filteredCategories"
-        :inventory="inventory"
-        @edit="openEditCategory"
-        @delete="deleteCategory"
-        @add="openAddCategory"
-      />
-
-      <InventoryPanel
-        v-else-if="activeTab === 'inventory'"
-        :inventory="filteredInventory"
-        :categories="categories"
-        :variants="variants"
-        @edit="openEditInventory"
-        @delete="deleteInventory"
-        @view-variants="openVariants"
-        @add="openAddInventory"
-      />
-
-      <VariantsPanel
-        v-else-if="activeTab === 'variants'"
-        :variants="filteredVariants"
-        :inventory="inventory"
-        @edit="openEditVariant"
-        @delete="deleteVariant"
-        @view-images="openImageViewer"
-        @add="openAddVariant"
-      />
     </main>
 
-    <!-- MODALS -->
+    <!-- ── Modals ── -->
+
     <CategoryModal
-      v-if="modals.category"
-      :editing="editingItem"
+      v-if="showCategoryModal"
+      :mode="modalMode"
+      :initial="modalTarget"
+      @close="showCategoryModal = false"
       @save="saveCategory"
-      @close="modals.category = false"
     />
 
     <InventoryModal
-      v-if="modals.inventory"
-      :editing="editingItem"
-      :categories="categories"
+      v-if="showInventoryModal"
+      :mode="modalMode"
+      :initial="modalTarget"
+      :categories="allCategories"
+      :default-category-id="selectedCategoryId"
+      @close="showInventoryModal = false"
       @save="saveInventory"
-      @close="modals.inventory = false"
     />
 
     <VariantModal
-      v-if="modals.variant"
-      :editing="editingItem"
-      :inventory="inventory"
+      v-if="showVariantModal"
+      :mode="modalMode"
+      :initial="modalTarget"
+      :inventory-id="selectedInventoryId"
+      @close="showVariantModal = false"
       @save="saveVariant"
-      @close="modals.variant = false"
     />
 
-    <ImageViewerModal
-      v-if="modals.images"
-      :variant="selectedVariant"
-      @close="modals.images = false"
-      @update-images="updateVariantImages"
+    <ImageManagerModal
+      v-if="showImageModal"
+      :variant-name="imageModalVariant?.variant_name || ''"
+      :initial="imagesFor(imageModalVariant?.id)"
+      @close="showImageModal = false"
+      @save="saveImages"
     />
 
-    <!-- Toast -->
-    <transition name="toast">
-      <div v-if="toast.show" class="toast" :class="toast.type">
-        <span class="toast-icon">{{ toast.type === 'success' ? '✓' : '✕' }}</span>
-        {{ toast.message }}
+    <!-- ── Delete Confirm ── -->
+    <div class="modal-backdrop" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
+      <div class="confirm-modal">
+        <div class="confirm-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3 class="confirm-title">Delete {{ deleteTarget?.type }}?</h3>
+        <p class="confirm-sub">
+          <strong>{{ deleteTarget?.name }}</strong> will be permanently deleted.
+          <span v-if="deleteTarget?.type === 'category'">All products and variants under it will also be removed.</span>
+          <span v-if="deleteTarget?.type === 'inventory'">All variants under it will also be removed.</span>
+        </p>
+        <div class="confirm-btns">
+          <button class="btn-ghost" @click="showDeleteConfirm = false">Cancel</button>
+          <button class="btn-danger" @click="executeDelete">Delete</button>
+        </div>
       </div>
-    </transition>
+    </div>
 
-    <!-- Delete Confirm -->
-    <ConfirmDialog
-      v-if="confirmDialog.show"
-      :message="confirmDialog.message"
-      @confirm="confirmDialog.action(); confirmDialog.show = false"
-      @cancel="confirmDialog.show = false"
-    />
   </div>
 </template>
 
 <script>
-import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
-import CategoriesPanel from '@/components/admin-inventory/CategoriesPanel.vue'
-import InventoryPanel from '@/components/admin-inventory/InventoryPanel.vue'
-import VariantsPanel from '@/components/admin-inventory/VariantsPanel.vue'
-import CategoryModal from '@/components/admin-inventory/CategoryModal.vue'
-import InventoryModal from '@/components/admin-inventory/InventoryModal.vue'
-import VariantModal from '@/components/admin-inventory/VariantModal.vue'
-import ImageViewerModal from '@/components/admin-inventory/ImageViewerModal.vue'
-import ConfirmDialog from '@/components/admin-inventory/ConfirmDialog.vue'
+import AdminSidebar       from '@/components/sidebar/AdminSidebar.vue'
+import CategoryPanel      from '@/components/admin-inventory/CategoryPanel.vue'
+import InventoryPanel     from '@/components/admin-inventory/InventoryPanel.vue'
+import VariantTable       from '@/components/admin-inventory/VariantTable.vue'
+import CategoryModal      from '@/components/admin-inventory/CategoryModal.vue'
+import InventoryModal     from '@/components/admin-inventory/InventoryModal.vue'
+import VariantModal       from '@/components/admin-inventory/VariantModal.vue'
+import ImageManagerModal  from '@/components/admin-inventory/ImageManagerModal.vue'
+
+const PALETTE = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6']
+
+// ── Hardcoded seed data (replace with API calls) ──────────────────────────────
+let _catId  = 5
+let _invId  = 8
+let _varId  = 10
+let _imgId  = 20
+
+const SEED_CATEGORIES = [
+  { id:1, name:'Beverages',  created_at:'2024-01-01' },
+  { id:2, name:'Dry Goods',  created_at:'2024-01-01' },
+  { id:3, name:'Condiments', created_at:'2024-01-01' },
+  { id:4, name:'Cleaning',   created_at:'2024-01-01' },
+  { id:5, name:'Frozen',     created_at:'2024-01-01' },
+]
+
+const SEED_INVENTORY = [
+  { id:1, inventoryName:'Air Milo Tin',      category_id:1, description:'Chocolate malt drink',   default_threshold:10 },
+  { id:2, inventoryName:'Nescafe 3in1',      category_id:1, description:'Instant coffee sachets',  default_threshold:10 },
+  { id:3, inventoryName:'Mineral Water',     category_id:1, description:'Drinking water bottles',  default_threshold:20 },
+  { id:4, inventoryName:'Basmati Rice',      category_id:2, description:'Long grain basmati rice', default_threshold:5  },
+  { id:5, inventoryName:'Sugar',             category_id:2, description:'White refined sugar',     default_threshold:8  },
+  { id:6, inventoryName:'Cooking Oil',       category_id:3, description:'Palm cooking oil',        default_threshold:6  },
+  { id:7, inventoryName:'Latex Gloves',      category_id:4, description:'Disposable latex gloves', default_threshold:20 },
+  { id:8, inventoryName:'Frozen Chicken',    category_id:5, description:'Whole frozen chicken',    default_threshold:10 },
+]
+
+const SEED_VARIANTS = [
+  { id:1,  inventory_id:1, variant_name:'500ml',   barcode:'6009001001001', price:3.50,  quantity:120, threshold:10 },
+  { id:2,  inventory_id:1, variant_name:'1000ml',  barcode:'6009001001002', price:6.20,  quantity:45,  threshold:10 },
+  { id:3,  inventory_id:2, variant_name:'10 Sachets', barcode:'6009002001001', price:5.50, quantity:80, threshold:10 },
+  { id:4,  inventory_id:2, variant_name:'20 Sachets', barcode:'6009002001002', price:10.90,quantity:30, threshold:10 },
+  { id:5,  inventory_id:3, variant_name:'500ml',   barcode:'6009003001001', price:0.90,  quantity:200, threshold:20 },
+  { id:6,  inventory_id:3, variant_name:'1.5L',    barcode:'6009003001002', price:2.10,  quantity:150, threshold:20 },
+  { id:7,  inventory_id:4, variant_name:'5kg',     barcode:'6009004001001', price:18.00, quantity:48,  threshold:5  },
+  { id:8,  inventory_id:4, variant_name:'10kg',    barcode:'6009004001002', price:32.00, quantity:22,  threshold:5  },
+  { id:9,  inventory_id:5, variant_name:'1kg',     barcode:'6009005001001', price:3.20,  quantity:6,   threshold:8  },
+  { id:10, inventory_id:6, variant_name:'5L',      barcode:'6009006001001', price:38.00, quantity:0,   threshold:6  },
+]
+
+const SEED_IMAGES = [
+  { id:1, variant_id:1, image_url:'https://placehold.co/300x300/eef2ff/6366f1?text=Milo+500ml',  is_main:1, image_order:1 },
+  { id:2, variant_id:1, image_url:'https://placehold.co/300x300/1e293b/fff?text=Milo+500ml+Side',is_main:0, image_order:2 },
+  { id:3, variant_id:2, image_url:'https://placehold.co/300x300/eef2ff/6366f1?text=Milo+1000ml', is_main:1, image_order:1 },
+  { id:4, variant_id:5, image_url:'https://placehold.co/300x300/f0fdf4/10b981?text=Water+500ml', is_main:1, image_order:1 },
+]
 
 export default {
   name: 'AdminInventory',
-  components: {
-    AdminSidebar,
-    CategoriesPanel, InventoryPanel, VariantsPanel,
-    CategoryModal, InventoryModal, VariantModal,
-    ImageViewerModal, ConfirmDialog,
-  },
+  components: { AdminSidebar, CategoryPanel, InventoryPanel, VariantTable, CategoryModal, InventoryModal, VariantModal, ImageManagerModal },
+
   data() {
     return {
-      activeTab: 'categories',
-      searchQuery: '',
-      editingItem: null,
-      selectedVariant: null,
-      modals: { category: false, inventory: false, variant: false, images: false },
-      toast: { show: false, message: '', type: 'success' },
-      confirmDialog: { show: false, message: '', action: null },
+      allCategories: [...SEED_CATEGORIES],
+      allInventory:  [...SEED_INVENTORY],
+      allVariants:   [...SEED_VARIANTS],
+      allImages:     [...SEED_IMAGES],
 
-      tabs: [
-        { key: 'categories', label: 'Categories', singular: 'Category', icon: '⊞', subtitle: 'Manage product categories' },
-        { key: 'inventory',  label: 'Inventory',  singular: 'Product',  icon: '◫', subtitle: 'Manage products & stock'  },
-        { key: 'variants',   label: 'Variants',   singular: 'Variant',  icon: '◈', subtitle: 'Manage SKUs & pricing'    },
-      ],
+      selectedCategoryId:  null,
+      selectedInventoryId: null,
 
-      // --- HARDCODED DATA ---
-      categories: [
-        { id: 1, name: 'Beverages',    created_at: '2024-01-10' },
-        { id: 2, name: 'Snacks',       created_at: '2024-01-12' },
-        { id: 3, name: 'Dairy',        created_at: '2024-01-15' },
-        { id: 4, name: 'Frozen Foods', created_at: '2024-02-01' },
-      ],
-      inventory: [
-        { id: 1, inventoryName: 'Air Milo Tin',          category_id: 1, description: 'Classic chocolate malt drink in tin', default_threshold: 10, lastUpdated: '2024-06-01' },
-        { id: 2, inventoryName: 'Teh Tarik',             category_id: 1, description: 'Malaysian pulled milk tea',           default_threshold: 15, lastUpdated: '2024-06-03' },
-        { id: 3, inventoryName: 'Keropok Lekor',         category_id: 2, description: 'Malaysian fish cracker sticks',      default_threshold: 20, lastUpdated: '2024-06-05' },
-        { id: 4, inventoryName: 'Dutch Lady Fresh Milk', category_id: 3, description: 'Full cream fresh milk',              default_threshold:  8, lastUpdated: '2024-06-07' },
-        { id: 5, inventoryName: 'Nestle Ice Cream',      category_id: 4, description: 'Vanilla ice cream tub',              default_threshold:  5, lastUpdated: '2024-06-08' },
-      ],
-      variants: [
-        { id: 1, inventory_id: 1, variant_name: 'Air Milo Tin 500ml',          quantity: 120, price:  3.50, barcode: 'MLO-500-TIN',  threshold: 10, lastUpdated: '2024-06-01', images: [
-          { id: 1, image_url: 'https://placehold.co/400x400/1a1a2e/ffffff?text=Milo+500ml',      is_main: 1, image_order: 1 },
-          { id: 2, image_url: 'https://placehold.co/400x400/16213e/ffffff?text=Milo+500ml+Side', is_main: 0, image_order: 2 },
-        ]},
-        { id: 2, inventory_id: 1, variant_name: 'Air Milo Tin 1000ml',         quantity:  45, price:  6.20, barcode: 'MLO-1000-TIN', threshold: 10, lastUpdated: '2024-06-01', images: [
-          { id: 3, image_url: 'https://placehold.co/400x400/0f3460/ffffff?text=Milo+1000ml', is_main: 1, image_order: 1 },
-        ]},
-        { id: 3, inventory_id: 2, variant_name: 'Teh Tarik 250ml',             quantity: 200, price:  1.80, barcode: 'TTK-250',      threshold: 20, lastUpdated: '2024-06-03', images: [] },
-        { id: 4, inventory_id: 2, variant_name: 'Teh Tarik 500ml',             quantity:   8, price:  3.00, barcode: 'TTK-500',      threshold: 15, lastUpdated: '2024-06-03', images: [] },
-        { id: 5, inventory_id: 3, variant_name: 'Keropok Lekor Original 100g', quantity:   0, price:  2.50, barcode: 'KPK-100-ORI', threshold: 20, lastUpdated: '2024-06-05', images: [] },
-        { id: 6, inventory_id: 3, variant_name: 'Keropok Lekor Spicy 100g',    quantity:  55, price:  2.80, barcode: 'KPK-100-SPY', threshold: 20, lastUpdated: '2024-06-05', images: [] },
-        { id: 7, inventory_id: 4, variant_name: 'Dutch Lady 1L',               quantity:  30, price:  7.90, barcode: 'DL-FRESH-1L', threshold:  8, lastUpdated: '2024-06-07', images: [] },
-        { id: 8, inventory_id: 5, variant_name: 'Nestle Vanilla 750ml',        quantity:   3, price: 12.50, barcode: 'NST-VAN-750', threshold:  5, lastUpdated: '2024-06-08', images: [] },
-      ],
+      // Modal state
+      showCategoryModal:  false,
+      showInventoryModal: false,
+      showVariantModal:   false,
+      showImageModal:     false,
+      showDeleteConfirm:  false,
+      modalMode:   'add',
+      modalTarget: null,
+
+      deleteTarget:      null,
+      imageModalVariant: null,
     }
   },
+
   computed: {
-    currentTab()     { return this.tabs.find(t => t.key === this.activeTab) },
-    allVariants()    { return this.variants },
-    lowStockCount()  { return this.variants.filter(v => v.quantity > 0 && v.quantity <= v.threshold).length },
-    outOfStockCount(){ return this.variants.filter(v => v.quantity === 0).length },
-    filteredCategories() {
-      if (!this.searchQuery) return this.categories
-      return this.categories.filter(c => c.name.toLowerCase().includes(this.searchQuery.toLowerCase()))
+    selectedCategory() {
+      return this.allCategories.find(c => c.id === this.selectedCategoryId) || null
     },
+    selectedInventory() {
+      return this.allInventory.find(i => i.id === this.selectedInventoryId) || null
+    },
+
     filteredInventory() {
-      if (!this.searchQuery) return this.inventory
-      return this.inventory.filter(i => i.inventoryName.toLowerCase().includes(this.searchQuery.toLowerCase()))
+      return this.allInventory.filter(i => i.category_id === this.selectedCategoryId)
     },
     filteredVariants() {
-      if (!this.searchQuery) return this.variants
-      return this.variants.filter(v =>
-        v.variant_name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        v.barcode.toLowerCase().includes(this.searchQuery.toLowerCase())
-      )
+      return this.allVariants.filter(v => v.inventory_id === this.selectedInventoryId)
+    },
+
+    // Counts for panel badges
+    inventoryCounts() {
+      const map = {}
+      this.allInventory.forEach(i => { map[i.category_id] = (map[i.category_id] || 0) + 1 })
+      return map
+    },
+    variantCounts() {
+      const map = {}
+      this.allVariants.forEach(v => { map[v.inventory_id] = (map[v.inventory_id] || 0) + 1 })
+      return map
+    },
+    imageCounts() {
+      const map = {}
+      this.allImages.forEach(img => { map[img.variant_id] = (map[img.variant_id] || 0) + 1 })
+      return map
     },
   },
+
   methods: {
-    handleAdd() {
-      this.editingItem = null
-      if      (this.activeTab === 'categories') this.modals.category  = true
-      else if (this.activeTab === 'inventory')  this.modals.inventory = true
-      else                                      this.modals.variant   = true
+    catColorFor(id) { return PALETTE[(id - 1) % PALETTE.length] },
+
+    selectCategory(cat) {
+      this.selectedCategoryId  = cat.id
+      this.selectedInventoryId = null
+    },
+    selectInventory(inv) {
+      this.selectedInventoryId = inv.id
     },
 
-    openEditCategory(cat)   { this.editingItem = { ...cat };  this.modals.category  = true },
-    openEditInventory(item) { this.editingItem = { ...item }; this.modals.inventory = true },
-    openEditVariant(v)      { this.editingItem = { ...v };    this.modals.variant   = true },
-    openAddCategory()       { this.editingItem = null; this.modals.category  = true },
-    openAddInventory()      { this.editingItem = null; this.modals.inventory = true },
-    openAddVariant()        { this.editingItem = null; this.modals.variant   = true },
-
-    openVariants(item)        { this.activeTab = 'variants'; this.searchQuery = item.inventoryName },
-    openImageViewer(variant)  { this.selectedVariant = variant; this.modals.images = true },
-
+    // ── Category CRUD ──
+    openCategoryModal(mode, cat = null) {
+      this.modalMode   = mode
+      this.modalTarget = cat
+      this.showCategoryModal = true
+    },
     saveCategory(data) {
-      if (data.id) {
-        const i = this.categories.findIndex(c => c.id === data.id)
-        this.categories.splice(i, 1, data)
-        this.showToast('Category updated successfully')
+      if (this.modalMode === 'add') {
+        this.allCategories.push({ id: ++_catId, ...data, created_at: new Date().toISOString() })
       } else {
-        this.categories.push({ ...data, id: Date.now(), created_at: new Date().toISOString().split('T')[0] })
-        this.showToast('Category created successfully')
+        const idx = this.allCategories.findIndex(c => c.id === this.modalTarget.id)
+        if (idx !== -1) this.allCategories[idx] = { ...this.allCategories[idx], ...data }
       }
-      this.modals.category = false
-    },
-    deleteCategory(id) {
-      this.confirmDelete('Delete this category? All linked products will be removed.', () => {
-        this.categories = this.categories.filter(c => c.id !== id)
-        this.inventory  = this.inventory.filter(i => i.category_id !== id)
-        this.showToast('Category deleted')
-      })
+      this.showCategoryModal = false
     },
 
+    // ── Inventory CRUD ──
+    openInventoryModal(mode, inv = null) {
+      this.modalMode   = mode
+      this.modalTarget = inv
+      this.showInventoryModal = true
+    },
     saveInventory(data) {
-      if (data.id) {
-        const i = this.inventory.findIndex(p => p.id === data.id)
-        this.inventory.splice(i, 1, data)
-        this.showToast('Product updated successfully')
+      if (this.modalMode === 'add') {
+        this.allInventory.push({ id: ++_invId, ...data, lastUpdated: new Date().toISOString() })
       } else {
-        this.inventory.push({ ...data, id: Date.now(), lastUpdated: new Date().toISOString().split('T')[0] })
-        this.showToast('Product created successfully')
+        const idx = this.allInventory.findIndex(i => i.id === this.modalTarget.id)
+        if (idx !== -1) this.allInventory[idx] = { ...this.allInventory[idx], ...data }
       }
-      this.modals.inventory = false
-    },
-    deleteInventory(id) {
-      this.confirmDelete('Delete this product? All variants will be removed.', () => {
-        this.inventory = this.inventory.filter(p => p.id !== id)
-        this.variants  = this.variants.filter(v => v.inventory_id !== id)
-        this.showToast('Product deleted')
-      })
+      this.showInventoryModal = false
     },
 
+    // ── Variant CRUD ──
+    openVariantModal(mode, v = null) {
+      this.modalMode   = mode
+      this.modalTarget = v
+      this.showVariantModal = true
+    },
     saveVariant(data) {
-      if (data.id) {
-        const i = this.variants.findIndex(v => v.id === data.id)
-        this.variants.splice(i, 1, { ...this.variants[i], ...data })
-        this.showToast('Variant updated successfully')
+      if (this.modalMode === 'add') {
+        this.allVariants.push({ id: ++_varId, ...data, lastUpdated: new Date().toISOString() })
       } else {
-        this.variants.push({ ...data, id: Date.now(), lastUpdated: new Date().toISOString().split('T')[0], images: [] })
-        this.showToast('Variant created successfully')
+        const idx = this.allVariants.findIndex(v => v.id === this.modalTarget.id)
+        if (idx !== -1) this.allVariants[idx] = { ...this.allVariants[idx], ...data }
       }
-      this.modals.variant = false
+      this.showVariantModal = false
     },
-    deleteVariant(id) {
-      this.confirmDelete('Delete this variant permanently?', () => {
-        this.variants = this.variants.filter(v => v.id !== id)
-        this.showToast('Variant deleted')
+
+    // ── Images ──
+    openImageModal(variant) {
+      this.imageModalVariant = variant
+      this.showImageModal = true
+    },
+    imagesFor(variantId) {
+      if (!variantId) return []
+      return this.allImages.filter(i => i.variant_id === variantId)
+    },
+    saveImages(images) {
+      if (!this.imageModalVariant) return
+      const vid = this.imageModalVariant.id
+      this.allImages = this.allImages.filter(i => i.variant_id !== vid)
+      images.forEach(img => {
+        this.allImages.push({ id: ++_imgId, variant_id: vid, ...img })
       })
+      this.showImageModal = false
     },
 
-    updateVariantImages({ variantId, images }) {
-      const v = this.variants.find(v => v.id === variantId)
-      if (v) v.images = images
+    // ── Delete ──
+    confirmDelete(type, item) {
+      this.deleteTarget = {
+        type,
+        id:   item.id,
+        name: item.name || item.inventoryName || item.variant_name,
+        item,
+      }
+      this.showDeleteConfirm = true
+    },
+    executeDelete() {
+      const { type, id } = this.deleteTarget
+      if (type === 'category') {
+        const invIds = this.allInventory.filter(i => i.category_id === id).map(i => i.id)
+        this.allVariants = this.allVariants.filter(v => !invIds.includes(v.inventory_id))
+        this.allInventory = this.allInventory.filter(i => i.category_id !== id)
+        this.allCategories = this.allCategories.filter(c => c.id !== id)
+        if (this.selectedCategoryId === id) { this.selectedCategoryId = null; this.selectedInventoryId = null }
+      } else if (type === 'inventory') {
+        this.allVariants  = this.allVariants.filter(v => v.inventory_id !== id)
+        this.allInventory = this.allInventory.filter(i => i.id !== id)
+        if (this.selectedInventoryId === id) this.selectedInventoryId = null
+      } else if (type === 'variant') {
+        this.allImages   = this.allImages.filter(i => i.variant_id !== id)
+        this.allVariants = this.allVariants.filter(v => v.id !== id)
+      }
+      this.showDeleteConfirm = false
     },
 
-    confirmDelete(message, action) {
-      this.confirmDialog = { show: true, message, action }
-    },
-    showToast(message, type = 'success') {
-      this.toast = { show: true, message, type }
-      setTimeout(() => { this.toast.show = false }, 3000)
+    // ── Barcode Sheet ──
+    goToBarcodes(variant) {
+      // Pass only the single clicked variant — not all variants
+      this.$router.push({
+        name: 'BarcodeSheet',
+        query: { inventoryName: this.selectedInventory?.inventoryName },
+        state: { variant },
+      })
     },
   },
 }
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap');
+</style>
 
+<style scoped>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --bg:            #f1f5f9;
-  --surface:       #FFFFFF;
-  --border:        #E8E5DF;
-  --border-strong: #D0CBC3;
-  --text-primary:  #1C1917;
-  --text-secondary:#78716C;
-  --text-muted:    #A8A29E;
-  --accent:        #1C1917;
-  --accent-hover:  #44403C;
-  --green:         #16A34A;
-  --green-bg:      #DCFCE7;
-  --amber:         #D97706;
-  --amber-bg:      #FEF3C7;
-  --red:           #DC2626;
-  --red-bg:        #FEE2E2;
-  --radius:        12px;
-  --radius-sm:     8px;
-  --shadow:        0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:     0 4px 16px rgba(0,0,0,0.08);
-  --shadow-lg:     0 12px 40px rgba(0,0,0,0.12);
-}
-
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); }
-
-.admin-root {
+.app-layout {
   display: flex;
   min-height: 100vh;
-  background: var(--bg);
+  background: #f6f7fb;
+  font-family: 'DM Sans', sans-serif;
+  color: #1e293b;
 }
 
-/* MAIN — offset by AdminSidebar width via CSS var; override --sidebar-width in AdminSidebar if needed */
-.main-content {
+.inv-main {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding: 0 36px 36px;
-  margin-left: var(--sidebar-width);
+  padding: 28px 30px 48px;
+  display: flex; flex-direction: column; gap: 20px;
+  overflow: hidden;
 }
 
-/* TOP BAR */
-.top-bar {
+/* ── Page Header ── */
+.page-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 32px 0 20px; gap: 16px;
+  flex-wrap: wrap; gap: 14px;
 }
-.top-bar-left { display: flex; align-items: baseline; gap: 12px; }
-.page-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 24px; font-weight: 700; letter-spacing: -0.5px;
-  color: var(--text-primary);
-}
-.page-subtitle { font-size: 13px; color: var(--text-muted); }
-.top-bar-right { display: flex; align-items: center; gap: 12px; }
+.page-title { font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -.025em; }
+.page-sub   { font-size: 13px; color: #94a3b8; margin-top: 2px; }
 
-/* TAB NAV */
-.tab-nav {
-  display: flex; align-items: center; gap: 4px;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 24px;
-}
-.tab-btn {
-  display: flex; align-items: center; gap: 7px;
-  padding: 10px 16px;
-  border: none; background: transparent;
-  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 400;
-  color: var(--text-muted); cursor: pointer;
-  border-bottom: 2px solid transparent; margin-bottom: -2px;
-  transition: all 0.15s; white-space: nowrap;
-}
-.tab-btn:hover { color: var(--text-primary); }
-.tab-btn.active { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--text-primary); }
-.tab-icon { font-size: 15px; opacity: 0.7; }
-.tab-count {
-  font-size: 11px; font-weight: 600;
-  background: var(--bg); border: 1px solid var(--border);
-  color: var(--text-muted); padding: 1px 7px; border-radius: 20px;
-}
-.tab-btn.active .tab-count { background: var(--text-primary); border-color: var(--text-primary); color: #fff; }
-.tab-spacer { flex: 1; }
-.stock-pills { display: flex; gap: 8px; align-items: center; padding-bottom: 2px; }
-.stock-pill {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 500;
-  padding: 4px 10px; border-radius: 20px;
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text-secondary);
-}
-.pill-dot { width: 6px; height: 6px; border-radius: 50%; }
-.pill-dot.amber { background: var(--amber); }
-.pill-dot.red   { background: var(--red);   }
-
-/* SEARCH */
-.search-wrap { position: relative; display: flex; align-items: center; }
-.search-icon {
-  position: absolute; left: 12px;
-  font-size: 18px; color: var(--text-muted);
-  pointer-events: none; line-height: 1;
-}
-.search-input {
-  padding: 9px 14px 9px 36px;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--surface);
-  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text-primary);
-  width: 220px; outline: none; transition: border-color 0.15s;
-}
-.search-input:focus { border-color: var(--accent); }
-.search-input::placeholder { color: var(--text-muted); }
-
-/* BUTTONS */
-.btn-primary {
-  display: flex; align-items: center; gap: 6px;
-  padding: 9px 18px; background: var(--accent); color: #fff;
-  border: none; border-radius: var(--radius-sm);
-  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: background 0.15s; white-space: nowrap;
-}
-.btn-primary:hover { background: var(--accent-hover); }
-
-.btn-ghost {
-  padding: 6px 12px; background: transparent; color: var(--text-secondary);
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400;
-  cursor: pointer; transition: all 0.15s;
-}
-.btn-ghost:hover { background: var(--bg); border-color: var(--border-strong); color: var(--text-primary); }
-
-.btn-icon {
-  width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  cursor: pointer; font-size: 14px; color: var(--text-secondary); transition: all 0.15s;
-}
-.btn-icon:hover { background: var(--bg); border-color: var(--border-strong); color: var(--text-primary); }
-.btn-icon.danger:hover { background: var(--red-bg); border-color: var(--red); color: var(--red); }
-
-/* CARDS */
-.card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 20px; transition: box-shadow 0.15s, border-color 0.15s;
-}
-.card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); }
-
-/* BADGES */
-.badge {
-  display: inline-flex; align-items: center;
-  padding: 3px 9px; border-radius: 20px;
-  font-size: 11px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: 0.3px;
-}
-.badge-green   { background: var(--green-bg); color: var(--green); }
-.badge-amber   { background: var(--amber-bg); color: var(--amber); }
-.badge-red     { background: var(--red-bg);   color: var(--red);   }
-.badge-neutral { background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); }
-
-/* TABLE */
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.data-table th {
-  text-align: left; padding: 10px 14px;
-  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.5px;
-  color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap;
-}
-.data-table td {
-  padding: 13px 14px; border-bottom: 1px solid var(--border);
-  color: var(--text-primary); vertical-align: middle;
-}
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td { background: #FAFAF8; }
-.data-table .actions { display: flex; gap: 6px; justify-content: flex-end; }
-
-/* MODAL */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(28,25,23,0.45); backdrop-filter: blur(4px);
-  z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px;
-}
-.modal-box {
-  background: var(--surface); border-radius: 16px;
-  width: 100%; max-width: 500px;
-  box-shadow: var(--shadow-lg); overflow: hidden; animation: modalIn 0.2s ease;
-}
-@keyframes modalIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
-}
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 22px 24px 0; margin-bottom: 20px;
-}
-.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text-primary); }
-.modal-close {
-  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-  border: none; background: var(--bg); border-radius: 50%;
-  cursor: pointer; font-size: 16px; color: var(--text-secondary); transition: all 0.15s;
-}
-.modal-close:hover { background: var(--border); color: var(--text-primary); }
-.modal-body { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 16px; }
-.modal-footer {
-  padding: 16px 24px; background: var(--bg); border-top: 1px solid var(--border);
-  display: flex; justify-content: flex-end; gap: 10px;
-}
-
-/* FORMS */
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; }
-.form-input, .form-select, .form-textarea {
-  padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 14px;
-  color: var(--text-primary); outline: none; transition: border-color 0.15s; width: 100%;
-}
-.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
-.form-textarea { resize: vertical; min-height: 80px; }
-
-/* TOAST */
-.toast {
-  position: fixed; bottom: 28px; right: 28px;
-  background: var(--text-primary); color: #fff;
-  padding: 12px 20px; border-radius: var(--radius-sm); font-size: 14px;
-  display: flex; align-items: center; gap: 10px;
-  box-shadow: var(--shadow-lg); z-index: 999; font-family: 'DM Sans', sans-serif;
-}
-.toast.error { background: var(--red); }
-.toast-icon { font-size: 16px; }
-.toast-enter-active, .toast-leave-active { transition: all 0.25s ease; }
-.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(10px); }
-
-/* EMPTY STATE */
-.empty-state {
+.header-stats { display: flex; gap: 10px; }
+.stat-chip {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 64px 24px; gap: 12px;
-  color: var(--text-muted); text-align: center;
+  padding: 8px 18px; background: #fff;
+  border: 1px solid #f1f5f9; border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.03);
+  min-width: 72px;
 }
-.empty-icon  { font-size: 40px; opacity: 0.3; }
-.empty-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 600; color: var(--text-secondary); }
-.empty-desc  { font-size: 13px; }
+.sc-val { font-size: 18px; font-weight: 700; color: #0f172a; font-family: 'DM Mono', monospace; }
+.sc-lbl { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; }
+
+/* ── Three-Panel Layout ── */
+.panels-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr 1.6fr;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - 180px);
+}
+
+.panel-transition {
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease;
+  height: 100%;
+}
+.panel-transition.visible { opacity: 1; pointer-events: all; }
+
+.wide-panel { }
+
+/* Empty placeholder inside panel slot */
+.no-panel {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; height: 100%;
+  background: #fff; border-radius: 14px;
+  border: 2px dashed #e2e8f0;
+  color: #cbd5e1; font-size: 13px; text-align: center;
+}
+.no-panel svg { color: #dde1e9; }
+
+/* ── Delete confirm modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15,23,42,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.confirm-modal {
+  background: #fff; border-radius: 14px;
+  width: 100%; max-width: 380px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;
+  animation: popIn .18s ease;
+}
+@keyframes popIn {
+  from { opacity:0; transform: scale(.96) translateY(6px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+.confirm-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: #fef2f2; color: #ef4444;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+}
+.confirm-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+.confirm-sub   { font-size: 13.5px; color: #64748b; line-height: 1.55; }
+.confirm-btns  { display: flex; gap: 8px; margin-top: 8px; }
+.btn-ghost {
+  padding: 8px 18px; border: 1px solid #e2e8f0; border-radius: 8px;
+  background: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif;
+  font-weight: 500; color: #64748b; cursor: pointer;
+}
+.btn-ghost:hover { background: #f8fafc; }
+.btn-danger {
+  padding: 8px 18px; border: none; border-radius: 8px;
+  background: #ef4444; color: #fff;
+  font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.btn-danger:hover { background: #dc2626; }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .panels-layout { grid-template-columns: 220px 1fr; height: auto; }
+  .wide-panel    { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+  .panels-layout { grid-template-columns: 1fr; height: auto; }
+  .inv-main      { padding: 16px 14px 36px; }
+}
 </style>

@@ -1,742 +1,243 @@
 <template>
-  <div class="modal-overlay" @mousedown.self="$emit('close')">
-
-    <!-- ── MAIN VARIANT MODAL ─────────────────────────────────── -->
-    <div class="modal-box" v-if="!showPrintPage">
+  <div class="modal-backdrop" @click.self="$emit('close')">
+    <div class="modal">
       <div class="modal-header">
-        <span class="modal-title">{{ editing ? 'Edit Variant' : 'New Variant' }}</span>
-        <button class="modal-close" @click="$emit('close')">✕</button>
+        <h2 class="modal-title">{{ mode === 'edit' ? 'Edit Variant' : 'New Variant' }}</h2>
+        <button class="modal-close" @click="$emit('close')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-
       <div class="modal-body">
-        <!-- Product -->
-        <div class="form-group">
-          <label class="form-label">Product *</label>
-          <select v-model="form.inventory_id" class="form-select">
-            <option value="" disabled>Select a product</option>
-            <option v-for="p in inventory" :key="p.id" :value="p.id">{{ p.inventoryName }}</option>
-          </select>
-          <span v-if="errors.inventory_id" class="form-error">{{ errors.inventory_id }}</span>
-        </div>
 
         <!-- Variant Name -->
-        <div class="form-group">
-          <label class="form-label">Variant Name *</label>
-          <input v-model="form.variant_name" class="form-input" placeholder="e.g. Air Milo Tin 500ml" maxlength="50" />
-          <span v-if="errors.variant_name" class="form-error">{{ errors.variant_name }}</span>
+        <div class="field">
+          <label class="field-label">Variant Name <span class="req">*</span></label>
+          <input v-model="form.variant_name" class="field-input" placeholder="e.g. 500ml, 1kg, Red" maxlength="50" />
+          <p v-if="errors.variant_name" class="field-error">{{ errors.variant_name }}</p>
         </div>
 
-        <!-- Price + Qty -->
-        <div class="form-row-2">
-          <div class="form-group">
-            <label class="form-label">Price (RM) *</label>
-            <input v-model.number="form.price" type="number" min="0" step="0.01" class="form-input" placeholder="0.00" />
-            <span v-if="errors.price" class="form-error">{{ errors.price }}</span>
+        <!-- Price & Quantity row -->
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Price (RM) <span class="req">*</span></label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix">RM</span>
+              <input v-model.number="form.price" type="number" min="0" step="0.01" class="field-input prefix-input" placeholder="0.00" />
+            </div>
+            <p v-if="errors.price" class="field-error">{{ errors.price }}</p>
           </div>
-          <div class="form-group">
-            <label class="form-label">Quantity</label>
-            <input v-model.number="form.quantity" type="number" min="0" class="form-input" placeholder="0" />
+          <div class="field">
+            <label class="field-label">Quantity</label>
+            <input v-model.number="form.quantity" type="number" min="0" class="field-input" placeholder="0" />
+          </div>
+          <div class="field">
+            <label class="field-label">Low Stock Threshold</label>
+            <input v-model.number="form.threshold" type="number" min="0" class="field-input" placeholder="10" />
           </div>
         </div>
 
-        <!-- ── BARCODE SECTION ──────────────────────────────────── -->
-        <div class="form-group">
-          <label class="form-label">Barcode *</label>
-
-          <!-- Mode toggle -->
-          <div class="barcode-mode-tabs">
-            <button class="mode-tab" :class="{ active: barcodeMode === 'scan' }" type="button" @click="switchMode('scan')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 5v4M3 5h4M21 5h-4M21 5v4M3 19v-4M3 19h4M21 19h-4M21 19v-4"/>
-                <rect x="7" y="7" width="3" height="10" rx="0.5"/>
-                <rect x="11" y="7" width="1.5" height="10" rx="0.5"/>
-                <rect x="14" y="7" width="3" height="10" rx="0.5"/>
+        <!-- Barcode -->
+        <div class="field">
+          <label class="field-label">Barcode <span class="req">*</span></label>
+          <div class="barcode-row">
+            <input
+              ref="barcodeInput"
+              v-model="form.barcode"
+              class="field-input barcode-field"
+              placeholder="Scan or generate barcode…"
+              :class="{ scanning: scanMode }"
+              @keydown.enter.prevent="onBarcodeEnter"
+            />
+            <button
+              class="btn-icon-action"
+              :class="{ active: scanMode }"
+              @click="toggleScan"
+              title="Toggle barcode scanner mode"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4M21 9V5a2 2 0 00-2-2h-4M21 15v4a2 2 0 01-2 2h-4"/>
+                <line x1="7" y1="12" x2="7" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="17" y1="12" x2="17" y2="12"/>
               </svg>
-              Scan Barcode
+              {{ scanMode ? 'Scanning…' : 'Scan' }}
             </button>
-            <button class="mode-tab" :class="{ active: barcodeMode === 'generate' }" type="button" @click="switchMode('generate')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+            <button class="btn-icon-action generate" @click="generateBarcode" title="Auto-generate barcode">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
               </svg>
-              Auto Generate
+              Generate
             </button>
           </div>
-
-          <!-- SCAN MODE -->
-          <div v-if="barcodeMode === 'scan'" class="scan-area">
-            <div class="scan-input-wrap" :class="{ scanning: isScanning }">
-              <svg class="scan-prefix-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 5v4M3 5h4M21 5h-4M21 5v4M3 19v-4M3 19h4M21 19h-4M21 19v-4"/>
-                <rect x="7" y="7" width="3" height="10" rx="0.5"/>
-                <rect x="11" y="7" width="1.5" height="10" rx="0.5"/>
-                <rect x="14" y="7" width="3" height="10" rx="0.5"/>
-              </svg>
-              <input
-                ref="scanInput"
-                v-model="form.barcode"
-                class="form-input scan-input"
-                placeholder="Scan or type barcode..."
-                maxlength="50"
-                @focus="isScanning = true"
-                @blur="isScanning = false"
-                @keydown.enter.prevent="onScanEnter"
-              />
-              <span v-if="form.barcode" class="scan-clear" @click="form.barcode = ''">✕</span>
-            </div>
-            <p class="scan-hint">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              Point your barcode scanner at this field and scan — it will auto-fill on Enter.
-            </p>
-          </div>
-
-          <!-- GENERATE MODE -->
-          <div v-else class="generate-area">
-            <div class="generate-controls">
-              <div class="gen-field" v-if="genFormat !== 'EAN13'">
-                <label class="gen-sublabel">Prefix</label>
-                <input v-model="genPrefix" class="form-input gen-input" placeholder="e.g. MLO" maxlength="6" @input="generateBarcode" />
-              </div>
-              <div class="gen-field">
-                <label class="gen-sublabel">Format</label>
-                <select v-model="genFormat" class="form-select gen-input" @change="generateBarcode">
-                  <option value="CODE128">Code 128</option>
-                  <option value="EAN13">EAN-13</option>
-                </select>
-              </div>
-              <button class="btn-regen" type="button" @click="generateBarcode" title="Regenerate">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
-                </svg>
-              </button>
-            </div>
-
-            <!-- FIX: stable id instead of $refs for reliable querySelector -->
-            <div class="barcode-preview" v-if="form.barcode">
-              <svg id="barcode-preview-svg"></svg>
-            </div>
-
-            <div class="generate-actions">
-              <div class="gen-result-wrap">
-                <input :value="form.barcode" class="form-input gen-result" readonly />
-                <button class="btn-copy" type="button" @click="copyBarcode" :class="{ copied: justCopied }">
-                  <svg v-if="!justCopied" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                  <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  {{ justCopied ? 'Copied!' : 'Copy' }}
-                </button>
-              </div>
-              <button class="btn-print-trigger" type="button" @click="openPrintPage">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-                </svg>
-                Print Barcodes (A4)
-              </button>
-            </div>
-          </div>
-
-          <span v-if="errors.barcode" class="form-error">{{ errors.barcode }}</span>
+          <p class="field-hint" v-if="scanMode">
+            <span class="scan-dot" /> Awaiting scan — focus is on the barcode field. Scan now.
+          </p>
+          <p v-if="errors.barcode" class="field-error">{{ errors.barcode }}</p>
         </div>
 
-        <!-- Threshold -->
-        <div class="form-group">
-          <label class="form-label">Low Stock Threshold</label>
-          <input v-model.number="form.threshold" type="number" min="0" class="form-input" placeholder="10" />
-        </div>
       </div>
-
       <div class="modal-footer">
         <button class="btn-ghost" @click="$emit('close')">Cancel</button>
         <button class="btn-primary" @click="submit">
-          {{ editing ? 'Save Changes' : 'Create Variant' }}
+          {{ mode === 'edit' ? 'Save Changes' : 'Add Variant' }}
         </button>
       </div>
     </div>
-
-    <!-- ── PRINT PAGE ──────────────────────────────────────────── -->
-    <!-- FIX: id added so renderAllLabels can scope its querySelector to this element -->
-    <div class="print-page-overlay" v-else id="printPageOverlay">
-      <div class="print-toolbar no-print">
-        <div class="pt-left">
-          <button class="pt-back" @click="showPrintPage = false">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            Back to Form
-          </button>
-          <span class="pt-title">Barcode Print Sheet</span>
-        </div>
-        <div class="pt-right">
-          <div class="pt-control">
-            <label>Copies per barcode</label>
-            <input :value="printCopies" type="number" class="pt-num" readonly tabindex="-1" />
-          </div>
-          <div class="pt-control">
-            <label>Label size</label>
-            <select v-model="labelSize" class="pt-select" @change="rerenderLabels">
-              <option value="small">Small (38×19mm) — 35 labels</option>
-              <option value="medium">Medium (57×32mm) — 28 labels</option>
-              <option value="large">Large (90×50mm) — 12 labels</option>
-            </select>
-          </div>
-          <button class="pt-print-btn" @click="doPrint">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-            </svg>
-            Print / Save PDF
-          </button>
-        </div>
-      </div>
-
-      <div class="a4-wrap">
-        <div class="a4-sheet" id="printSheet">
-          <div class="a4-header">
-            <div class="a4-store-name">Koperasi Smart Management System (KSMS)</div>
-            <div class="a4-meta">Generated: {{ printDate }} · Variant: {{ form.variant_name || '—' }}</div>
-          </div>
-          <!-- FIX: SVGs identified by class, not :ref callbacks -->
-          <div class="label-grid" :class="`size-${labelSize}`">
-            <div v-for="n in printCopies" :key="n" class="label-cell">
-              <div class="label-product">{{ selectedProductName }}</div>
-              <div class="label-variant">{{ form.variant_name }}</div>
-              <div class="label-bars">
-                <svg class="label-barcode-svg"></svg>
-              </div>
-              <div class="label-code">{{ form.barcode }}</div>
-              <div class="label-price" v-if="form.price">RM {{ Number(form.price).toFixed(2) }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </template>
 
 <script>
 export default {
   name: 'VariantModal',
-
+  emits: ['close', 'save'],
   props: {
-    editing: Object,
-    inventory: Array,
+    mode:    { type: String, default: 'add' },
+    initial: { type: Object, default: null },
+    inventoryId: { type: Number, default: null },
   },
-
-  emits: ['save', 'close'],
-
   data() {
     return {
       form: {
-        inventory_id: '',
-        variant_name: '',
-        price: '',
-        quantity: 0,
-        barcode: '',
-        threshold: 10,
+        variant_name: this.initial?.variant_name || '',
+        price:        this.initial?.price        || '',
+        quantity:     this.initial?.quantity      ?? 0,
+        threshold:    this.initial?.threshold     ?? 10,
+        barcode:      this.initial?.barcode       || '',
       },
-      errors: {},
-
-      barcodeMode: 'scan',
-      isScanning: false,
-      genPrefix: '',
-      genFormat: 'CODE128',
-      justCopied: false,
-
-      showPrintPage: false,
-      labelSize: 'medium',
-      printDate: new Date().toLocaleDateString('en-MY', {
-        day: 'numeric', month: 'short', year: 'numeric',
-      }),
+      errors:   {},
+      scanMode: false,
     }
   },
-
-  computed: {
-    selectedProductName() {
-      const p = (this.inventory || []).find(p => p.id === this.form.inventory_id)
-      return p ? p.inventoryName : ''
-    },
-    printCopies() {
-      return { small: 35, medium: 28, large: 12 }[this.labelSize] ?? 28
-    },
-  },
-
-  watch: {
-    'form.barcode'(val) {
-      if (this.barcodeMode === 'generate' && val) {
-        this.$nextTick(() => this.renderPreview())
-      }
-    },
-    labelSize() {
-      this.$nextTick(() => this.renderAllLabels())
-    },
-  },
-
-  created() {
-    if (this.editing) {
-      this.form = { ...this.editing }
-      if (this.form.barcode) this.barcodeMode = 'scan'
-    }
-  },
-
   methods: {
-    // ── Safe JsBarcode wrapper ──────────────────────────────────────
-    // Reads JsBarcode from window so it works regardless of how it was imported.
-    // Logs a clear error if the library isn't loaded at all.
-    _renderBarcode(svgEl, value, extraOptions = {}) {
-      if (!svgEl || !value) return
-      if (typeof window.JsBarcode !== 'function') {
-        console.error('[VariantModal] JsBarcode not found on window. Make sure the script tag is included before this component.')
-        return
-      }
-      try {
-        window.JsBarcode(svgEl, value, {
-          format: this.genFormat,
-          displayValue: false,
-          lineColor: '#000000',
-          background: '#ffffff',
-          margin: 4,
-          ...extraOptions,
-        })
-      } catch (e) {
-        console.warn('[VariantModal] JsBarcode render error:', e.message)
+    toggleScan() {
+      this.scanMode = !this.scanMode
+      if (this.scanMode) {
+        this.$nextTick(() => this.$refs.barcodeInput?.focus())
       }
     },
-
-    switchMode(mode) {
-      this.barcodeMode = mode
-      if (mode === 'generate' && !this.form.barcode) {
-        this.generateBarcode()
-      } else if (mode === 'generate' && this.form.barcode) {
-        this.$nextTick(() => this.renderPreview())
+    onBarcodeEnter() {
+      // When scanner fires Enter after reading barcode
+      if (this.scanMode) {
+        this.scanMode = false
       }
     },
-
     generateBarcode() {
-      if (this.genFormat === 'EAN13') {
-        const digits = Array.from({ length: 12 }, () => Math.floor(Math.random() * 10))
-        const sum = digits.reduce((acc, d, i) => acc + d * (i % 2 === 0 ? 1 : 3), 0)
-        digits.push((10 - (sum % 10)) % 10)
-        this.form.barcode = digits.join('')
-      } else {
-        const prefix = (this.genPrefix || 'SKU').toUpperCase()
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789'
-        const body = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-        this.form.barcode = `${prefix}-${body}`
-      }
-      this.$nextTick(() => this.renderPreview())
+      // Generate EAN-13-style numeric barcode
+      const base = Date.now().toString().slice(-11) + Math.floor(Math.random() * 10)
+      this.form.barcode = base
     },
-
-    renderPreview() {
-      // FIX: getElementById is reliable after v-if re-mounts the element.
-      // $refs.barcodesvg can be stale if the v-if toggled since last render.
-      const el = document.getElementById('barcode-preview-svg')
-      this._renderBarcode(el, this.form.barcode, { width: 1.8, height: 48, lineColor: '#0f172a' })
-    },
-
-    renderAllLabels() {
-      if (!this.form.barcode) return
-
-      const barcodeHeight = this.labelSize === 'small' ? 18 : this.labelSize === 'large' ? 32 : 22
-      const barcodeWidth  = this.labelSize === 'small' ? 1.0 : this.labelSize === 'large' ? 1.6 : 1.2
-
-      // FIX: querySelector on the print overlay instead of :ref callbacks.
-      // The :ref="el => obj[n] = el" pattern in v-for is unreliable in Vue 3 —
-      // the callback fires with null on unmount/remount cycles and the timing
-      // relative to nextTick is not guaranteed. querySelectorAll on the live
-      // DOM element always returns the actual rendered nodes.
-      const container = document.getElementById('printPageOverlay')
-      if (!container) return
-
-      const svgEls = container.querySelectorAll('svg.label-barcode-svg')
-      svgEls.forEach(el => {
-        this._renderBarcode(el, this.form.barcode, { width: barcodeWidth, height: barcodeHeight, margin: 2 })
-      })
-    },
-
-    rerenderLabels() {
-      this.$nextTick(() => this.renderAllLabels())
-    },
-
-    onScanEnter() {
-      this.$refs.scanInput?.blur()
-    },
-
-    copyBarcode() {
-      navigator.clipboard?.writeText(this.form.barcode).catch(() => {})
-      this.justCopied = true
-      setTimeout(() => { this.justCopied = false }, 1800)
-    },
-
-    openPrintPage() {
-      if (!this.form.barcode) this.generateBarcode()
-      this.showPrintPage = true
-
-      // FIX: two $nextTick calls + setTimeout ensures:
-      //   tick 1 → Vue flips showPrintPage, schedules DOM update
-      //   tick 2 → DOM update is flushed, label cells exist in DOM
-      //   setTimeout 50ms → browser has painted, querySelectorAll is safe
-      this.$nextTick(() => {
-        this.$nextTick(() => {
-          setTimeout(() => this.renderAllLabels(), 50)
-        })
-      })
-    },
-
-    // FIX: window.print() prints the live DOM which already has barcodes rendered.
-    // The old approach (new window + outerHTML) copied blank SVG shells because
-    // JsBarcode writes directly into live DOM nodes — that state is NOT captured
-    // in outerHTML / innerHTML snapshots.
-    doPrint() {
-      window.print()
-    },
-
     validate() {
       this.errors = {}
-      if (!this.form.inventory_id)         this.errors.inventory_id = 'Please select a product.'
-      if (!this.form.variant_name?.trim())  this.errors.variant_name = 'Variant name is required.'
-      if (!this.form.price || this.form.price < 0) this.errors.price = 'Valid price is required.'
-      if (!this.form.barcode?.trim())       this.errors.barcode      = 'Barcode is required.'
-      return Object.keys(this.errors).length === 0
+      if (!this.form.variant_name.trim()) this.errors.variant_name = 'Variant name is required.'
+      if (!this.form.price || this.form.price <= 0) this.errors.price = 'Enter a valid price.'
+      if (!this.form.barcode.trim()) this.errors.barcode = 'Barcode is required. Scan or generate one.'
+      return !Object.keys(this.errors).length
     },
-
     submit() {
       if (!this.validate()) return
-      this.$emit('save', {
-        ...this.form,
-        variant_name: this.form.variant_name.trim(),
-        barcode:      this.form.barcode.trim(),
-        threshold:    this.form.threshold || 10,
-      })
+      this.$emit('save', { ...this.form, inventory_id: this.inventoryId })
     },
   },
 }
 </script>
 
 <style scoped>
-.barcode-mode-tabs {
-  display: flex;
-  gap: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  margin-bottom: 10px;
-  background: var(--bg);
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(15,23,42,.45);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
 }
-.mode-tab {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s;
-  border-right: 1px solid var(--border-strong);
+.modal {
+  background: #fff; border-radius: 14px;
+  width: 100%; max-width: 540px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  overflow: hidden; animation: popIn .18s ease;
+  max-height: 90vh; overflow-y: auto;
 }
-.mode-tab:last-child { border-right: none; }
-.mode-tab:hover { color: var(--text-primary); background: var(--surface); }
-.mode-tab.active { background: var(--accent); color: #fff; font-weight: 500; }
-
-.scan-area { display: flex; flex-direction: column; gap: 8px; }
-.scan-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  transition: all 0.15s;
+@keyframes popIn {
+  from { opacity:0; transform: scale(.96) translateY(6px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
 }
-.scan-input-wrap.scanning .scan-input {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 0; position: sticky; top: 0; background: #fff; z-index: 1;
+  padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;
 }
-.scan-prefix-icon {
-  position: absolute;
-  left: 11px;
-  color: var(--text-muted);
+.modal-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+.modal-close {
+  width: 30px; height: 30px; border-radius: 7px; border: none;
+  background: #f1f5f9; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: #e2e8f0; }
+.modal-body   { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal-footer {
+  padding: 16px 24px; border-top: 1px solid #f1f5f9;
+  display: flex; justify-content: flex-end; gap: 8px;
+  position: sticky; bottom: 0; background: #fff;
+}
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.field-row { display: flex; gap: 12px; }
+.field-label { font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
+.req { color: #ef4444; }
+.field-input {
+  padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif; color: #1e293b;
+  outline: none; transition: border-color .15s; background: #fff;
+  width: 100%;
+}
+.field-input:focus { border-color: #6366f1; }
+.field-input.scanning {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16,185,129,.15);
+  animation: pulse-border 1s ease infinite;
+}
+@keyframes pulse-border {
+  0%,100% { box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
+  50%      { box-shadow: 0 0 0 6px rgba(16,185,129,.05); }
+}
+.input-prefix-wrap { position: relative; display: flex; align-items: center; }
+.input-prefix {
+  position: absolute; left: 10px;
+  font-size: 13px; font-weight: 600; color: #94a3b8;
   pointer-events: none;
-  transition: color 0.15s;
 }
-.scan-input-wrap.scanning .scan-prefix-icon { color: var(--accent); }
-.scan-input { padding-left: 34px !important; padding-right: 30px !important; }
-.scan-clear {
-  position: absolute;
-  right: 10px;
-  font-size: 12px;
-  color: var(--text-muted);
-  cursor: pointer;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--border-strong);
-  transition: all 0.1s;
-}
-.scan-clear:hover { background: var(--red-bg); color: var(--red); }
-.scan-hint {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 7px 11px;
-}
+.prefix-input { padding-left: 30px !important; }
 
-.generate-area { display: flex; flex-direction: column; gap: 10px; }
-.generate-controls { display: flex; gap: 8px; align-items: flex-end; }
-.gen-field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.gen-sublabel {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-.btn-regen {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-  align-self: flex-end;
-}
-.btn-regen:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: #eef2ff;
-  transform: rotate(180deg);
-}
+.barcode-row { display: flex; gap: 8px; }
+.barcode-field { flex: 1; font-family: 'DM Mono', monospace; letter-spacing: .04em; }
 
-.barcode-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #fff;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 10px 16px 6px;
+.btn-icon-action {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 12px; border-radius: 8px;
+  border: 1px solid #e2e8f0; background: #f8fafc;
+  font-size: 12.5px; font-family: 'DM Sans', sans-serif; font-weight: 600;
+  color: #475569; cursor: pointer; white-space: nowrap;
+  transition: all .15s;
 }
-.barcode-preview svg { max-width: 100%; display: block; }
+.btn-icon-action:hover { border-color: #6366f1; color: #6366f1; }
+.btn-icon-action.active { background: #f0fdf4; border-color: #10b981; color: #10b981; }
+.btn-icon-action.generate:hover { border-color: #f59e0b; color: #f59e0b; }
 
-.generate-actions { display: flex; gap: 8px; align-items: stretch; }
-.gen-result-wrap { flex: 1; position: relative; display: flex; }
-.gen-result {
-  flex: 1;
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  background: var(--bg);
-  padding-right: 72px !important;
+.field-hint { font-size: 12px; color: #10b981; display: flex; align-items: center; gap: 6px; }
+.scan-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #10b981; display: inline-block;
+  animation: blink 1s ease infinite;
 }
-.btn-copy {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: none;
-  background: var(--border-strong);
-  color: var(--text-secondary);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.btn-copy:hover { background: #e2e8f0; color: var(--text-primary); }
-.btn-copy.copied { background: #dcfce7; color: #15803d; }
-.btn-print-trigger {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 14px;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  background: #eef2ff;
-  color: var(--accent);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.btn-print-trigger:hover { background: var(--accent); color: #fff; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.field-error { font-size: 12px; color: #ef4444; }
 
-.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.form-error { color: var(--red); font-size: 12px; margin-top: 2px; }
-
-/* ══════════════════════════════════════════════════════════════════
-   PRINT PAGE
-══════════════════════════════════════════════════════════════════ */
-.print-page-overlay {
-  position: fixed;
-  inset: 0;
-  background: #e8eaf0;
-  z-index: 300;
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
+.btn-ghost {
+  padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 8px;
+  background: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif;
+  font-weight: 500; color: #64748b; cursor: pointer;
 }
-.print-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 28px;
-  background: #fff;
-  border-bottom: 1px solid var(--border-strong);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  gap: 16px;
-  flex-wrap: wrap;
+.btn-ghost:hover { background: #f8fafc; }
+.btn-primary {
+  padding: 8px 18px; border: none; border-radius: 8px;
+  background: #6366f1; color: #fff;
+  font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600;
+  cursor: pointer; transition: background .15s;
 }
-.pt-left  { display: flex; align-items: center; gap: 14px; }
-.pt-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.pt-back {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 13px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.pt-back:hover { color: var(--text-primary); background: var(--bg); }
-.pt-title { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.02em; }
-.pt-control { display: flex; align-items: center; gap: 8px; }
-.pt-control label { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; }
-.pt-num {
-  width: 60px;
-  padding: 7px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  text-align: center;
-  outline: none;
-  cursor: default;
-  color: var(--text-muted);
-  user-select: none;
-}
-.pt-select {
-  padding: 7px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  outline: none;
-}
-.pt-select:focus { border-color: var(--accent); }
-.pt-print-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 20px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.25);
-}
-.pt-print-btn:hover { background: var(--accent-hover); }
-
-.a4-wrap { display: flex; justify-content: center; padding: 32px 24px 48px; }
-.a4-sheet {
-  width: 210mm;
-  min-height: 297mm;
-  background: #fff;
-  box-shadow: 0 4px 32px rgba(0,0,0,0.15);
-  border-radius: 4px;
-  padding: 14mm 12mm;
-}
-.a4-header {
-  margin-bottom: 8mm;
-  padding-bottom: 4mm;
-  border-bottom: 2px solid #0f172a;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-.a4-store-name { font-size: 15px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; }
-.a4-meta { font-size: 10px; color: #94a3b8; font-family: 'DM Mono', monospace; }
-
-.label-grid { display: grid; }
-.label-grid.size-small  { grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(7, auto); gap: 3mm; }
-.label-grid.size-medium { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(7, auto); gap: 4mm; }
-.label-grid.size-large  { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(6, auto); gap: 4mm; }
-
-.label-cell {
-  border: 1px solid #d1d5db;
-  border-radius: 3px;
-  padding: 3mm 3mm 2mm;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5mm;
-  background: #fff;
-  page-break-inside: avoid;
-  overflow: hidden;
-}
-.label-product {
-  font-size: 7px;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  text-align: center;
-  line-height: 1.2;
-}
-.label-variant { font-size: 8px; font-weight: 600; color: #0f172a; text-align: center; line-height: 1.2; }
-.label-bars { display: flex; align-items: center; justify-content: center; width: 100%; margin: 1mm 0; }
-.label-bars svg { max-width: 100%; display: block; }
-.label-code { font-family: 'DM Mono', monospace; font-size: 7px; color: #374151; letter-spacing: 0.08em; text-align: center; }
-.label-price { font-size: 9px; font-weight: 700; color: #0f172a; margin-top: 0.5mm; }
-
-@media print {
-  .no-print { display: none !important; }
-  .print-page-overlay {
-    position: static !important;
-    background: #fff !important;
-    overflow: visible !important;
-  }
-  .a4-wrap { padding: 0 !important; display: block; }
-  .a4-sheet {
-    width: 100% !important;
-    min-height: unset !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    padding: 10mm !important;
-  }
-  .label-grid { gap: 3mm !important; }
-  .modal-overlay { display: block !important; position: static !important; background: none !important; }
-}
+.btn-primary:hover { background: #4f46e5; }
 </style>

@@ -247,7 +247,7 @@ export default {
 }
 
 .btn-add:hover {
-  background-color: #1f2937;
+  background-color: #124f29;
   transform: translateY(-1px);
 }
 

@@ -11,16 +11,17 @@
           <h1 class="topbar-title">My <span class="accent">Payroll</span></h1>
           <p class="topbar-sub">View your monthly hours and payroll status</p>
         </div>
-        <div class="topbar-right">
-
-        </div>
+        <div class="topbar-right"></div>
       </div>
 
       <!-- ── SUMMARY CARDS ──────────────────────────────────── -->
-      <PayrollSummaryCards :records="payrollRecords" />
+      <PayrollSummaryCards
+        :records="filteredRecords"
+        :hourlyRate="staff.hourlyRate"
+      />
 
       <!-- ── CURRENT MONTH HIGHLIGHT ────────────────────────── -->
-      <div class="panel current-month-panel">
+      <div class="panel current-month-panel" v-if="currentRecord">
         <div class="card-header">
           <div>
             <p class="card-title">Current Period</p>
@@ -41,6 +42,11 @@
               <div class="ch-fill" :style="`width:${Math.min((currentRecord.hoursWorked/200)*100,100)}%`" />
             </div>
             <div class="ch-legend"><span>0h</span><span>200h target</span></div>
+            <!-- Total pay line -->
+            <div class="ch-pay">
+              <span class="ch-pay-label">Est. Total Pay</span>
+              <span class="ch-pay-val">{{ formatMoney(currentRecord.hoursWorked * staff.hourlyRate) }}</span>
+            </div>
           </div>
 
           <!-- Progress steps -->
@@ -89,15 +95,28 @@
 
       <!-- ── HISTORY TABLE ──────────────────────────────────── -->
       <PayrollHistoryTable
-        :records="payrollRecords"
+        :records="filteredRecords"
+        :hourlyRate="staff.hourlyRate"
         @view="openDetailModal"
+        @attendance="openAttendanceModal"
       />
 
       <!-- ── DETAIL MODAL ───────────────────────────────────── -->
       <PayrollDetailModal
         :show="showModal"
         :record="selectedRecord"
+        :hourlyRate="staff.hourlyRate"
         @close="showModal = false"
+      />
+
+      <!-- ── ATTENDANCE LOG MODAL ───────────────────────────── -->
+      <AttendanceLogModal
+        :show="showAttendanceModal"
+        :logs="attendanceLogs"
+        :staffName="staff.fullName"
+        :staffDept="staff.department"
+        :monthLabel="attendanceMonthLabel"
+        @close="showAttendanceModal = false"
       />
 
     </main>
@@ -105,10 +124,11 @@
 </template>
 
 <script>
-import StaffSidebar       from '@/components/sidebar/staffSidebar.vue'
-import PayrollSummaryCards from '@/components/staff-payroll/PayrollSummaryCards.vue'
-import PayrollHistoryTable from '@/components/staff-payroll/PayrollHistoryTable.vue'
-import PayrollDetailModal  from '@/components/staff-payroll/PayrollDetailModal.vue'
+import StaffSidebar          from '@/components/sidebar/staffSidebar.vue'
+import PayrollSummaryCards   from '@/components/staff-payroll/PayrollSummaryCards.vue'
+import PayrollHistoryTable   from '@/components/staff-payroll/PayrollHistoryTable.vue'
+import PayrollDetailModal    from '@/components/staff-payroll/PayrollDetailModal.vue'
+import AttendanceLogModal    from '@/components/staff-payroll/AttendanceLogModal.vue'
 
 import { CURRENT_STAFF, PAYROLL_RECORDS } from '@/data/staffPayrollData.js'
 
@@ -119,6 +139,7 @@ export default {
     PayrollSummaryCards,
     PayrollHistoryTable,
     PayrollDetailModal,
+    AttendanceLogModal,
   },
 
   data() {
@@ -131,13 +152,54 @@ export default {
       staff: CURRENT_STAFF,
       payrollRecords: PAYROLL_RECORDS,
 
+      filterMonth: '',
+      filterYear:  '',
+
       showModal:      false,
       selectedRecord: null,
+
+      showAttendanceModal:  false,
+      attendanceLogs:       [],
+      attendanceMonthLabel: '',
     }
   },
 
   computed: {
-    // Most recent record = current month
+    // Unique years present in records
+    yearOptions() {
+      const years = [...new Set(
+        this.payrollRecords.map(r => new Date(r.month).getFullYear())
+      )].sort((a, b) => b - a)
+      return years
+    },
+
+    monthOptions() {
+      return [
+        { value: '1',  label: 'January'   },
+        { value: '2',  label: 'February'  },
+        { value: '3',  label: 'March'     },
+        { value: '4',  label: 'April'     },
+        { value: '5',  label: 'May'       },
+        { value: '6',  label: 'June'      },
+        { value: '7',  label: 'July'      },
+        { value: '8',  label: 'August'    },
+        { value: '9',  label: 'September' },
+        { value: '10', label: 'October'   },
+        { value: '11', label: 'November'  },
+        { value: '12', label: 'December'  },
+      ]
+    },
+
+    filteredRecords() {
+      return this.payrollRecords.filter(r => {
+        const d = new Date(r.month)
+        if (this.filterMonth && String(d.getMonth() + 1) !== this.filterMonth) return false
+        if (this.filterYear  && d.getFullYear() !== Number(this.filterYear))   return false
+        return true
+      })
+    },
+
+    // Most recent record overall (not affected by filter) for Current Period panel
     currentRecord() {
       return this.payrollRecords[0] ?? null
     },
@@ -148,6 +210,85 @@ export default {
       this.selectedRecord = record
       this.showModal = true
     },
+
+    openAttendanceModal(record) {
+      this.attendanceMonthLabel = record.monthLabel
+      this.attendanceLogs = this.generateDummyAttendance(record.month)
+      this.showAttendanceModal = true
+
+      // TODO: replace dummy data with real API call:
+      // const month = record.month.slice(0, 7)
+      // const res = await fetch(`/api/staff/attendance?userID=${this.staff.id}&month=${month}`)
+      // const data = await res.json()
+      // this.attendanceLogs = data.logs ?? data ?? []
+    },
+
+    generateDummyAttendance(monthStr) {
+      // monthStr = "YYYY-MM-DD" (first day of month from payroll.month)
+      const base    = new Date(monthStr)
+      const year    = base.getFullYear()
+      const month   = base.getMonth()  // 0-indexed
+
+      // Statuses to sprinkle in realistically
+      const pool = [
+        'Completed','Completed','Completed','Completed',
+        'Late','Late','Missed','Completed',
+      ]
+
+      const notes = {
+        Late:      ['Traffic delay', 'Car breakdown', 'Overslept', ''],
+        Missed:    ['MC submitted', 'Emergency leave', 'No show', 'Annual leave'],
+        Completed: ['', '', '', 'OT approved', ''],
+      }
+
+      const logs = []
+      let shiftID = 3010 + (month * 20)
+
+      // Generate one shift per weekday for the month
+      for (let day = 1; day <= new Date(year, month + 1, 0).getDate(); day++) {
+        const date = new Date(year, month, day)
+        if (date.getDay() === 0 || date.getDay() === 6) continue // skip weekends
+
+        const status   = pool[logs.length % pool.length]
+        const notePool = notes[status]
+        const note     = notePool[Math.floor(Math.random() * notePool.length)]
+
+        // Build checkIn / checkOut datetimes
+        let checkIn  = null
+        let checkOut = null
+
+        if (status !== 'Missed') {
+          const inMinutes  = status === 'Late'
+            ? 8 * 60 + 15 + Math.floor(Math.random() * 30)  // 08:15 – 08:45
+            : 8 * 60 + Math.floor(Math.random() * 5)         // 08:00 – 08:04
+          const outMinutes = status === 'Completed' && note === 'OT approved'
+            ? 20 * 60  // 20:00 OT
+            : 16 * 60 + Math.floor(Math.random() * 10)       // ~16:00
+
+          const pad = n => String(n).padStart(2, '0')
+          const dateStr = `${year}-${pad(month + 1)}-${pad(day)}`
+          checkIn  = `${dateStr}T${pad(Math.floor(inMinutes / 60))}:${pad(inMinutes % 60)}:00`
+          checkOut = `${dateStr}T${pad(Math.floor(outMinutes / 60))}:${pad(outMinutes % 60)}:00`
+        }
+
+        logs.push({
+          id:        shiftID,
+          shiftID:   shiftID,
+          startTime: `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}T08:00:00`,
+          checkIn,
+          checkOut,
+          status,
+          notes: note,
+        })
+
+        shiftID++
+      }
+      return logs
+    },
+
+    formatMoney(val) {
+      return 'RM ' + Number(val).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
   },
 }
 </script>
@@ -157,7 +298,6 @@ export default {
 </style>
 
 <style scoped>
-/* ── Base ──────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
 .app-layout {
@@ -178,7 +318,7 @@ export default {
   justify-content:space-between;
   flex-wrap:wrap; gap:16px;
 }
-.topbar-date { font-size:12px; color:#94a3b8; margin-bottom:4px; }
+.topbar-date  { font-size:12px; color:#94a3b8; margin-bottom:4px; }
 .topbar-title {
   font-size:26px; font-weight:600;
   color:#0f172a; letter-spacing:-.025em; margin-bottom:4px;
@@ -186,14 +326,21 @@ export default {
 .topbar-title .accent { color:#6366f1; }
 .topbar-sub { font-size:13px; color:#64748b; }
 
+.topbar-right { display:flex; align-items:center; }
 
-.staff-avatar {
-  width:36px; height:36px; border-radius:9px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:13px; font-weight:600; color:#fff; flex-shrink:0;
+.filter-row { display:flex; gap:8px; align-items:center; }
+.select-pill {
+  padding:7px 12px; border-radius:8px;
+  border:1px solid #e2e8f0; background:#fff;
+  font-family:'DM Sans',sans-serif; font-size:13px; color:#374151;
+  cursor:pointer; outline:none; transition:border-color .15s;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+  padding-right:30px;
 }
-.staff-name { display:block; font-size:13.5px; font-weight:600; color:#0f172a; }
-.staff-dept { display:block; font-size:11.5px; color:#94a3b8; margin-top:1px; }
+.select-pill:focus { border-color:#6366f1; }
 
 /* ── Panel base ────────────────────────────────────────────────── */
 .panel {
@@ -249,7 +396,15 @@ export default {
   display:flex; justify-content:space-between;
   font-size:11px; color:#94a3b8;
   font-family:'DM Mono',monospace;
+  margin-bottom:16px;
 }
+.ch-pay {
+  display:flex; justify-content:space-between; align-items:center;
+  background:#fff; border-radius:8px; padding:10px 14px;
+  border:1px solid #e2e8f0;
+}
+.ch-pay-label { font-size:12px; color:#64748b; }
+.ch-pay-val   { font-size:15px; font-weight:700; color:#6366f1; font-family:'DM Mono',monospace; }
 
 /* Progress in current panel */
 .current-progress { padding:4px 0; }
@@ -291,5 +446,6 @@ export default {
 }
 @media(max-width:560px) {
   .topbar-title { font-size:20px; }
+  .filter-row   { flex-wrap:wrap; }
 }
 </style>
