@@ -54,10 +54,7 @@ export default {
 
 <style scoped>
 
-@keyframes popIn {
-  from { opacity:0; transform: scale(.96) translateY(6px); }
-  to   { opacity:1; transform: scale(1) translateY(0); }
-}
+
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 20px 24px 0;
