@@ -27,7 +27,8 @@
           >
             <span class="nav-icon" v-html="item.icon"></span>
             <span class="nav-label">{{ item.name }}</span>
-            <span v-if="$route.path === item.path" class="active-dot"></span>
+            <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
+            <span v-if="$route.path === item.path && !item.badge" class="active-dot"></span>
           </router-link>
         </li>
       </ul>
@@ -59,6 +60,7 @@
 <script>
 import API_BASE_URL from '@/services/api';
 import axios from 'axios';
+
 export default {
   name: "AdminSidebar",
   data() {
@@ -105,33 +107,62 @@ export default {
     const savedRole = localStorage.getItem("userRole");
     if (savedName) this.user.fullName = savedName;
     if (savedRole) this.user.role = savedRole;
+
     this.fetchUserInfo();
+    this.fetchAlarmUnread();
+
+    // optional: auto-refresh unread count every 30s
+    setInterval(() => {
+      this.fetchAlarmUnread();
+    }, 30000);
   },
   methods: {
-async fetchUserInfo() {
-  try {
-    const token = localStorage.getItem("userToken");
-    if (!token) return;
+    async fetchUserInfo() {
+      try {
+        const token = localStorage.getItem("userToken");
+        if (!token) return;
 
-    const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+        const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-    this.user.fullName = response.data.fullName || "Admin";
-    this.user.role = response.data.role || "Administrator";
-    localStorage.setItem("userName", this.user.fullName);
-    localStorage.setItem("userRole", this.user.role);
+        this.user.fullName = response.data.fullName || "Admin";
+        this.user.role = response.data.role || "Administrator";
+        localStorage.setItem("userName", this.user.fullName);
+        localStorage.setItem("userRole", this.user.role);
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    },
 
-  } catch (error) {
-    console.error("Error fetching user info:", error);
-  }
-},
+    async fetchAlarmUnread() {
+      try {
+        const token = localStorage.getItem("userToken");
+        if (!token) return;
+
+        const res = await axios.get(`${API_BASE_URL}/api/alarm`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const alarms = res.data || [];
+        const alarmMenu = this.menu.find(m => m.name === "Alarm");
+
+        if (alarmMenu) {
+          alarmMenu.badge = alarms.filter(a => a.is_read === 0).length;
+        }
+
+      } catch (err) {
+        console.error("Error fetching alarms:", err);
+      }
+    },
+
     handleLogout() {
       localStorage.removeItem("userToken");
       localStorage.removeItem("userName");
       localStorage.removeItem("userRole");
       window.location.href = "/";
     },
+
     isActive(path) {
       return this.$route.path.startsWith(path);
     }
@@ -260,6 +291,29 @@ async fetchUserInfo() {
   border-radius: 50%;
   background: #3b82f6;
   flex-shrink: 0;
+}
+
+/* ── Notification Badge ── */
+.nav-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+  animation: badgePulse 2s ease infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }
+  50%       { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
 }
 
 /* ── Footer ── */
