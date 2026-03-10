@@ -1,10 +1,8 @@
 <template>
   <div class="barcode-page">
-
-    <!-- ── Toolbar (hidden on print) ── -->
     <div class="toolbar no-print">
       <div class="toolbar-left">
-        <button class="btn-back" @click="$router.back()">
+        <button class="btn-back" @click="goBack">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
@@ -25,6 +23,7 @@
             @click="labelSize = s.value"
           >
             {{ s.label }}
+            <span class="size-dim">{{ s.dim }}</span>
             <span class="size-count">{{ s.count }} per page</span>
           </button>
         </div>
@@ -39,14 +38,6 @@
       </div>
     </div>
 
-    <!-- ── Print Header (print only) ── -->
-    <!-- <div class="print-header print-only">
-      <p class="ph-store">KSMS Store System</p>
-      <p class="ph-title">{{ inventoryName }} — {{ variant.variant_name }}</p>
-      <p class="ph-date">Printed {{ printedAt }}</p>
-    </div> -->
-
-    <!-- ── Barcode Grid ── -->
     <div class="barcode-grid" :class="`size-${labelSize}`">
       <div
         v-for="n in currentSize.count"
@@ -60,7 +51,6 @@
         <p class="lbl-price">RM {{ fmt(variant.price) }}</p>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -69,26 +59,25 @@ export default {
   name: 'BarcodeSheet',
 
   data() {
-    // variant passed via router state from AdminInventory
-    const state    = window.history.state || {}
-    const query    = this.$route?.query    || {}
+    const state = window.history.state || {}
+    const query = this.$route?.query    || {}
 
     return {
-      inventoryName: query.inventoryName || 'Product',
+      inventoryName:     query.inventoryName      || 'Product',
+      returnCategoryId:  query._returnCategoryId  || null,
+      returnInventoryId: query._returnInventoryId || null,
       variant: state.variant || {
         id: 1, variant_name: '500ml',
         barcode: '6009001001001', price: 3.50,
       },
       labelSize: 'md',
-      printedAt: new Date().toLocaleString('en-MY', {
-        day: 'numeric', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      }),
       sizes: [
-        { value: 'sm', label: 'Small',  count: 40 },
-        { value: 'md', label: 'Medium', count: 24 },
-        { value: 'lg', label: 'Large',  count: 12 },
-      ],
+        // Large:  90×50mm → 2 cols × 6 rows = 12  (A4 usable 194×281mm, 0 gap: 2×90=180✓, 6×46.8≈281✓)
+        { value: 'lg', label: 'Large',  dim: '90×50mm', count: 12 },
+        // Medium: 57×32mm → 3 cols × 8 rows = 24  (3×57=171✓, 8×32=256+7×3.6=281✓)
+        { value: 'md', label: 'Medium', dim: '57×32mm', count: 24 },
+        // Small:  38×19mm → 5 cols × 7 rows = 35  (5×38=190✓, 7×19=133 — fits easily)
+        { value: 'sm', label: 'Small', dim: '38×19mm', count: 70 },      ],
     }
   },
 
@@ -109,8 +98,16 @@ export default {
   },
 
   methods: {
-    printPage() {
-      window.print()
+    printPage() { window.print() },
+
+    goBack() {
+      this.$router.push({
+        name: 'AdminInventory',
+        query: {
+          _returnCategoryId:  this.returnCategoryId,
+          _returnInventoryId: this.returnInventoryId,
+        },
+      })
     },
 
     loadJsBarcode() {
@@ -126,9 +123,10 @@ export default {
     renderBarcodes() {
       if (!window.JsBarcode) return
       const cfg = {
-        sm: { width: 1.2, height: 36 },
-        md: { width: 1.6, height: 50 },
-        lg: { width: 2.0, height: 64 },
+        // heights tuned to fit inside each physical label
+        sm: { width: 0.9, height: 18 },
+        md: { width: 1.3, height: 34 },
+        lg: { width: 1.8, height: 52 },
       }[this.labelSize]
 
       for (let n = 1; n <= this.currentSize.count; n++) {
@@ -140,7 +138,7 @@ export default {
             width:        cfg.width,
             height:       cfg.height,
             displayValue: false,
-            margin:       3,
+            margin:       2,
             background:   '#ffffff',
             lineColor:    '#1e293b',
           })
@@ -195,7 +193,6 @@ export default {
 .tb-title { font-size: 15px; font-weight: 700; color: #0f172a; }
 .tb-sub   { font-size: 12px; color: #94a3b8; margin-top: 1px; }
 
-/* Size tabs */
 .size-tabs {
   display: flex;
   background: #f8fafc;
@@ -212,15 +209,12 @@ export default {
   cursor: pointer; transition: all .15s; line-height: 1.3;
 }
 .size-btn.active {
-  background: #fff;
-  color: #6366f1; font-weight: 700;
+  background: #fff; color: #6366f1; font-weight: 700;
   box-shadow: 0 1px 4px rgba(0,0,0,.08);
 }
 .size-btn:not(.active):hover { color: #334155; }
-.size-count {
-  font-size: 10.5px; font-weight: 500;
-  color: #94a3b8; margin-top: 1px;
-}
+.size-dim   { font-size: 10px; font-weight: 500; color: #a5b4fc; margin-top: 1px; }
+.size-count { font-size: 10.5px; font-weight: 500; color: #94a3b8; }
 .size-btn.active .size-count { color: #6366f1; }
 
 .btn-print {
@@ -232,120 +226,201 @@ export default {
 }
 .btn-print:hover { background: #4f46e5; }
 
-/* ── Print header (screen hidden, print visible) ── */
-.print-only { display: none; }
-
-/* ── Barcode Grid ── */
+/* ══════════════════════════════════════════════
+   SCREEN PREVIEW
+   794px = A4 width at 96dpi  (1px = 0.2646mm → 1mm = 3.7795px)
+   1123px = A4 height at 96dpi
+   8mm margin each side → 794 - 2×30px ≈ 734px usable width
+                        → 1123 - 2×30px ≈ 1063px usable height
+   ══════════════════════════════════════════════ */
 .barcode-grid {
-  padding: 24px;
+  width: 794px;
+  min-height: 1123px;
+  margin: 24px auto;
+  background: #fff;
+  box-shadow: 0 2px 16px rgba(0,0,0,.10);
+  /* 8mm ≈ 30px padding */
+  padding: 30px;
   display: grid;
-  gap: 10px;
-  max-width: 794px;        /* A4 portrait width at 96dpi */
-  margin: 24px auto;       /* center it on screen */
-  background: #fff;        /* white page look */
-  box-shadow: 0 2px 16px rgba(0,0,0,.08);  /* subtle page shadow */
-  min-height: 1123px;      /* A4 portrait height at 96dpi */
+  align-content: start;
 }
 
-/* Grid columns by size — match print layout */
-.barcode-grid.size-sm { grid-template-columns: repeat(8, 1fr); }
-.barcode-grid.size-md { grid-template-columns: repeat(6, 1fr); }
-.barcode-grid.size-lg { grid-template-columns: repeat(4, 1fr); }
+/*
+  LARGE: 90×50mm
+  90mm × 3.7795 = 340px   50mm × 3.7795 = 189px
+  2 cols: 2×340 = 680px < 734px ✓
+  6 rows: 6×189 = 1134px > 1063px ✗ — use fractional rows to fill height
+  → grid-template-rows: repeat(6, 1fr) inside fixed height container
+  Trick: set explicit height = 1063px and use grid-template-rows
+*/
+.barcode-grid.size-lg {
+  height: 1063px;
+  min-height: unset;
+  align-content: stretch;
+  grid-template-columns: repeat(2, 340px);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 6px;
+  justify-content: center;
+}
+
+/*
+  MEDIUM: 57×32mm
+  57mm × 3.7795 = 215px   32mm × 3.7795 = 121px
+  3 cols: 3×215 = 645px + 2×8px gap = 661px < 734px ✓
+  8 rows: 8×121 = 968px + 7×8px gap = 1024px ≈ 1063px ✓
+*/
+.barcode-grid.size-md {
+  grid-template-columns: repeat(3, 215px);
+  grid-auto-rows: 121px;
+  gap: 8px;
+  justify-content: center;
+}
+
+/*
+  SMALL: 38×19mm
+  38mm × 3.7795 = 144px   19mm × 3.7795 = 72px
+  5 cols: 5×144 = 720px + 4×5px = 740px ≈ 734px (tight, use 4px gap)
+  5 cols: 5×144 = 720px + 4×4px = 736px ✓
+  7 rows: 7×72 = 504px + 6×4px = 528px ✓  → 35 labels
+*/
+.barcode-grid.size-sm {
+  grid-template-columns: repeat(5, 144px);
+  grid-auto-rows: 72px;
+  gap: 4px;
+  justify-content: center;
+}
 
 /* Label card */
 .barcode-label {
   background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 8px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 5px 4px 3px;
   display: flex; flex-direction: column; align-items: center;
-  gap: 3px; text-align: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  justify-content: center;
+  gap: 1px; text-align: center;
+  overflow: hidden;
 }
 
 .lbl-product {
-  font-size: 9px; font-weight: 600; color: #94a3b8;
+  font-size: 7px; font-weight: 600; color: #94a3b8;
   text-transform: uppercase; letter-spacing: .05em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
-  text-align: center;
+  text-align: center; line-height: 1;
 }
+.size-sm .lbl-product { display: none; }
+
 .lbl-variant {
-  font-size: 12px; font-weight: 700; color: #0f172a;
+  font-size: 9px; font-weight: 700; color: #0f172a; line-height: 1;
+  white-space: nowrap;
 }
-.lbl-svg {
-  width: 100%; height: auto; display: block;
-}
+.size-lg .lbl-variant { font-size: 13px; }
+.size-sm .lbl-variant { font-size: 7.5px; }
+
+.lbl-svg { width: 100%; height: auto; display: block; }
+
 .lbl-code {
   font-family: 'DM Mono', monospace;
-  font-size: 9px; color: #475569; letter-spacing: .03em;
+  font-size: 7px; color: #475569; letter-spacing: .02em; line-height: 1;
 }
+.size-lg .lbl-code { font-size: 8.5px; }
+.size-sm .lbl-code { font-size: 6px; }
+
 .lbl-price {
-  font-size: 11px; font-weight: 700;
-  color: #6366f1; font-family: 'DM Mono', monospace;
+  font-size: 8.5px; font-weight: 700;
+  color: #6366f1; font-family: 'DM Mono', monospace; line-height: 1;
 }
+.size-lg .lbl-price { font-size: 11px; }
+.size-sm .lbl-price { font-size: 7px; }
 
-/* ── PRINT STYLES ── */
+/* ══════════════════════════════════════════════
+   PRINT
+   @page margin: 8mm → usable 194mm × 281mm
+   ══════════════════════════════════════════════ */
 @media print {
-  /* A4 portrait */
-  @page {
-    size: A4 portrait;
-    margin: 8mm;
-  }
+  @page { size: A4 portrait; margin: 8mm; }
 
-  .no-print   { display: none !important; }
-  .print-only { display: block !important; }
+  .no-print { display: none !important; }
 
- .barcode-page {
-  min-height: 100vh;
-  background: #eef0f5;   /* grey surround = "desk" behind paper */
-  padding: 24px;
-  font-family: 'DM Sans', sans-serif;
-}
+  .barcode-page { background: #fff; padding: 0; }
 
-  /* Print header */
-  .print-header {
-    text-align: center;
-    padding-bottom: 8pt;
-    border-bottom: 1pt solid #e2e8f0;
-    margin-bottom: 10pt;
-  }
-  .ph-store { font-size: 8pt; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; }
-  .ph-title { font-size: 13pt; font-weight: 700; color: #0f172a; margin: 3pt 0; }
-  .ph-date  { font-size: 8pt; color: #94a3b8; }
-
-  /* Grid — A4 portrait fill */
   .barcode-grid {
+    width: 100% !important;
+    height: auto !important;
+    min-height: unset !important;
+    margin: 0 !important;
     padding: 0 !important;
-    gap: 4pt !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    align-content: start !important;
   }
 
-  /* Small: 8 cols × 5 rows = 40 per page */
-  .barcode-grid.size-sm {
-    grid-template-columns: repeat(8, 1fr) !important;
-  }
-  /* Medium: 6 cols × 4 rows = 24 per page */
-  .barcode-grid.size-md {
-    grid-template-columns: repeat(6, 1fr) !important;
-  }
-  /* Large: 4 cols × 3 rows = 12 per page */
+  /*
+    LARGE print: 90×50mm, 2 cols, 6 rows = 12
+    2×90 = 180mm < 194mm ✓
+    6×50 = 300mm > 281mm — reduce height to auto-fill:
+    use grid-template-rows so 6 rows share 281mm → each ~46.8mm
+    Or simply: 0 gap + auto rows and let browser fit. Safest: explicit rows.
+  */
   .barcode-grid.size-lg {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(2, 90mm) !important;
+    grid-template-rows: repeat(6, 46mm) !important;  /* 6×46=276mm ✓ with ~1mm gaps */
+    gap: 1mm !important;
+    justify-content: center !important;
+  }
+
+  /*
+    MEDIUM print: 57×32mm, 3 cols, 8 rows = 24
+    3×57=171mm ✓   8×32=256mm + 7×1mm=263mm < 281mm ✓
+  */
+  .barcode-grid.size-md {
+    grid-template-columns: repeat(3, 57mm) !important;
+    grid-auto-rows: 32mm !important;
+    gap: 1.5mm !important;
+    justify-content: center !important;
+  }
+
+  /*
+    SMALL print: 38×19mm, 5 cols, 7 rows = 35
+    5×38=190mm + 4×1mm=194mm ✓   7×19=133mm ✓
+  */
+  .barcode-grid.size-sm {
+    grid-template-columns: repeat(5, 38mm) !important;
+    grid-auto-rows: 19mm !important;
+    gap: 1mm !important;
+    justify-content: center !important;
   }
 
   .barcode-label {
-    border: 1pt solid #e2e8f0 !important;
-    border-radius: 3pt !important;
-    padding: 5pt 4pt !important;
+    border: 0.3pt solid #cbd5e1 !important;
+    border-radius: 1pt !important;
+    padding: 1.5pt !important;
     box-shadow: none !important;
     break-inside: avoid;
+    overflow: hidden;
   }
 
-  .lbl-variant { font-size: 9pt !important; }
-  .lbl-code    { font-size: 7pt !important; }
-  .lbl-price   { font-size: 8pt !important; }
-  .lbl-product { font-size: 6.5pt !important; }
+  /* Large print text */
+  .barcode-grid.size-lg .lbl-product { font-size: 6pt !important; }
+  .barcode-grid.size-lg .lbl-variant { font-size: 9pt !important; }
+  .barcode-grid.size-lg .lbl-code    { font-size: 7pt !important; }
+  .barcode-grid.size-lg .lbl-price   { font-size: 8pt !important; }
 
-  /* Force barcode colors to print */
-  .lbl-svg { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Medium print text */
+  .barcode-grid.size-md .lbl-product { font-size: 5pt !important; }
+  .barcode-grid.size-md .lbl-variant { font-size: 7.5pt !important; }
+  .barcode-grid.size-md .lbl-code    { font-size: 6pt !important; }
+  .barcode-grid.size-md .lbl-price   { font-size: 7pt !important; }
+
+  /* Small print text */
+  .barcode-grid.size-sm .lbl-product { display: none !important; }
+  .barcode-grid.size-sm .lbl-variant { font-size: 5.5pt !important; }
+  .barcode-grid.size-sm .lbl-code    { font-size: 5pt !important; }
+  .barcode-grid.size-sm .lbl-price   { font-size: 5.5pt !important; }
+
+  .lbl-svg {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 </style>

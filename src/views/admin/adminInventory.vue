@@ -369,13 +369,23 @@ export default {
 
     // ── Barcode Sheet ──
     goToBarcodes(variant) {
-      // Pass only the single clicked variant — not all variants
       this.$router.push({
         name: 'BarcodeSheet',
-        query: { inventoryName: this.selectedInventory?.inventoryName },
+        query: {
+          inventoryName:       this.selectedInventory?.inventoryName,
+          _returnCategoryId:   this.selectedCategoryId,
+          _returnInventoryId:  this.selectedInventoryId,
+        },
         state: { variant },
       })
     },
+  },
+
+  created() {
+    // Restore panel selection when returning from BarcodeSheet
+    const q = this.$route?.query || {}
+    if (q._returnCategoryId)  this.selectedCategoryId  = Number(q._returnCategoryId)
+    if (q._returnInventoryId) this.selectedInventoryId = Number(q._returnInventoryId)
   },
 }
 </script>
