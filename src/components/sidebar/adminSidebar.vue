@@ -111,10 +111,10 @@ export default {
     this.fetchUserInfo();
     this.fetchAlarmUnread();
 
-    // optional: auto-refresh unread count every 30s
+    // optional: auto-refresh unread count every 5s
     setInterval(() => {
       this.fetchAlarmUnread();
-    }, 30000);
+    }, 5000);
   },
   methods: {
     async fetchUserInfo() {

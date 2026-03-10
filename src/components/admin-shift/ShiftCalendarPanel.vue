@@ -64,7 +64,7 @@ export default {
         initialView: 'dayGridMonth',
         initialDate: '2025-03-01',
         headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-        height: 'auto',
+        height: '625px',
         events: this.calendarEvents,
         eventClick: (info) => {
           this.$emit('event-click', info.event.extendedProps);

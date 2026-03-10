@@ -84,7 +84,7 @@
     </main>
 
     <!-- ── Modals ── -->
-
+<Teleport to="body">
     <CategoryModal
       v-if="showCategoryModal"
       :mode="modalMode"
@@ -118,11 +118,11 @@
       :initial="imagesFor(imageModalVariant?.id)"
       @close="showImageModal = false"
       @save="saveImages"
-    />
+    /></Teleport>
 
     <!-- ── Delete Confirm ── -->
-    <div class="modal-backdrop" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
-      <div class="confirm-modal">
+    <div class="delete-modal-backdrop" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
+      <div class="delete-confirm-modal">
         <div class="confirm-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </div>
@@ -383,7 +383,67 @@ export default {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap');
 </style>
+<style>
+/* Move these here (Unscoped) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000; 
+  background: rgba(15, 23, 42, 0.45);
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(2px); /* Optional: adds a nice modern touch */
+}
 
+.modal {
+  position: relative;
+  z-index: 10001;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 500px;
+  animation: popIn 0.2s ease-out;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+</style>
+
+<style>
+/* Use unique names to avoid Bootstrap 5 conflicts */
+.inv-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000; 
+  background: rgba(15, 23, 42, 0.45); /* Semi-transparent navy */
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.inv-modal {
+  position: relative;
+  z-index: 10001;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 500px;
+  animation: modalPopIn 0.25s ease-out; /* Match the keyframe name below */
+}
+
+@keyframes modalPopIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+</style>
 <style scoped>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -450,8 +510,10 @@ export default {
 }
 .no-panel svg { color: #dde1e9; }
 
+
+
 /* ── Delete confirm modal ── */
-.modal-backdrop {
+.delete-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 9999;
@@ -460,7 +522,7 @@ export default {
   align-items: center;
   justify-content: center;
 }
-.confirm-modal {
+.delete-confirm-modal {
   background: #fff; border-radius: 14px;
   width: 100%; max-width: 380px;
   padding: 28px 28px 24px;
@@ -468,10 +530,7 @@ export default {
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;
   animation: popIn .18s ease;
 }
-@keyframes popIn {
-  from { opacity:0; transform: scale(.96) translateY(6px); }
-  to   { opacity:1; transform: scale(1) translateY(0); }
-}
+
 .confirm-icon {
   width: 48px; height: 48px; border-radius: 12px;
   background: #fef2f2; color: #ef4444;

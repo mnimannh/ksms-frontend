@@ -1,7 +1,6 @@
 <template>
   <div v-if="visible" class="modal-overlay" @click.self="closeModal">
     <div class="modal-container">
-
       <header class="modal-header">
         <div class="modal-title-group">
           <span class="modal-eyebrow">{{ user ? 'Edit' : 'New' }} User</span>
@@ -15,7 +14,6 @@
       </header>
 
       <form @submit.prevent="submitForm" class="modal-form">
-
         <div class="form-row">
           <div class="form-group">
             <label for="fullName">Full Name</label>
@@ -59,6 +57,33 @@
           </div>
         </div>
 
+        <!-- RFID UID field — only shown when role is Staff -->
+        <transition name="rfid-slide">
+          <div v-if="form.role === 'staff'" class="form-row rfid-row">
+            <div class="form-group">
+              <label for="rfidUid">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px; margin-right:4px;">
+                  <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M7 12h10M7 9h4M7 15h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                RFID UID
+              </label>
+              <div class="rfid-input-wrapper">
+                <input
+                  id="rfidUid"
+                  type="text"
+                  v-model="form.rfidUid"
+                  placeholder="e.g. A3 F2 09 1C"
+                  :required="form.role === 'staff'"
+                  maxlength="32"
+                />
+                <span class="rfid-badge">RFID</span>
+              </div>
+              <span class="field-hint">Scan or enter the staff member's RFID card UID</span>
+            </div>
+          </div>
+        </transition>
+
         <div v-if="user" class="form-group password-toggle-group">
           <label class="checkbox-label">
             <input type="checkbox" v-model="changingPassword" />
@@ -74,23 +99,11 @@
         <div v-if="!user || changingPassword" class="form-row two-col">
           <div class="form-group">
             <label for="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              v-model="form.password"
-              placeholder="••••••••"
-              :required="!user || changingPassword"
-            />
+            <input id="password" type="password" v-model="form.password" placeholder="••••••••" :required="!user || changingPassword" />
           </div>
           <div class="form-group">
             <label for="confirmPassword">Confirm</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              v-model="form.confirmPassword"
-              placeholder="••••••••"
-              :required="!user || changingPassword"
-            />
+            <input id="confirmPassword" type="password" v-model="form.confirmPassword" placeholder="••••••••" :required="!user || changingPassword" />
           </div>
         </div>
 
@@ -103,7 +116,6 @@
             {{ loading ? 'Saving…' : (user ? 'Update User' : 'Add User') }}
           </button>
         </div>
-
       </form>
     </div>
   </div>
@@ -116,7 +128,7 @@ export default {
   name: 'UserModal',
   props: {
     visible: { type: Boolean, default: false },
-    user: { type: Object, default: null }
+    user:    { type: Object,  default: null  }
   },
   data() {
     return {
@@ -125,6 +137,7 @@ export default {
         email: '',
         role: 'staff',
         status: 'active',
+        rfidUid: '',
         password: '',
         confirmPassword: ''
       },
@@ -142,6 +155,7 @@ export default {
             email: val.email,
             role: val.role,
             status: val.status,
+            rfidUid: val.rfidUid || '',
             password: '',
             confirmPassword: ''
           }
@@ -152,12 +166,17 @@ export default {
             email: '',
             role: 'staff',
             status: 'active',
+            rfidUid: '',
             password: '',
             confirmPassword: ''
           }
           this.changingPassword = false
         }
       }
+    },
+    // Clear RFID when switching away from staff
+    'form.role'(val) {
+      if (val !== 'staff') this.form.rfidUid = ''
     }
   },
   methods: {
@@ -169,19 +188,23 @@ export default {
         alert('Passwords do not match!')
         return
       }
+
       this.loading = true
       try {
         const payload = { ...this.form }
+
+        // Strip rfidUid from payload if not staff
+        if (payload.role !== 'staff') delete payload.rfidUid
+
         if (this.user) {
-          if (!this.changingPassword || !payload.password) {
-            delete payload.password
-          }
+          if (!this.changingPassword || !payload.password) delete payload.password
           delete payload.confirmPassword
           await axios.put(`http://localhost:3000/api/users/${this.user.id}`, payload)
         } else {
           delete payload.confirmPassword
           await axios.post('http://localhost:3000/api/users', payload)
         }
+
         this.$emit('save')
         this.closeModal()
       } catch (err) {
@@ -201,317 +224,174 @@ export default {
 * { box-sizing: border-box; }
 
 .modal-overlay {
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background: rgba(10, 12, 18, 0.45);
   backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: flex; justify-content: center; align-items: center;
   z-index: 1000;
   animation: fadeIn 0.15s ease;
 }
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .modal-container {
-  background: #fff;
-  width: 460px;
-  border-radius: 14px;
-  overflow: hidden;
+  background: #fff; width: 460px;
+  border-radius: 14px; overflow: hidden;
   box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
   animation: slideUp 0.2s cubic-bezier(0.34, 1.3, 0.64, 1);
 }
-
 @keyframes slideUp {
   from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
-/* ── Header ── */
+/* Header */
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: flex; justify-content: space-between; align-items: flex-start;
   padding: 24px 28px 20px;
   border-bottom: 1px solid #f3f4f6;
 }
-
 .modal-eyebrow {
-  display: block;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #9ca3af;
-  margin-bottom: 3px;
+  display: block; font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: #9ca3af; margin-bottom: 3px;
 }
-
-.modal-header h2 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-  letter-spacing: -0.02em;
-}
-
+.modal-header h2 { font-size: 18px; font-weight: 600; color: #111827; margin: 0; letter-spacing: -0.02em; }
 .close-btn {
-  background: #f3f4f6;
-  border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  flex-shrink: 0;
-  margin-top: 2px;
+  background: #f3f4f6; border: none; width: 30px; height: 30px;
+  border-radius: 50%; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  color: #6b7280; flex-shrink: 0; margin-top: 2px;
   transition: background 0.15s, color 0.15s;
 }
+.close-btn:hover { background: #e5e7eb; color: #111827; }
 
-.close-btn:hover {
-  background: #e5e7eb;
-  color: #111827;
-}
+/* Form */
+.modal-form { padding: 24px 28px; }
+.form-row { margin-bottom: 18px; }
+.form-row.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
 
-/* ── Form ── */
-.modal-form {
-  padding: 24px 28px;
-}
-
-.form-row {
-  margin-bottom: 18px;
-}
-
-.form-row.two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #374151;
-  letter-spacing: 0.02em;
-}
+label { font-size: 12px; font-weight: 600; color: #374151; letter-spacing: 0.02em; }
 
 input[type="text"],
 input[type="email"],
 input[type="password"] {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
-  color: #111827;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 9px 13px;
-  outline: none;
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #111827;
+  background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 9px 13px; outline: none;
   transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
 }
-
 input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="password"]:focus {
-  border-color: #111827;
-  background: #fff;
+  border-color: #111827; background: #fff;
   box-shadow: 0 0 0 3px rgba(17,24,39,0.07);
 }
-
 input::placeholder { color: #c4c9d4; }
 
 /* Select */
-.select-wrapper {
-  position: relative;
-}
-
+.select-wrapper { position: relative; }
 select {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13.5px;
-  color: #111827;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 9px 36px 9px 13px;
-  outline: none;
-  width: 100%;
-  appearance: none;
-  cursor: pointer;
-  transition: border-color 0.18s;
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #111827;
+  background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 9px 36px 9px 13px; outline: none; width: 100%;
+  appearance: none; cursor: pointer; transition: border-color 0.18s;
 }
-
-select:focus {
-  border-color: #111827;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(17,24,39,0.07);
-}
-
-.select-arrow {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: #9ca3af;
-}
+select:focus { border-color: #111827; background: #fff; box-shadow: 0 0 0 3px rgba(17,24,39,0.07); }
+.select-arrow { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af; }
 
 /* Status Toggle */
-.status-toggle {
-  display: flex;
-  gap: 8px;
-  padding-top: 2px;
-}
-
+.status-toggle { display: flex; gap: 8px; padding-top: 2px; }
 .toggle-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 13px;
-  border-radius: 7px;
-  border: 1px solid #e5e7eb;
-  font-size: 12.5px;
-  font-weight: 400 !important;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: #f9fafb;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 7px; border: 1px solid #e5e7eb;
+  font-size: 12.5px; font-weight: 400 !important; color: #6b7280;
+  cursor: pointer; transition: all 0.15s; background: #f9fafb;
 }
-
-.toggle-option input[type="radio"] {
-  display: none;
-}
-
-.toggle-option.selected {
-  background: #f0f9ff;
-  border-color: #bae6fd;
-  color: #0369a1;
-  font-weight: 500 !important;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
+.toggle-option input[type="radio"] { display: none; }
+.toggle-option.selected { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; font-weight: 500 !important; }
+.dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .active-dot { background: #22c55e; }
 .inactive-dot { background: #f87171; }
 
-/* Checkbox */
-.password-toggle-group {
-  margin-bottom: 16px;
-}
+/* ── RFID Field ── */
+.rfid-row { margin-bottom: 18px; }
 
-.checkbox-label {
+.rfid-input-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 13px;
-  font-weight: 400 !important;
-  color: #6b7280;
-  cursor: pointer;
-  letter-spacing: 0;
 }
-
-.checkbox-box {
-  width: 16px;
-  height: 16px;
+.rfid-input-wrapper input[type="text"] {
+  width: 100%;
+  padding-right: 54px;
+  font-family: 'DM Sans', monospace;
+  letter-spacing: 0.05em;
+}
+.rfid-badge {
+  position: absolute; right: 10px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #6366f1;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
   border-radius: 4px;
-  border: 1.5px solid #d1d5db;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.15s;
+  padding: 2px 6px;
+  pointer-events: none;
+  user-select: none;
+}
+.field-hint {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 400;
+  margin-top: 2px;
 }
 
-input[type="checkbox"] {
-  display: none;
-}
+/* RFID slide transition */
+.rfid-slide-enter-active { transition: all 0.22s cubic-bezier(0.34, 1.3, 0.64, 1); }
+.rfid-slide-leave-active { transition: all 0.15s ease; }
+.rfid-slide-enter-from   { opacity: 0; transform: translateY(-6px); }
+.rfid-slide-leave-to     { opacity: 0; transform: translateY(-4px); }
 
-input[type="checkbox"]:checked + .checkbox-box {
-  background: #111827;
-  border-color: #111827;
+/* Checkbox */
+.password-toggle-group { margin-bottom: 16px; }
+.checkbox-label {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; font-weight: 400 !important; color: #6b7280;
+  cursor: pointer; letter-spacing: 0;
 }
+.checkbox-box {
+  width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #d1d5db;
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s;
+}
+input[type="checkbox"] { display: none; }
+input[type="checkbox"]:checked + .checkbox-box { background: #111827; border-color: #111827; }
 
 /* Divider */
-.form-divider {
-  height: 1px;
-  background: #f3f4f6;
-  margin: 20px 0 20px;
-}
+.form-divider { height: 1px; background: #f3f4f6; margin: 20px 0; }
 
 /* Actions */
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .btn-cancel {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: #6b7280;
-  background: #f3f4f6;
-  border: none;
-  padding: 9px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  color: #6b7280; background: #f3f4f6; border: none;
+  padding: 9px 18px; border-radius: 8px; cursor: pointer; transition: background 0.15s;
 }
-
 .btn-cancel:hover { background: #e5e7eb; color: #374151; }
-
 .btn-save {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: #fff;
-  background: #16a34a;
-  border: none;
-  padding: 9px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  color: #fff; background: #16a34a; border: none;
+  padding: 9px 20px; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
   transition: background 0.15s, transform 0.12s;
 }
-
-.btn-save:hover:not(:disabled) {
-  background: #124f29;
-  transform: translateY(-1px);
-}
-
-.btn-save:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
+.btn-save:hover:not(:disabled) { background: #124f29; transform: translateY(-1px); }
+.btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
 .spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.6s linear infinite;
 }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

@@ -16,12 +16,14 @@
       <!-- Summary Cards -->
       <PayrollSummaryCards :staffList="staffList" />
 
-      <!-- Controls: search, filter, period, generate-all -->
+      <!-- Controls -->
       <PayrollControls
         v-model:searchQuery="searchQuery"
         v-model:activeFilter="activeFilter"
         v-model:selectedMonth="selectedMonth"
         v-model:selectedYear="selectedYear"
+        v-model:selectedStaffId="selectedStaffId"
+        :staffOptions="staffList"
         :pendingCount="pendingCount"
         :isGeneratingAll="isGeneratingAll"
         :months="MONTHS"
@@ -94,30 +96,25 @@ export default {
   data() {
     const now = new Date()
     return {
-      // Period
       selectedMonth: now.getMonth() + 1,
       selectedYear:  now.getFullYear(),
       MONTHS,
       YEARS,
 
-      // Staff data (reactive copy)
       staffList: STAFF_LIST.map(s => ({ ...s, attendance: { ...s.attendance } })),
 
-      // Filters
-      searchQuery:  '',
-      activeFilter: 'all',
+      searchQuery:     '',
+      activeFilter:    'all',
+      selectedStaffId: 'all',   // ← 'all' or a specific userID string
 
-      // Modals
       showGenerateModal: false,
       showLogModal:      false,
       selectedStaff:     null,
       logStaff:          null,
 
-      // State
       isProcessing:    false,
       isGeneratingAll: false,
 
-      // Toast
       toast: { show: false, message: '', type: 'success' },
     }
   },
@@ -134,9 +131,16 @@ export default {
         const matchSearch = !q
           || s.name.toLowerCase().includes(q)
           || s.department.toLowerCase().includes(q)
+
         const matchFilter = this.activeFilter === 'all'
           || s.payrollStatus === this.activeFilter
-        return matchSearch && matchFilter
+
+        // Filter to a specific staff member when one is selected
+        // eslint-disable-next-line eqeqeq
+        const matchStaff = this.selectedStaffId === 'all'
+          || s.userID == this.selectedStaffId
+
+        return matchSearch && matchFilter && matchStaff
       })
     },
 
@@ -155,7 +159,6 @@ export default {
   },
 
   methods: {
-    // ── Generate single ──────────────────────────────────────────
     openGenerateModal(staff) {
       this.selectedStaff = staff
       this.showGenerateModal = true
@@ -166,7 +169,6 @@ export default {
     },
     handleConfirmGenerate({ notes }) {
       this.isProcessing = true
-      // Simulate async API call
       setTimeout(() => {
         const s = this.staffList.find(x => x.userID === this.selectedStaff.userID)
         if (s) s.payrollStatus = 'generated'
@@ -176,7 +178,6 @@ export default {
       }, 1400)
     },
 
-    // ── Generate all pending ──────────────────────────────────────
     handleGenerateAll() {
       const pending = this.staffList.filter(s => s.payrollStatus === 'pending')
       if (!pending.length) {
@@ -191,18 +192,15 @@ export default {
       }, 1800)
     },
 
-    // ── View generated payroll ────────────────────────────────────
     handleView(staff) {
       this.showToast(`Payroll for ${staff.name} is already ${staff.payrollStatus}.`, 'info')
     },
 
-    // ── Attendance log ────────────────────────────────────────────
     openLogModal(staff) {
       this.logStaff    = staff
       this.showLogModal = true
     },
 
-    // ── Toast helper ──────────────────────────────────────────────
     showToast(message, type = 'success') {
       this.toast = { show: true, message, type }
       setTimeout(() => { this.toast.show = false }, 3500)
@@ -212,11 +210,8 @@ export default {
 </script>
 
 <style>
-/* Global font import — put in main.js or App.vue if already imported */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 body {
   font-family: 'DM Sans', sans-serif;
   background: #f8f9fb;
@@ -226,42 +221,15 @@ body {
 </style>
 
 <style scoped>
-.app-layout {
-  display: flex;
-  min-height: 100vh;
-  background: #f8f9fb;
-}
-
-.main-content {
-  flex: 1;
-  padding: 36px 40px;
-  overflow-x: hidden;
-  max-width: 100%;
-}
-
-/* Page Header */
-.page-header {
-  margin-bottom: 28px;
-}
+.app-layout { display: flex; min-height: 100vh; background: #f8f9fb; }
+.main-content { flex: 1; padding: 36px 40px; overflow-x: hidden; max-width: 100%; }
+.page-header { margin-bottom: 28px; }
 .header-eyebrow {
-  display: block;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #9ca3af;
-  margin-bottom: 4px;
+  display: block; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: #9ca3af; margin-bottom: 4px;
 }
-.page-title {
-  font-size: 24px; font-weight: 600;
-  color: #0f172a; letter-spacing: -.02em;
-  margin-bottom: 4px;
-}
-.page-subtitle {
-  font-size: 13.5px; color: #64748b;
-}
-
-@media (max-width: 700px) {
-  .main-content { padding: 20px 16px; }
-}
+.page-title { font-size: 24px; font-weight: 600; color: #0f172a; letter-spacing: -.02em; margin-bottom: 4px; }
+.page-subtitle { font-size: 13.5px; color: #64748b; }
+@media (max-width: 700px) { .main-content { padding: 20px 16px; } }
 </style>

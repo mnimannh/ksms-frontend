@@ -1,6 +1,6 @@
 <template>
-  <div class="modal-backdrop" @click.self="$emit('close')">
-    <div class="modal">
+  <div class="inv-modal-backdrop" @click.self="$emit('close')">
+    <div class="inv-modal">
       <div class="modal-header">
         <h2 class="modal-title">{{ mode === 'edit' ? 'Edit Category' : 'New Category' }}</h2>
         <button class="modal-close" @click="$emit('close')">
@@ -53,19 +53,7 @@ export default {
 </script>
 
 <style scoped>
-.modal-backdrop {
-  position: fixed; inset: 0; z-index: 0;
-  background: rgba(15,23,42,.45);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
-}
-.modal {
-  background: #fff; border-radius: 14px;
-  width: 100%; max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.18);
-  overflow: hidden;
-  animation: popIn .18s ease;
-}
+
 @keyframes popIn {
   from { opacity:0; transform: scale(.96) translateY(6px); }
   to   { opacity:1; transform: scale(1) translateY(0); }

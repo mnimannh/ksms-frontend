@@ -284,7 +284,7 @@ export default {
 }
 .page-content {
   padding: 28px 32px 48px;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
 }
 

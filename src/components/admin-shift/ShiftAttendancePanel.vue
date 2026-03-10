@@ -80,7 +80,7 @@ export default {
   font-weight: 500;
 }
 .attendance-list {
-  max-height: 480px;
+  max-height: 635px;
   overflow-y: auto;
 }
 .attendance-list::-webkit-scrollbar       { width: 4px; }

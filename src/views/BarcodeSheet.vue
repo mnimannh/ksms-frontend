@@ -40,11 +40,11 @@
     </div>
 
     <!-- ── Print Header (print only) ── -->
-    <div class="print-header print-only">
+    <!-- <div class="print-header print-only">
       <p class="ph-store">KSMS Store System</p>
       <p class="ph-title">{{ inventoryName }} — {{ variant.variant_name }}</p>
       <p class="ph-date">Printed {{ printedAt }}</p>
-    </div>
+    </div> -->
 
     <!-- ── Barcode Grid ── -->
     <div class="barcode-grid" :class="`size-${labelSize}`">
@@ -237,9 +237,14 @@ export default {
 
 /* ── Barcode Grid ── */
 .barcode-grid {
-  padding: 24px 32px;
+  padding: 24px;
   display: grid;
   gap: 10px;
+  max-width: 794px;        /* A4 portrait width at 96dpi */
+  margin: 24px auto;       /* center it on screen */
+  background: #fff;        /* white page look */
+  box-shadow: 0 2px 16px rgba(0,0,0,.08);  /* subtle page shadow */
+  min-height: 1123px;      /* A4 portrait height at 96dpi */
 }
 
 /* Grid columns by size — match print layout */
@@ -290,10 +295,12 @@ export default {
   .no-print   { display: none !important; }
   .print-only { display: block !important; }
 
-  .barcode-page {
-    background: #fff !important;
-    min-height: unset !important;
-  }
+ .barcode-page {
+  min-height: 100vh;
+  background: #eef0f5;   /* grey surround = "desk" behind paper */
+  padding: 24px;
+  font-family: 'DM Sans', sans-serif;
+}
 
   /* Print header */
   .print-header {
