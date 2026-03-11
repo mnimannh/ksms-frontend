@@ -3,12 +3,11 @@
     <AdminSidebar />
 
     <main class="inv-main">
-
       <!-- ── Page Header ── -->
       <div class="page-header">
         <div>
           <h1 class="page-title">Inventory</h1>
-          <p class="page-sub">Manage categories, products and variants</p>
+          <p class="page-sub">Manage categories, products, variants, and images</p>
         </div>
         <div class="header-stats">
           <div class="stat-chip">
@@ -26,10 +25,8 @@
         </div>
       </div>
 
-      <!-- ── Three-Panel Layout ── -->
+      <!-- ── Panels ── -->
       <div class="panels-layout">
-
-        <!-- Panel 1: Categories -->
         <CategoryPanel
           :categories="allCategories"
           :selected-id="selectedCategoryId"
@@ -40,10 +37,11 @@
           @delete="confirmDelete('category', $event)"
         />
 
-        <!-- Panel 2: Inventory (shown when category selected) -->
         <div class="panel-transition" :class="{ visible: selectedCategoryId }">
           <div class="panel-arrow no-panel" v-if="!selectedCategoryId">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
             <p>Select a category</p>
           </div>
           <InventoryPanel
@@ -60,10 +58,11 @@
           />
         </div>
 
-        <!-- Panel 3: Variants (shown when inventory selected) -->
         <div class="panel-transition wide-panel" :class="{ visible: selectedInventoryId }">
           <div class="panel-arrow no-panel" v-if="!selectedInventoryId">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
             <p>Select a product</p>
           </div>
           <VariantTable
@@ -78,53 +77,53 @@
             @manageImages="openImageModal($event)"
           />
         </div>
-
       </div>
-
     </main>
 
     <!-- ── Modals ── -->
-<Teleport to="body">
-    <CategoryModal
-      v-if="showCategoryModal"
-      :mode="modalMode"
-      :initial="modalTarget"
-      @close="showCategoryModal = false"
-      @save="saveCategory"
-    />
-
-    <InventoryModal
-      v-if="showInventoryModal"
-      :mode="modalMode"
-      :initial="modalTarget"
-      :categories="allCategories"
-      :default-category-id="selectedCategoryId"
-      @close="showInventoryModal = false"
-      @save="saveInventory"
-    />
-
-    <VariantModal
-      v-if="showVariantModal"
-      :mode="modalMode"
-      :initial="modalTarget"
-      :inventory-id="selectedInventoryId"
-      @close="showVariantModal = false"
-      @save="saveVariant"
-    />
-
-    <ImageManagerModal
-      v-if="showImageModal"
-      :variant-name="imageModalVariant?.variant_name || ''"
-      :initial="imagesFor(imageModalVariant?.id)"
-      @close="showImageModal = false"
-      @save="saveImages"
-    /></Teleport>
+    <Teleport to="body">
+      <CategoryModal
+        v-if="showCategoryModal"
+        :mode="modalMode"
+        :initial="modalTarget"
+        @close="showCategoryModal = false"
+        @save="saveCategory"
+      />
+      <InventoryModal
+        v-if="showInventoryModal"
+        :mode="modalMode"
+        :initial="modalTarget"
+        :categories="allCategories"
+        :default-category-id="selectedCategoryId"
+        @close="showInventoryModal = false"
+        @save="saveInventory"
+      />
+      <VariantModal
+        v-if="showVariantModal"
+        :mode="modalMode"
+        :initial="modalTarget"
+        :inventory-id="selectedInventoryId"
+        @close="showVariantModal = false"
+        @save="saveVariant"
+      />
+      <ImageManagerModal
+        v-if="showImageModal"
+        :variant-name="imageModalVariant?.variant_name || ''"
+        :initial="imagesFor(imageModalVariant?.id)"
+        @close="showImageModal = false"
+        @save="saveImages"
+      />
+    </Teleport>
 
     <!-- ── Delete Confirm ── -->
     <div class="delete-modal-backdrop" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
       <div class="delete-confirm-modal">
         <div class="confirm-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
         </div>
         <h3 class="confirm-title">Delete {{ deleteTarget?.type }}?</h3>
         <p class="confirm-sub">
@@ -138,11 +137,13 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
 <script>
+import axios from "axios";
+import API_BASE_URL from "@/services/api";
+
 import AdminSidebar       from '@/components/sidebar/AdminSidebar.vue'
 import CategoryPanel      from '@/components/admin-inventory/CategoryPanel.vue'
 import InventoryPanel     from '@/components/admin-inventory/InventoryPanel.vue'
@@ -154,95 +155,39 @@ import ImageManagerModal  from '@/components/admin-inventory/ImageManagerModal.v
 
 const PALETTE = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6']
 
-// ── Hardcoded seed data (replace with API calls) ──────────────────────────────
-let _catId  = 5
-let _invId  = 8
-let _varId  = 10
-let _imgId  = 20
-
-const SEED_CATEGORIES = [
-  { id:1, name:'Beverages',  created_at:'2024-01-01' },
-  { id:2, name:'Dry Goods',  created_at:'2024-01-01' },
-  { id:3, name:'Condiments', created_at:'2024-01-01' },
-  { id:4, name:'Cleaning',   created_at:'2024-01-01' },
-  { id:5, name:'Frozen',     created_at:'2024-01-01' },
-]
-
-const SEED_INVENTORY = [
-  { id:1, inventoryName:'Air Milo Tin',      category_id:1, description:'Chocolate malt drink',   default_threshold:10 },
-  { id:2, inventoryName:'Nescafe 3in1',      category_id:1, description:'Instant coffee sachets',  default_threshold:10 },
-  { id:3, inventoryName:'Mineral Water',     category_id:1, description:'Drinking water bottles',  default_threshold:20 },
-  { id:4, inventoryName:'Basmati Rice',      category_id:2, description:'Long grain basmati rice', default_threshold:5  },
-  { id:5, inventoryName:'Sugar',             category_id:2, description:'White refined sugar',     default_threshold:8  },
-  { id:6, inventoryName:'Cooking Oil',       category_id:3, description:'Palm cooking oil',        default_threshold:6  },
-  { id:7, inventoryName:'Latex Gloves',      category_id:4, description:'Disposable latex gloves', default_threshold:20 },
-  { id:8, inventoryName:'Frozen Chicken',    category_id:5, description:'Whole frozen chicken',    default_threshold:10 },
-]
-
-const SEED_VARIANTS = [
-  { id:1,  inventory_id:1, variant_name:'500ml',   barcode:'6009001001001', price:3.50,  quantity:120, threshold:10 },
-  { id:2,  inventory_id:1, variant_name:'1000ml',  barcode:'6009001001002', price:6.20,  quantity:45,  threshold:10 },
-  { id:3,  inventory_id:2, variant_name:'10 Sachets', barcode:'6009002001001', price:5.50, quantity:80, threshold:10 },
-  { id:4,  inventory_id:2, variant_name:'20 Sachets', barcode:'6009002001002', price:10.90,quantity:30, threshold:10 },
-  { id:5,  inventory_id:3, variant_name:'500ml',   barcode:'6009003001001', price:0.90,  quantity:200, threshold:20 },
-  { id:6,  inventory_id:3, variant_name:'1.5L',    barcode:'6009003001002', price:2.10,  quantity:150, threshold:20 },
-  { id:7,  inventory_id:4, variant_name:'5kg',     barcode:'6009004001001', price:18.00, quantity:48,  threshold:5  },
-  { id:8,  inventory_id:4, variant_name:'10kg',    barcode:'6009004001002', price:32.00, quantity:22,  threshold:5  },
-  { id:9,  inventory_id:5, variant_name:'1kg',     barcode:'6009005001001', price:3.20,  quantity:6,   threshold:8  },
-  { id:10, inventory_id:6, variant_name:'5L',      barcode:'6009006001001', price:38.00, quantity:0,   threshold:6  },
-]
-
-const SEED_IMAGES = [
-  { id:1, variant_id:1, image_url:'https://placehold.co/300x300/eef2ff/6366f1?text=Milo+500ml',  is_main:1, image_order:1 },
-  { id:2, variant_id:1, image_url:'https://placehold.co/300x300/1e293b/fff?text=Milo+500ml+Side',is_main:0, image_order:2 },
-  { id:3, variant_id:2, image_url:'https://placehold.co/300x300/eef2ff/6366f1?text=Milo+1000ml', is_main:1, image_order:1 },
-  { id:4, variant_id:5, image_url:'https://placehold.co/300x300/f0fdf4/10b981?text=Water+500ml', is_main:1, image_order:1 },
-]
-
 export default {
   name: 'AdminInventory',
   components: { AdminSidebar, CategoryPanel, InventoryPanel, VariantTable, CategoryModal, InventoryModal, VariantModal, ImageManagerModal },
 
   data() {
     return {
-      allCategories: [...SEED_CATEGORIES],
-      allInventory:  [...SEED_INVENTORY],
-      allVariants:   [...SEED_VARIANTS],
-      allImages:     [...SEED_IMAGES],
+      allCategories: [],
+      allInventory:  [],
+      allVariants:   [],
+      allImages:     [],
 
       selectedCategoryId:  null,
       selectedInventoryId: null,
 
-      // Modal state
       showCategoryModal:  false,
       showInventoryModal: false,
       showVariantModal:   false,
       showImageModal:     false,
       showDeleteConfirm:  false,
-      modalMode:   'add',
-      modalTarget: null,
-
-      deleteTarget:      null,
-      imageModalVariant: null,
+      modalMode:         'add',
+      modalTarget:        null,
+      deleteTarget:       null,
+      imageModalVariant:  null,
     }
   },
 
   computed: {
-    selectedCategory() {
-      return this.allCategories.find(c => c.id === this.selectedCategoryId) || null
-    },
-    selectedInventory() {
-      return this.allInventory.find(i => i.id === this.selectedInventoryId) || null
-    },
+    selectedCategory()  { return this.allCategories.find(c => c.id === this.selectedCategoryId)  || null },
+    selectedInventory() { return this.allInventory.find(i  => i.id === this.selectedInventoryId) || null },
 
-    filteredInventory() {
-      return this.allInventory.filter(i => i.category_id === this.selectedCategoryId)
-    },
-    filteredVariants() {
-      return this.allVariants.filter(v => v.inventory_id === this.selectedInventoryId)
-    },
+    filteredInventory() { return this.allInventory.filter(i => i.category_id  === this.selectedCategoryId)  },
+    filteredVariants()  { return this.allVariants.filter(v  => v.inventory_id === this.selectedInventoryId) },
 
-    // Counts for panel badges
     inventoryCounts() {
       const map = {}
       this.allInventory.forEach(i => { map[i.category_id] = (map[i.category_id] || 0) + 1 })
@@ -263,78 +208,85 @@ export default {
   methods: {
     catColorFor(id) { return PALETTE[(id - 1) % PALETTE.length] },
 
-    selectCategory(cat) {
-      this.selectedCategoryId  = cat.id
-      this.selectedInventoryId = null
-    },
-    selectInventory(inv) {
-      this.selectedInventoryId = inv.id
+    selectCategory(cat)  { this.selectedCategoryId = cat.id; this.selectedInventoryId = null },
+    selectInventory(inv) { this.selectedInventoryId = inv.id },
+
+    // ── Fetches ──
+    async fetchCategories() { const { data } = await axios.get(`${API_BASE_URL}/api/categories`);     this.allCategories = data },
+    async fetchInventory()  { const { data } = await axios.get(`${API_BASE_URL}/api/inventory`);      this.allInventory  = data },
+    async fetchVariants()   { const { data } = await axios.get(`${API_BASE_URL}/api/variants`);       this.allVariants   = data },
+    async fetchImages()     { const { data } = await axios.get(`${API_BASE_URL}/api/product-images`); this.allImages     = data },
+
+    // ── Category ──
+    openCategoryModal(mode, cat = null) { this.modalMode = mode; this.modalTarget = cat; this.showCategoryModal = true },
+    async saveCategory(data) {
+      try {
+        if (this.modalMode === 'add') {
+          const { data: res } = await axios.post(`${API_BASE_URL}/api/categories`, data)
+          this.allCategories.push({ id: res.id, ...data, created_at: new Date().toISOString() })
+        } else {
+          await axios.put(`${API_BASE_URL}/api/categories/${this.modalTarget.id}`, data)
+          const idx = this.allCategories.findIndex(c => c.id === this.modalTarget.id)
+          if (idx !== -1) this.allCategories[idx] = { ...this.allCategories[idx], ...data }
+        }
+        this.showCategoryModal = false
+      } catch (err) { console.error(err) }
     },
 
-    // ── Category CRUD ──
-    openCategoryModal(mode, cat = null) {
-      this.modalMode   = mode
-      this.modalTarget = cat
-      this.showCategoryModal = true
-    },
-    saveCategory(data) {
-      if (this.modalMode === 'add') {
-        this.allCategories.push({ id: ++_catId, ...data, created_at: new Date().toISOString() })
-      } else {
-        const idx = this.allCategories.findIndex(c => c.id === this.modalTarget.id)
-        if (idx !== -1) this.allCategories[idx] = { ...this.allCategories[idx], ...data }
-      }
-      this.showCategoryModal = false
-    },
-
-    // ── Inventory CRUD ──
-    openInventoryModal(mode, inv = null) {
-      this.modalMode   = mode
-      this.modalTarget = inv
-      this.showInventoryModal = true
-    },
-    saveInventory(data) {
-      if (this.modalMode === 'add') {
-        this.allInventory.push({ id: ++_invId, ...data, lastUpdated: new Date().toISOString() })
-      } else {
-        const idx = this.allInventory.findIndex(i => i.id === this.modalTarget.id)
-        if (idx !== -1) this.allInventory[idx] = { ...this.allInventory[idx], ...data }
-      }
-      this.showInventoryModal = false
+    // ── Inventory ──
+    openInventoryModal(mode, inv = null) { this.modalMode = mode; this.modalTarget = inv; this.showInventoryModal = true },
+    async saveInventory(data) {
+      try {
+        if (this.modalMode === 'add') {
+          const { data: res } = await axios.post(`${API_BASE_URL}/api/inventory`, data)
+          this.allInventory.push({ id: res.id, ...data, lastUpdated: new Date().toISOString() })
+        } else {
+          await axios.put(`${API_BASE_URL}/api/inventory/${this.modalTarget.id}`, data)
+          const idx = this.allInventory.findIndex(i => i.id === this.modalTarget.id)
+          if (idx !== -1) this.allInventory[idx] = { ...this.allInventory[idx], ...data }
+        }
+        this.showInventoryModal = false
+      } catch (err) { console.error(err) }
     },
 
-    // ── Variant CRUD ──
-    openVariantModal(mode, v = null) {
-      this.modalMode   = mode
-      this.modalTarget = v
-      this.showVariantModal = true
-    },
-    saveVariant(data) {
-      if (this.modalMode === 'add') {
-        this.allVariants.push({ id: ++_varId, ...data, lastUpdated: new Date().toISOString() })
-      } else {
-        const idx = this.allVariants.findIndex(v => v.id === this.modalTarget.id)
-        if (idx !== -1) this.allVariants[idx] = { ...this.allVariants[idx], ...data }
-      }
-      this.showVariantModal = false
+    // ── Variant ──
+    openVariantModal(mode, v = null) { this.modalMode = mode; this.modalTarget = v; this.showVariantModal = true },
+    async saveVariant(data) {
+      try {
+        if (this.modalMode === 'add') {
+          const { data: res } = await axios.post(`${API_BASE_URL}/api/variants`, data)
+          this.allVariants.push({ id: res.id, ...data, lastUpdated: new Date().toISOString() })
+        } else {
+          await axios.put(`${API_BASE_URL}/api/variants/${this.modalTarget.id}`, data)
+          const idx = this.allVariants.findIndex(v => v.id === this.modalTarget.id)
+          if (idx !== -1) this.allVariants[idx] = { ...this.allVariants[idx], ...data }
+        }
+        this.showVariantModal = false
+      } catch (err) { console.error(err) }
     },
 
     // ── Images ──
-    openImageModal(variant) {
-      this.imageModalVariant = variant
-      this.showImageModal = true
-    },
-    imagesFor(variantId) {
-      if (!variantId) return []
-      return this.allImages.filter(i => i.variant_id === variantId)
-    },
-    saveImages(images) {
+    openImageModal(variant) { this.imageModalVariant = variant; this.showImageModal = true },
+    imagesFor(variantId) { if (!variantId) return []; return this.allImages.filter(i => i.variant_id === variantId) },
+    async saveImages(images) {
       if (!this.imageModalVariant) return
       const vid = this.imageModalVariant.id
-      this.allImages = this.allImages.filter(i => i.variant_id !== vid)
-      images.forEach(img => {
-        this.allImages.push({ id: ++_imgId, variant_id: vid, ...img })
-      })
+
+      // Skip blob:// URLs — file upload requires a separate upload endpoint
+      const validImages = images.filter(img => img.image_url && !img.image_url.startsWith('blob:'))
+
+      // Wipe all existing images for this variant then re-insert in order
+      await axios.delete(`${API_BASE_URL}/api/product-images/variant/${vid}`)
+      for (const img of validImages) {
+        await axios.post(`${API_BASE_URL}/api/product-images`, {
+          variant_id:  vid,
+          image_url:   img.image_url,
+          is_main:     img.is_main     ?? 0,
+          image_order: img.image_order ?? 1,
+        })
+      }
+
+      await this.fetchImages()
       this.showImageModal = false
     },
 
@@ -348,41 +300,36 @@ export default {
       }
       this.showDeleteConfirm = true
     },
-    executeDelete() {
+    async executeDelete() {
       const { type, id } = this.deleteTarget
-      if (type === 'category') {
-        const invIds = this.allInventory.filter(i => i.category_id === id).map(i => i.id)
-        this.allVariants = this.allVariants.filter(v => !invIds.includes(v.inventory_id))
-        this.allInventory = this.allInventory.filter(i => i.category_id !== id)
-        this.allCategories = this.allCategories.filter(c => c.id !== id)
-        if (this.selectedCategoryId === id) { this.selectedCategoryId = null; this.selectedInventoryId = null }
-      } else if (type === 'inventory') {
-        this.allVariants  = this.allVariants.filter(v => v.inventory_id !== id)
-        this.allInventory = this.allInventory.filter(i => i.id !== id)
-        if (this.selectedInventoryId === id) this.selectedInventoryId = null
-      } else if (type === 'variant') {
-        this.allImages   = this.allImages.filter(i => i.variant_id !== id)
-        this.allVariants = this.allVariants.filter(v => v.id !== id)
-      }
-      this.showDeleteConfirm = false
+      try {
+        if      (type === 'category')  await axios.delete(`${API_BASE_URL}/api/categories/${id}`)
+        else if (type === 'inventory') await axios.delete(`${API_BASE_URL}/api/inventory/${id}`)
+        else if (type === 'variant')   await axios.delete(`${API_BASE_URL}/api/variants/${id}`)
+        await Promise.all([this.fetchCategories(), this.fetchInventory(), this.fetchVariants()])
+        this.showDeleteConfirm = false
+      } catch (err) { console.error(err) }
     },
 
-    // ── Barcode Sheet ──
+    // ── Barcode ──
     goToBarcodes(variant) {
+      sessionStorage.setItem('barcodeVariant', JSON.stringify(variant))
       this.$router.push({
         name: 'BarcodeSheet',
         query: {
-          inventoryName:       this.selectedInventory?.inventoryName,
-          _returnCategoryId:   this.selectedCategoryId,
-          _returnInventoryId:  this.selectedInventoryId,
+          variantId:          variant.id,
+          inventoryName:      this.selectedInventory?.inventoryName || '',
+          _returnCategoryId:  this.selectedCategoryId,
+          _returnInventoryId: this.selectedInventoryId,
         },
-        state: { variant },
       })
     },
   },
 
-  created() {
-    // Restore panel selection when returning from BarcodeSheet
+  async created() {
+    await Promise.all([this.fetchCategories(), this.fetchInventory(), this.fetchVariants(), this.fetchImages()])
+
+    // Restore panel state when returning from BarcodeSheet
     const q = this.$route?.query || {}
     if (q._returnCategoryId)  this.selectedCategoryId  = Number(q._returnCategoryId)
     if (q._returnInventoryId) this.selectedInventoryId = Number(q._returnInventoryId)
@@ -393,81 +340,57 @@ export default {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap');
 </style>
-<style>
-/* Move these here (Unscoped) */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10000; 
-  background: rgba(15, 23, 42, 0.45);
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  padding: 20px;
-  backdrop-filter: blur(2px); /* Optional: adds a nice modern touch */
-}
 
+<style>
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; backdrop-filter: blur(2px);
+}
 .modal {
-  position: relative;
-  z-index: 10001;
-  background: #fff;
-  border-radius: 16px;
+  position: relative; z-index: 10001;
+  background: #fff; border-radius: 16px;
   box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-  width: 100%;
-  max-width: 500px;
+  width: 100%; max-width: 500px;
   animation: popIn 0.2s ease-out;
 }
-
 @keyframes popIn {
   from { opacity: 0; transform: scale(0.95) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 </style>
 
 <style>
-/* Use unique names to avoid Bootstrap 5 conflicts */
 .inv-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10000; 
-  background: rgba(15, 23, 42, 0.45); /* Semi-transparent navy */
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  padding: 20px;
-  backdrop-filter: blur(2px);
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; backdrop-filter: blur(2px);
 }
-
 .inv-modal {
-  position: relative;
-  z-index: 10001;
-  background: #fff;
-  border-radius: 16px;
+  position: relative; z-index: 10001;
+  background: #fff; border-radius: 16px;
   box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-  width: 100%;
-  max-width: 500px;
-  animation: modalPopIn 0.25s ease-out; /* Match the keyframe name below */
+  width: 100%; max-width: 500px;
+  animation: modalPopIn 0.25s ease-out;
 }
-
 @keyframes modalPopIn {
   from { opacity: 0; transform: scale(0.95) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 </style>
+
 <style scoped>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .app-layout {
-  display: flex;
-  min-height: 100vh;
+  display: flex; min-height: 100vh;
   background: #f6f7fb;
-  font-family: 'DM Sans', sans-serif;
-  color: #1e293b;
+  font-family: 'DM Sans', sans-serif; color: #1e293b;
 }
-
 .inv-main {
-  flex: 1;
-  padding: 28px 30px 48px;
+  flex: 1; padding: 28px 30px 48px;
   display: flex; flex-direction: column; gap: 20px;
   overflow: hidden;
 }
@@ -485,8 +408,7 @@ export default {
   display: flex; flex-direction: column; align-items: center;
   padding: 8px 18px; background: #fff;
   border: 1px solid #f1f5f9; border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.03);
-  min-width: 72px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.03); min-width: 72px;
 }
 .sc-val { font-size: 18px; font-weight: 700; color: #0f172a; font-family: 'DM Mono', monospace; }
 .sc-lbl { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; }
@@ -495,22 +417,15 @@ export default {
 .panels-layout {
   display: grid;
   grid-template-columns: 240px 1fr 1.6fr;
-  gap: 14px;
-  flex: 1;
-  min-height: 0;
+  gap: 14px; flex: 1; min-height: 0;
   height: calc(100vh - 180px);
 }
-
 .panel-transition {
   opacity: 0; pointer-events: none;
-  transition: opacity .2s ease;
-  height: 100%;
+  transition: opacity .2s ease; height: 100%;
 }
 .panel-transition.visible { opacity: 1; pointer-events: all; }
 
-.wide-panel { }
-
-/* Empty placeholder inside panel slot */
 .no-panel {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px; height: 100%;
@@ -520,27 +435,21 @@ export default {
 }
 .no-panel svg { color: #dde1e9; }
 
-
-
-/* ── Delete confirm modal ── */
+/* ── Delete Confirm Modal ── */
 .delete-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
+  position: fixed; inset: 0; z-index: 9999;
   background: rgba(15,23,42,.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
 }
 .delete-confirm-modal {
   background: #fff; border-radius: 14px;
   width: 100%; max-width: 380px;
   padding: 28px 28px 24px;
   box-shadow: 0 20px 60px rgba(0,0,0,.18);
-  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 10px;
   animation: popIn .18s ease;
 }
-
 .confirm-icon {
   width: 48px; height: 48px; border-radius: 12px;
   background: #fef2f2; color: #ef4444;
@@ -559,8 +468,8 @@ export default {
 .btn-danger {
   padding: 8px 18px; border: none; border-radius: 8px;
   background: #ef4444; color: #fff;
-  font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600;
-  cursor: pointer; transition: background .15s;
+  font-size: 13px; font-family: 'DM Sans', sans-serif;
+  font-weight: 600; cursor: pointer; transition: background .15s;
 }
 .btn-danger:hover { background: #dc2626; }
 
