@@ -143,7 +143,7 @@ export default {
     try {
       const [catRes, prodRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/categories`),
-        axios.get(`${API_BASE_URL}/api/variants`),
+        axios.get(`${API_BASE_URL}/api/variants/pos`),
       ]);
       this.categories = [{ id: 0, name: 'All' }, ...catRes.data];
       this.products = prodRes.data;
@@ -216,7 +216,7 @@ export default {
     // ── Product polling ───────────────────────────────────────
     async loadProducts() {
       try {
-        const prodRes = await axios.get(`${API_BASE_URL}/api/variants`);
+        const prodRes = await axios.get(`${API_BASE_URL}/api/variants/pos`);
         this.products = prodRes.data.map((p) => {
           const inCart = this.cart.find((c) => c.id === p.id);
           return { ...p, orderQty: inCart ? inCart.orderQty : 0 };
