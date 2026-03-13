@@ -71,15 +71,42 @@
               <div class="rfid-input-wrapper">
                 <input
                   id="rfidUid"
+                  ref="rfidInput"
                   type="text"
-                  v-model="form.rfidUid"
-                  placeholder="e.g. A3 F2 09 1C"
+                  :value="form.rfidUid"
+                  placeholder="Scan RFID card…"
                   :required="form.role === 'staff'"
                   maxlength="32"
+                  :readonly="!rfidScanMode"
+                  :class="{ scanning: rfidScanMode }"
+                  @keydown.enter.prevent="onRfidEnter"
+                  @input="onRfidInput"
                 />
-                <span class="rfid-badge">RFID</span>
+                <span v-if="!rfidScanMode" class="rfid-badge">RFID</span>
+                <span v-else class="rfid-badge scanning-badge">Scanning…</span>
               </div>
-              <span class="field-hint">Scan or enter the staff member's RFID card UID</span>
+
+              <!-- Scan action button -->
+              <div class="rfid-actions">
+                <button
+                  type="button"
+                  class="btn-icon-action"
+                  :class="{ active: rfidScanMode }"
+                  @click="confirmRfidScan"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <path d="M7 12h10"/>
+                    <circle cx="17" cy="9" r="1.5" fill="currentColor" stroke="none"/>
+                  </svg>
+                  {{ rfidScanMode ? 'Scanning…' : 'Scan Card' }}
+                </button>
+              </div>
+
+              <span v-if="rfidScanMode" class="field-hint scan-hint">
+                <span class="scan-dot" /> Awaiting RFID scan — tap or swipe card now.
+              </span>
+              <span v-else class="field-hint">Scan the staff member's RFID card UID</span>
             </div>
           </div>
         </transition>
@@ -117,6 +144,25 @@
           </button>
         </div>
       </form>
+
+      <!-- Confirm Dialog (same pattern as VariantModal) -->
+      <div v-if="confirmDialog.show" class="confirm-overlay">
+        <div class="confirm-box">
+          <div class="confirm-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <p class="confirm-msg">{{ confirmDialog.message }}</p>
+          <div class="confirm-actions">
+            <button type="button" class="btn-ghost" @click="confirmDialog.show = false">Cancel</button>
+            <button type="button" class="btn-confirm" @click="confirmDialog.onConfirm">Confirm</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -142,7 +188,13 @@ export default {
         confirmPassword: ''
       },
       changingPassword: false,
-      loading: false
+      loading: false,
+      rfidScanMode: false,
+      confirmDialog: {
+        show: false,
+        message: '',
+        onConfirm: null,
+      },
     }
   },
   watch: {
@@ -172,17 +224,60 @@ export default {
           }
           this.changingPassword = false
         }
+        this.rfidScanMode = false
       }
     },
-    // Clear RFID when switching away from staff
     'form.role'(val) {
-      if (val !== 'staff') this.form.rfidUid = ''
+      if (val !== 'staff') {
+        this.form.rfidUid = ''
+        this.rfidScanMode = false
+      }
     }
   },
   methods: {
+    // ── Confirm dialog ──────────────────────────────────────────────────
+    showConfirm(message, onConfirm) {
+      this.confirmDialog = {
+        show: true,
+        message,
+        onConfirm: () => {
+          this.confirmDialog.show = false
+          onConfirm()
+        },
+      }
+    },
+
+    confirmRfidScan() {
+      const msg = this.form.rfidUid
+        ? 'An RFID UID already exists. Are you sure you want to overwrite it by scanning?'
+        : 'Are you sure you want to scan an RFID card?'
+      this.showConfirm(msg, () => this.toggleRfidScan())
+    },
+
+    // ── RFID scan ───────────────────────────────────────────────────────
+    toggleRfidScan() {
+      this.rfidScanMode = !this.rfidScanMode
+      if (this.rfidScanMode) {
+        this.form.rfidUid = ''
+        this.$nextTick(() => this.$refs.rfidInput?.focus())
+      }
+    },
+
+    onRfidInput(e) {
+      this.form.rfidUid = e.target.value
+    },
+
+    onRfidEnter() {
+      if (this.rfidScanMode) {
+        this.rfidScanMode = false
+      }
+    },
+
+    // ── Form submit ─────────────────────────────────────────────────────
     closeModal() {
       this.$emit('close')
     },
+
     async submitForm() {
       if ((!this.user || this.changingPassword) && this.form.password !== this.form.confirmPassword) {
         alert('Passwords do not match!')
@@ -192,8 +287,6 @@ export default {
       this.loading = true
       try {
         const payload = { ...this.form }
-
-        // Strip rfidUid from payload if not staff
         if (payload.role !== 'staff') delete payload.rfidUid
 
         if (this.user) {
@@ -238,6 +331,7 @@ export default {
   border-radius: 14px; overflow: hidden;
   box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
   animation: slideUp 0.2s cubic-bezier(0.34, 1.3, 0.64, 1);
+  position: relative;
 }
 @keyframes slideUp {
   from { transform: translateY(16px); opacity: 0; }
@@ -289,6 +383,27 @@ input[type="password"]:focus {
 }
 input::placeholder { color: #c4c9d4; }
 
+/* Readonly RFID input */
+input[type="text"][readonly]:not(.scanning) {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: default;
+}
+
+/* Scanning state */
+input.scanning {
+  border-color: #10b981 !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 3px rgba(16,185,129,.15) !important;
+  animation: pulse-border 1s ease infinite;
+  color: #111827 !important;
+  cursor: text !important;
+}
+@keyframes pulse-border {
+  0%,100% { box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
+  50%      { box-shadow: 0 0 0 6px rgba(16,185,129,.05); }
+}
+
 /* Select */
 .select-wrapper { position: relative; }
 select {
@@ -324,7 +439,7 @@ select:focus { border-color: #111827; background: #fff; box-shadow: 0 0 0 3px rg
 }
 .rfid-input-wrapper input[type="text"] {
   width: 100%;
-  padding-right: 54px;
+  padding-right: 72px;
   font-family: 'DM Sans', monospace;
   letter-spacing: 0.05em;
 }
@@ -339,13 +454,45 @@ select:focus { border-color: #111827; background: #fff; box-shadow: 0 0 0 3px rg
   padding: 2px 6px;
   pointer-events: none;
   user-select: none;
+  transition: all 0.15s;
 }
+.rfid-badge.scanning-badge {
+  color: #10b981;
+  background: #f0fdf4;
+  border-color: #6ee7b7;
+}
+
+/* RFID scan button */
+.rfid-actions { display: flex; gap: 8px; margin-top: 4px; }
+.btn-icon-action {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 8px;
+  border: 1px solid #e2e8f0; background: #f8fafc;
+  font-size: 12.5px; font-family: 'DM Sans', sans-serif; font-weight: 600;
+  color: #475569; cursor: pointer; white-space: nowrap; transition: all .15s;
+}
+.btn-icon-action:hover       { border-color: #6366f1; color: #6366f1; }
+.btn-icon-action.active      { background: #f0fdf4; border-color: #10b981; color: #10b981; }
+
+/* Hints */
 .field-hint {
   font-size: 11px;
   color: #9ca3af;
   font-weight: 400;
   margin-top: 2px;
 }
+.scan-hint {
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.scan-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+  display: inline-block; animation: blink 1s ease infinite; flex-shrink: 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
 /* RFID slide transition */
 .rfid-slide-enter-active { transition: all 0.22s cubic-bezier(0.34, 1.3, 0.64, 1); }
@@ -394,4 +541,32 @@ input[type="checkbox"]:checked + .checkbox-box { background: #111827; border-col
   border-radius: 50%; animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Confirm dialog ── */
+.confirm-overlay {
+  position: absolute; inset: 0; background: rgba(15,23,42,.35);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: inherit; z-index: 10; backdrop-filter: blur(2px);
+}
+.confirm-box {
+  background: #fff; border-radius: 14px; padding: 28px 24px 20px;
+  width: 300px; display: flex; flex-direction: column; align-items: center;
+  gap: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.18);
+}
+.confirm-icon { width: 44px; height: 44px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; }
+.confirm-msg  { font-size: 13.5px; color: #334155; text-align: center; line-height: 1.55; }
+.confirm-actions { display: flex; gap: 8px; width: 100%; margin-top: 4px; }
+.btn-ghost {
+  flex: 1; padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 8px;
+  background: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif;
+  font-weight: 500; color: #64748b; cursor: pointer; display: flex; justify-content: center;
+}
+.btn-ghost:hover { background: #f8fafc; }
+.btn-confirm {
+  flex: 1; padding: 8px 16px; border: none; border-radius: 8px;
+  background: #6366f1; color: #fff;
+  font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.btn-confirm:hover { background: #4f46e5; }
 </style>
