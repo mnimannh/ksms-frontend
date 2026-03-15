@@ -27,7 +27,7 @@
         <label class="filter-label">Category</label>
         <!-- bound to categoryId (number) so selected option always highlights correctly -->
         <select :value="categoryId" @change="onCategoryChange($event.target.value)" class="filter-select">
-          <option :value="null">All</option>
+          <option value="">All</option>
           <option
             v-for="c in categoriesWithoutBlank"
             :key="c.id"

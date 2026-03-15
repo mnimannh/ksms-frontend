@@ -145,7 +145,7 @@ export default {
       selectedMonth:  now.getMonth(),       // 0-based for months array index
       selectedYear:   now.getFullYear(),
       categoryFilter: '',                   // category name string (for display)
-      categoryId:     null,                 // category id (sent to API)
+      categoryId:     '',                   // category id (sent to API)
 
       // Applied snapshot — set on Generate click, used for labels
       appliedMonth:    null,

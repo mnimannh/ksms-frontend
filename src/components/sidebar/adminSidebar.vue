@@ -1,59 +1,110 @@
 <template>
-  <div class="admin-sidebar">
+  <div>
+    <!-- Mobile overlay backdrop -->
+    <transition name="fade">
+      <div
+        v-if="isMobile && isOpen"
+        class="sidebar-backdrop"
+        @click="closeSidebar"
+      />
+    </transition>
 
-    <!-- HEADER -->
-    <div class="sidebar-header">
-      <router-link to="" class="logo-wrap">
-        <div class="logo-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="1.8"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="1.8"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="1.8"/>
+    <!-- Sidebar -->
+    <div
+      class="admin-sidebar"
+      :class="{
+        'is-collapsed': isCollapsed && !isMobile,
+        'is-open': isMobile && isOpen,
+        'is-mobile': isMobile
+      }"
+    >
+      <!-- HEADER -->
+      <div class="sidebar-header">
+        <router-link to="" class="logo-wrap">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </div>
+          <span class="logo-text">KSMS</span>
+        </router-link>
+
+        <!-- Collapse toggle (desktop/tablet) -->
+        <button
+          v-if="!isMobile"
+          class="collapse-btn"
+          @click="toggleCollapse"
+          :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path
+              :d="isCollapsed
+                ? 'M6 3l5 5-5 5'
+                : 'M10 3L5 8l5 5'"
+              stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round"
+            />
           </svg>
-        </div>
-        <span class="logo-text">KSMS</span>
-      </router-link>
-    </div>
+        </button>
 
-    <!-- NAV -->
-    <nav class="nav-container">
-      <p class="nav-section-label">Menu</p>
-      <ul class="sidebar-nav">
-        <li v-for="item in menu" :key="item.path" class="nav-item">
-          <router-link
-            :to="item.path"
-            class="nav-link"
-            :class="{ active: $route.path === item.path }"
-          >
-            <span class="nav-icon" v-html="item.icon"></span>
-            <span class="nav-label">{{ item.name }}</span>
-            <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
-            <span v-if="$route.path === item.path && !item.badge" class="active-dot"></span>
-          </router-link>
-        </li>
-      </ul>
-    </nav>
-
-    <!-- FOOTER -->
-    <div class="sidebar-footer">
-      <div class="user-card">
-        <div class="user-avatar">{{ (user.fullName || 'A').charAt(0).toUpperCase() }}</div>
-        <div class="user-info">
-          <div class="user-name">{{ user.fullName || 'Admin' }}</div>
-          <div class="user-role">{{ user.role || 'Administrator' }}</div>
-        </div>
+        <!-- Close button (mobile) -->
+        <button v-if="isMobile" class="collapse-btn" @click="closeSidebar">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
 
-      <button class="logout-btn" @click="handleLogout">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-          <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M10 11l3-3-3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M13 8H6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-        Logout
-      </button>
+      <!-- NAV -->
+      <nav class="nav-container">
+        <p class="nav-section-label">Menu</p>
+        <ul class="sidebar-nav">
+          <li v-for="item in menu" :key="item.path" class="nav-item">
+            <router-link
+              :to="item.path"
+              class="nav-link"
+              :class="{ active: $route.path === item.path }"
+              :title="isCollapsed && !isMobile ? item.name : ''"
+              @click.stop="handleNavClick"
+            >
+              <span class="nav-icon" v-html="item.icon"></span>
+              <span class="nav-label">{{ item.name }}</span>
+              <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
+              <span v-else-if="$route.path === item.path" class="active-dot"></span>
+            </router-link>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- FOOTER -->
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar">{{ (user.fullName || 'A').charAt(0).toUpperCase() }}</div>
+          <div class="user-info">
+            <div class="user-name">{{ user.fullName || 'Admin' }}</div>
+            <div class="user-role">{{ user.role || 'Administrator' }}</div>
+          </div>
+        </div>
+
+        <button class="logout-btn" @click="handleLogout">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+            <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M10 11l3-3-3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13 8H6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <span class="logout-label">Logout</span>
+        </button>
+      </div>
     </div>
 
+    <!-- Mobile hamburger trigger (rendered outside sidebar) -->
+    <button v-if="isMobile && !isOpen" class="mobile-toggle" @click="openSidebar">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+        <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -65,6 +116,9 @@ export default {
   name: "AdminSidebar",
   data() {
     return {
+      isCollapsed: false,   // desktop/tablet icon-rail mode
+      isOpen: false,        // mobile drawer open
+      isMobile: false,      // true when viewport < 768px
       menu: [
         {
           name: "Dashboard", path: "/admin/dashboard",
@@ -108,24 +162,48 @@ export default {
     if (savedName) this.user.fullName = savedName;
     if (savedRole) this.user.role = savedRole;
 
+    this.checkMobile();
+    // Restore collapsed preference — survives navigation and page refresh
+    const saved = localStorage.getItem('sidebarCollapsed');
+    if (saved !== null) this.isCollapsed = saved === '1';
+    window.addEventListener('resize', this.checkMobile);
+
     this.fetchUserInfo();
     this.fetchAlarmUnread();
-
-    // optional: auto-refresh unread count every 5s
-    setInterval(() => {
-      this.fetchAlarmUnread();
-    }, 5000);
+    setInterval(() => this.fetchAlarmUnread(), 5000);
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.checkMobile);
   },
   methods: {
+    checkMobile() {
+      this.isMobile = window.innerWidth < 768;
+      if (!this.isMobile) this.isOpen = false;
+    },
+    toggleCollapse() {
+      this.isCollapsed = !this.isCollapsed;
+      // Persist so route changes never reset it
+      localStorage.setItem('sidebarCollapsed', this.isCollapsed ? '1' : '0');
+      this.$emit('collapse-change', this.isCollapsed);
+    },
+    openSidebar() {
+      this.isOpen = true;
+    },
+    closeSidebar() {
+      this.isOpen = false;
+    },
+    // Nav clicks: only close drawer on mobile — NEVER touch isCollapsed
+    handleNavClick() {
+      if (this.isMobile) this.closeSidebar();
+    },
+
     async fetchUserInfo() {
       try {
         const token = localStorage.getItem("userToken");
         if (!token) return;
-
         const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-
         this.user.fullName = response.data.fullName || "Admin";
         this.user.role = response.data.role || "Administrator";
         localStorage.setItem("userName", this.user.fullName);
@@ -139,18 +217,14 @@ export default {
       try {
         const token = localStorage.getItem("userToken");
         if (!token) return;
-
         const res = await axios.get(`${API_BASE_URL}/api/alarm`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-
         const alarms = res.data || [];
         const alarmMenu = this.menu.find(m => m.name === "Alarm");
-
         if (alarmMenu) {
-          alarmMenu.badge = alarms.filter(a => a.is_read === 0).length;
+          alarmMenu.badge = alarms.filter(a => a.is_read === 0).length || null;
         }
-
       } catch (err) {
         console.error("Error fetching alarms:", err);
       }
@@ -161,10 +235,6 @@ export default {
       localStorage.removeItem("userName");
       localStorage.removeItem("userRole");
       window.location.href = "/";
-    },
-
-    isActive(path) {
-      return this.$route.path.startsWith(path);
     }
   }
 };
@@ -175,6 +245,19 @@ export default {
 
 * { box-sizing: border-box; }
 
+/* ── Backdrop ── */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+}
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.25s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* ── Sidebar base ── */
 .admin-sidebar {
   width: 240px;
   min-width: 240px;
@@ -185,12 +268,67 @@ export default {
   font-family: 'DM Sans', sans-serif;
   position: sticky;
   top: 0;
+  overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+/* ── Collapsed (desktop icon-rail) ── */
+.admin-sidebar.is-collapsed {
+  width: 64px;
+  min-width: 64px;
+}
+
+/* ── Mobile: hidden off-screen by default ── */
+.admin-sidebar.is-mobile {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  transform: translateX(-100%);
+  width: 240px;
+  min-width: 240px;
+}
+
+.admin-sidebar.is-mobile.is-open {
+  transform: translateX(0);
+}
+
+/* ── Mobile hamburger button ── */
+.mobile-toggle {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 98;
+  width: 38px;
+  height: 38px;
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mobile-toggle:hover {
+  background: #1e293b;
+  color: #e2e8f0;
 }
 
 /* ── Header ── */
 .sidebar-header {
-  padding: 24px 20px 20px;
+  padding: 20px 16px 18px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .logo-wrap {
@@ -198,6 +336,9 @@ export default {
   align-items: center;
   gap: 10px;
   text-decoration: none;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
 }
 
 .logo-icon {
@@ -218,13 +359,62 @@ export default {
   font-weight: 700;
   color: #f1f5f9;
   letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.2s ease, width 0.25s ease;
+}
+
+/* Hide text labels when collapsed */
+.is-collapsed .logo-text,
+.is-collapsed .nav-label,
+.is-collapsed .active-dot,
+.is-collapsed .logout-label,
+.is-collapsed .user-info,
+.is-collapsed .nav-section-label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Badge stays visible in collapsed mode */
+.is-collapsed .nav-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 15px;
+  height: 15px;
+  font-size: 9px;
+  padding: 0 3px;
+}
+
+/* Collapse toggle button */
+.collapse-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.collapse-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #94a3b8;
 }
 
 /* ── Nav ── */
 .nav-container {
   flex: 1;
-  padding: 20px 12px;
+  padding: 18px 10px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-section-label {
@@ -235,6 +425,8 @@ export default {
   color: #475569;
   padding: 0 8px;
   margin: 0 0 10px;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
 }
 
 .sidebar-nav {
@@ -252,7 +444,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 9px 10px;
   border-radius: 8px;
   color: #94a3b8;
   text-decoration: none;
@@ -260,6 +452,8 @@ export default {
   font-weight: 400;
   transition: background 0.15s, color 0.15s;
   position: relative;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .nav-link:hover {
@@ -273,6 +467,12 @@ export default {
   font-weight: 500;
 }
 
+/* Center icon in collapsed mode */
+.is-collapsed .nav-link {
+  justify-content: center;
+  padding: 10px;
+}
+
 .nav-icon {
   display: flex;
   align-items: center;
@@ -283,7 +483,12 @@ export default {
 
 .nav-link.active .nav-icon { opacity: 1; }
 
-.nav-label { flex: 1; }
+.nav-label {
+  flex: 1;
+  transition: opacity 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .active-dot {
   width: 5px;
@@ -293,7 +498,7 @@ export default {
   flex-shrink: 0;
 }
 
-/* ── Notification Badge ── */
+/* ── Badge ── */
 .nav-badge {
   min-width: 18px;
   height: 18px;
@@ -309,6 +514,7 @@ export default {
   line-height: 1;
   flex-shrink: 0;
   animation: badgePulse 2s ease infinite;
+  transition: all 0.2s ease;
 }
 
 @keyframes badgePulse {
@@ -318,20 +524,28 @@ export default {
 
 /* ── Footer ── */
 .sidebar-footer {
-  padding: 16px 12px;
+  padding: 14px 10px;
   border-top: 1px solid rgba(255,255,255,0.05);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .user-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 8px 8px;
   border-radius: 9px;
   background: rgba(255,255,255,0.04);
+  overflow: hidden;
+}
+
+/* Center avatar in collapsed mode */
+.is-collapsed .user-card {
+  justify-content: center;
+  padding: 8px;
 }
 
 .user-avatar {
@@ -348,11 +562,19 @@ export default {
   flex-shrink: 0;
 }
 
+.user-info {
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
 .user-name {
   font-size: 13px;
   font-weight: 500;
   color: #e2e8f0;
   line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-role {
@@ -360,6 +582,7 @@ export default {
   color: #64748b;
   text-transform: capitalize;
   margin-top: 1px;
+  white-space: nowrap;
 }
 
 .logout-btn {
@@ -378,6 +601,7 @@ export default {
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
+  overflow: hidden;
 }
 
 .logout-btn:hover {
@@ -385,4 +609,14 @@ export default {
   border-color: rgba(239, 68, 68, 0.35);
   color: #fecaca;
 }
+
+.logout-label {
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+/* ── Scrollbar ── */
+.nav-container::-webkit-scrollbar { width: 3px; }
+.nav-container::-webkit-scrollbar-track { background: transparent; }
+.nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
 </style>
