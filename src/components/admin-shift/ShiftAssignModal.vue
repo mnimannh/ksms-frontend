@@ -9,12 +9,12 @@
         </div>
 
         <div class="assign-modal-body">
-          <div class="form-row">
-            <label>Staff Member</label>
-            <select v-model="localForm.userID">
-              <option v-for="s in staffList" :key="s.id" :value="s.id">{{ s.name }}</option>
-            </select>
-          </div>
+<div class="form-row">
+  <label>Staff Member</label>
+  <select v-model="localForm.userID" :disabled="isEditing">
+    <option v-for="s in staffList" :key="s.id" :value="s.id">{{ s.fullName }}</option>
+  </select>
+</div>
 
           <div class="form-row">
             <label>Shift Type</label>
@@ -102,7 +102,7 @@ export default {
   justify-content: space-between;
   padding: 18px 22px;
   border-bottom: 1px solid #f1f5f9;
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
   color: #0f172a;
@@ -130,7 +130,7 @@ export default {
 .form-row.two-col { flex-direction: row; gap: 12px; }
 .form-row.two-col > div { flex: 1; display: flex; flex-direction: column; gap: 5px; }
 .form-row label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -140,9 +140,9 @@ export default {
 .form-row select,
 .form-row input,
 .form-row textarea {
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.82rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #f1f5f9;
   border-radius: 7px;
   padding: 8px 12px;
   color: #0f172a;
@@ -161,10 +161,10 @@ export default {
 .shift-type-toggle { display: flex; gap: 8px; }
 .shift-type-toggle button {
   flex: 1;
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
-  border: 2px solid #e2e8f0;
+  border: 2px solid #f1f5f9;
   border-radius: 8px;
   padding: 9px;
   cursor: pointer;
@@ -186,10 +186,10 @@ export default {
   justify-content: flex-end;
 }
 .btn-cancel {
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #f1f5f9;
   background: #fff;
   color: #64748b;
   border-radius: 7px;
@@ -199,7 +199,7 @@ export default {
 }
 .btn-cancel:hover { background: #f8fafc; color: #0f172a; }
 .btn-save {
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
   background: #0f172a;

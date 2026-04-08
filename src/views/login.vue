@@ -1,90 +1,120 @@
 <template>
   <div class="login-page">
 
-    <div class="login-card">
+    <!-- ── Left branding panel ── -->
+    <div class="left-panel">
+      <div class="left-inner">
 
-      <!-- Logo -->
-      <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="1.8"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="1.8"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="1.8"/>
-          </svg>
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </div>
+          <span class="brand-name">KSMS</span>
         </div>
-        <span class="brand-name">KSMS</span>
+
+        <div class="left-body">
+          <h2 class="left-headline">Koperasi Kolej Vokasional Shah Alam</h2>
+          <p class="left-sub">Streamline scheduling, track attendance, and manage your team — all in one place.</p>
+
+          <ul class="feature-list">
+            <li><span class="dot"></span>Real-time shift scheduling</li>
+            <li><span class="dot"></span>Attendance tracking &amp; reports</li>
+            <li><span class="dot"></span>Role-based access control</li>
+          </ul>
+        </div>
+
+        <p class="left-footer">© 2026 KSMS · All rights reserved</p>
+
       </div>
 
-      <!-- Heading -->
-      <div class="card-header">
-        <span class="card-eyebrow">Welcome back</span>
-        <h1 class="card-title">Sign in</h1>
+      <!-- decorative glow -->
+      <div class="glow glow-a"></div>
+      <div class="glow glow-b"></div>
+    </div>
+
+    <!-- ── Right form panel ── -->
+    <div class="right-panel">
+      <div class="form-card">
+
+        <div class="form-header">
+          <span class="eyebrow">Welcome back</span>
+          <h1 class="form-title">Sign in to your account</h1>
+          <p class="form-hint">Enter your credentials below to continue.</p>
+        </div>
+
+        <form @submit.prevent="handleLogin" class="login-form" novalidate>
+
+          <div class="field" :class="{ 'field--error': errors.email }">
+            <label for="email">Email address</label>
+            <div class="input-wrap">
+              <svg class="field-icon" width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M1 6l7 4 7-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              <input
+                id="email"
+                type="email"
+                v-model="form.email"
+                placeholder="you@example.com"
+                autocomplete="email"
+              />
+            </div>
+            <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
+          </div>
+
+          <div class="field" :class="{ 'field--error': errors.password }">
+            <label for="password">Password</label>
+            <div class="input-wrap">
+              <svg class="field-icon" width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <rect x="3" y="7" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="8" cy="11" r="1" fill="currentColor"/>
+              </svg>
+              <input
+                id="password"
+                :type="showPassword ? 'text' : 'password'"
+                v-model="form.password"
+                placeholder="••••••••"
+                autocomplete="current-password"
+              />
+              <button type="button" class="pw-toggle" @click="showPassword = !showPassword" tabindex="-1" :aria-label="showPassword ? 'Hide password' : 'Show password'">
+                <svg v-if="!showPassword" width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.5"/>
+                  <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <svg v-else width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 2l12 12M6.5 6.6A2 2 0 0010 9.4M4.2 4.3C2.8 5.3 1.7 6.7 1 8c1.3 2.7 4 5 7 5a7 7 0 003.8-1.1M6 3.2A7 7 0 0115 8c-.4.9-1 1.8-1.7 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+            <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
+          </div>
+
+          <div v-if="loginError" class="alert-error" role="alert">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+              <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 5v3.5M8 11v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            {{ loginError }}
+          </div>
+
+          <button type="submit" class="btn-submit" :disabled="loading">
+            <span v-if="loading" class="spinner"></span>
+            <template v-else>
+              <span>Sign in</span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </template>
+          </button>
+
+        </form>
+
       </div>
-
-      <!-- Form -->
-      <form @submit.prevent="handleLogin" class="login-form">
-
-        <div class="form-group" :class="{ error: errors.email }">
-          <label for="email">Email address</label>
-          <div class="input-wrap">
-            <svg class="input-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M1 6l7 4 7-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            <input
-              id="email"
-              type="email"
-              v-model="form.email"
-              placeholder="you@example.com"
-              autocomplete="email"
-            />
-          </div>
-          <span v-if="errors.email" class="error-msg">{{ errors.email }}</span>
-        </div>
-
-        <div class="form-group" :class="{ error: errors.password }">
-          <label for="password">Password</label>
-          <div class="input-wrap">
-            <svg class="input-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <rect x="3" y="7" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <circle cx="8" cy="11" r="1" fill="currentColor"/>
-            </svg>
-            <input
-              id="password"
-              :type="showPassword ? 'text' : 'password'"
-              v-model="form.password"
-              placeholder="••••••••"
-              autocomplete="current-password"
-            />
-            <button type="button" class="toggle-pw" @click="showPassword = !showPassword" tabindex="-1">
-              <svg v-if="!showPassword" width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.5"/>
-                <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/>
-              </svg>
-              <svg v-else width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M2 2l12 12M6.5 6.6A2 2 0 0010 9.4M4.2 4.3C2.8 5.3 1.7 6.7 1 8c1.3 2.7 4 5 7 5a7 7 0 003.8-1.1M6 3.2A7 7 0 0115 8c-.4.9-1 1.8-1.7 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-            </button>
-          </div>
-          <span v-if="errors.password" class="error-msg">{{ errors.password }}</span>
-        </div>
-
-        <div v-if="loginError" class="alert-error">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M8 5v3.5M8 11v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          {{ loginError }}
-        </div>
-
-        <button type="submit" class="btn-login" :disabled="loading">
-          <span v-if="loading" class="spinner"></span>
-          <span v-else>Sign in</span>
-        </button>
-
-      </form>
-
     </div>
 
   </div>
@@ -116,8 +146,8 @@ export default {
       if (!this.validate()) return
       this.loading = true
       try {
-           const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-            method: 'POST',
+        const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: this.form.email, password: this.form.password })
         })
@@ -140,295 +170,445 @@ export default {
 
 <style scoped>
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.login-page{
-  min-height:100vh;
+/* ─────────────────────────────────────────
+   PAGE LAYOUT
+───────────────────────────────────────── */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ─────────────────────────────────────────
+   LEFT PANEL
+───────────────────────────────────────── */
+
+.left-panel {
+  width: 44%;
+  position: relative;
+  overflow: hidden;
   background:
     radial-gradient(ellipse at 20% 50%, rgba(37,99,235,0.18) 0%, transparent 55%),
     radial-gradient(ellipse at 80% 20%, rgba(59,130,246,0.12) 0%, transparent 50%),
     radial-gradient(ellipse at 60% 80%, rgba(29,78,216,0.14) 0%, transparent 50%),
-    linear-gradient(135deg,#0f172a 0%,#111f3a 50%,#0f172a 100%);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-family:'DM Sans',sans-serif;
-  padding:24px;
+    linear-gradient(135deg, #0f172a 0%, #111f3a 50%, #0f172a 100%);
+  display: flex;
+  flex-direction: column;
+  padding: 52px 52px;
 }
 
-/* CARD */
-
-.login-card{
-  background:#fff;
-  border:1px solid #e5e7eb;
-  border-radius:16px;
-  padding:40px 36px;
-  width:100%;
-  max-width:380px;
-  box-shadow:0 4px 24px rgba(0,0,0,0.05),0 1px 4px rgba(0,0,0,0.03);
+/* subtle dot-grid texture */
+.left-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(59,130,246,0.18) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* BRAND */
-
-.brand{
-  display:flex;
-  align-items:center;
-  gap:9px;
-  margin-bottom:32px;
+.left-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-.brand-icon{
-  width:34px;
-  height:34px;
-  background:rgba(37,99,235,0.1);
-  border:1px solid rgba(37,99,235,0.25);
-  border-radius:9px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#3b82f6;
+/* decorative glows */
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  pointer-events: none;
+  z-index: 0;
+}
+.glow-a {
+  width: 340px;
+  height: 340px;
+  background: rgba(37,99,235,0.22);
+  bottom: -80px;
+  right: -80px;
+}
+.glow-b {
+  width: 200px;
+  height: 200px;
+  background: rgba(59,130,246,0.14);
+  top: 60px;
+  right: 30px;
 }
 
-.brand-name{
-  font-size:16px;
-  font-weight:700;
-  color:#111827;
-  letter-spacing:.07em;
+/* brand */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* HEADER */
-
-.card-header{
-  margin-bottom:28px;
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  background: rgba(37,99,235,0.15);
+  border: 1px solid rgba(37,99,235,0.25);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
 }
 
-.card-eyebrow{
-  display:block;
-  font-size:11px;
-  font-weight:600;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  color:#9ca3af;
-  margin-bottom:5px;
+.brand-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: .1em;
 }
 
-.card-title{
-  font-size:24px;
-  font-weight:700;
-  color:#111827;
-  letter-spacing:-.03em;
+/* body */
+.left-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 32px;
 }
 
-/* FORM */
-
-.login-form{
-  display:flex;
-  flex-direction:column;
-  gap:18px;
+.left-headline {
+  font-size: 38px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.18;
+  letter-spacing: -.04em;
+  margin-bottom: 18px;
 }
 
-.form-group{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
+.left-sub {
+  font-size: 14px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.8;
+  max-width: 310px;
+  margin-bottom: 40px;
 }
 
-.form-group label{
-  font-size:12px;
-  font-weight:600;
-  color:#374151;
+.feature-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
 }
 
-.input-wrap{
-  position:relative;
-  display:flex;
-  align-items:center;
+.feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.6);
+  font-weight: 400;
 }
 
-.input-icon{
-  position:absolute;
-  left:12px;
-  color:#9ca3af;
-  pointer-events:none;
+.dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(59,130,246,0.7);
 }
 
-.input-wrap input{
-  font-family:'DM Sans',sans-serif;
-  font-size:14px;
-  color:#111827;
-  background:#f9fafb;
-  border:1px solid #e5e7eb;
-  border-radius:9px;
-  padding:12px 14px 12px 38px;
-  width:100%;
-  outline:none;
-  transition:border-color .18s,box-shadow .18s,background .18s;
+.left-footer {
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: .02em;
 }
 
-.input-wrap input::placeholder{
-  color:#c4c9d4;
+/* ─────────────────────────────────────────
+   RIGHT PANEL
+───────────────────────────────────────── */
+
+.right-panel {
+  flex: 1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
 }
 
-.input-wrap input:focus{
-  border-color:#111827;
-  background:#fff;
-  box-shadow:0 0 0 3px rgba(17,24,39,.07);
+.form-card {
+  width: 100%;
+  max-width: 368px;
 }
 
-.form-group.error .input-wrap input{
-  border-color:#fca5a5;
-  background:#fff;
-  box-shadow:0 0 0 3px rgba(239,68,68,.06);
+/* header */
+.form-header {
+  margin-bottom: 36px;
 }
 
-.toggle-pw{
-  position:absolute;
-  right:11px;
-  background:none;
-  border:none;
-  cursor:pointer;
-  color:#9ca3af;
-  display:flex;
-  align-items:center;
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: #3b82f6;
+  margin-bottom: 12px;
 }
 
-.toggle-pw:hover{
-  color:#374151;
+.eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 1.5px;
+  background: #3b82f6;
+  border-radius: 2px;
 }
 
-.error-msg{
-  font-size:11.5px;
-  color:#ef4444;
+.form-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+  margin-bottom: 8px;
 }
 
-/* ALERT */
-
-.alert-error{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  background:#fff7f7;
-  border:1px solid #fecaca;
-  border-radius:8px;
-  padding:10px 13px;
-  font-size:13px;
-  color:#b91c1c;
+.form-hint {
+  font-size: 13.5px;
+  color: #9ca3af;
+  line-height: 1.5;
 }
 
-/* BUTTON */
+/* ─────────────────────────────────────────
+   FORM FIELDS
+───────────────────────────────────────── */
 
-.btn-login{
-  font-family:'DM Sans',sans-serif;
-  font-size:14px;
-  font-weight:600;
-  color:#fff;
-  background:#111827;
-  border:none;
-  border-radius:9px;
-  padding:12px;
-  width:100%;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  margin-top:4px;
-  transition:background .15s,transform .12s;
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.btn-login:hover:not(:disabled){
-  background:#1f2937;
-  transform:translateY(-1px);
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
 
-.btn-login:disabled{
-  opacity:.6;
-  cursor:not-allowed;
+.field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: .015em;
 }
 
-.spinner{
-  width:15px;
-  height:15px;
-  border:2px solid rgba(255,255,255,.3);
-  border-top-color:#fff;
-  border-radius:50%;
-  animation:spin .6s linear infinite;
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-@keyframes spin{
-  to{transform:rotate(360deg);}
+.field-icon {
+  position: absolute;
+  left: 14px;
+  color: #9ca3af;
+  pointer-events: none;
+  transition: color .18s;
 }
 
-
-/* ========================= */
-/* TABLET RESPONSIVE */
-/* ========================= */
-
-@media (max-width:768px){
-
-.login-card{
-  max-width:420px;
-  padding:36px 30px;
+.input-wrap:focus-within .field-icon {
+  color: #374151;
 }
 
-.card-title{
-  font-size:22px;
+.input-wrap input {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: #111827;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 13px 14px 13px 44px;
+  width: 100%;
+  outline: none;
+  transition: border-color .18s, box-shadow .18s, background .18s;
 }
 
-.brand-name{
-  font-size:15px;
+.input-wrap input::placeholder {
+  color: #c4c9d4;
 }
 
+.input-wrap input:focus {
+  border-color: #111827;
+  background: #fff;
+  box-shadow: 0 0 0 3.5px rgba(17,24,39,.07);
 }
 
-
-/* ========================= */
-/* MOBILE RESPONSIVE */
-/* ========================= */
-
-@media (max-width:480px){
-
-.login-page{
-  padding:16px;
+.field--error .input-wrap input {
+  border-color: #fca5a5;
+  background: #fff;
+  box-shadow: 0 0 0 3.5px rgba(239,68,68,.06);
 }
 
-.login-card{
-  max-width:100%;
-  padding:28px 22px;
-  border-radius:14px;
+.field-error {
+  font-size: 11.5px;
+  color: #ef4444;
 }
 
-.card-title{
-  font-size:20px;
+/* password toggle */
+.pw-toggle {
+  position: absolute;
+  right: 11px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 6px;
+  transition: color .15s, background .15s;
 }
 
-.brand-name{
-  font-size:14px;
+.pw-toggle:hover {
+  color: #374151;
+  background: rgba(17,24,39,.06);
 }
 
-.input-wrap input{
-  font-size:15px;
-  padding:13px 14px 13px 40px;
+/* ─────────────────────────────────────────
+   ERROR ALERT
+───────────────────────────────────────── */
+
+.alert-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fff7f7;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #b91c1c;
+  line-height: 1.45;
 }
 
-.btn-login{
-  font-size:15px;
-  padding:14px;
+/* ─────────────────────────────────────────
+   SUBMIT BUTTON
+───────────────────────────────────────── */
+
+.btn-submit {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #111827;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 20px;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  letter-spacing: .01em;
+  transition: background .15s, transform .12s, box-shadow .15s;
 }
 
-.input-icon{
-  left:14px;
+.btn-submit:hover:not(:disabled) {
+  background: #1f2937;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(17,24,39,.22);
 }
 
-.toggle-pw{
-  right:12px;
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
+.btn-submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────
+   RESPONSIVE — TABLET
+───────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .left-panel {
+    width: 42%;
+    padding: 44px 36px;
+  }
+  .left-headline {
+    font-size: 30px;
+  }
+}
+
+/* ─────────────────────────────────────────
+   RESPONSIVE — MOBILE (stacked)
+───────────────────────────────────────── */
+
+@media (max-width: 660px) {
+  .login-page {
+    flex-direction: column;
+  }
+
+  .left-panel {
+    width: 100%;
+    padding: 28px 24px 26px;
+  }
+
+  .left-body,
+  .left-footer {
+    display: none;
+  }
+
+  .right-panel {
+    flex: 1;
+    align-items: flex-start;
+    padding: 36px 24px 48px;
+  }
+
+  .form-card {
+    max-width: 100%;
+  }
+
+  .form-title {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 380px) {
+  .right-panel {
+    padding: 28px 18px 40px;
+  }
 }
 
 </style>

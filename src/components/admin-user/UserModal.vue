@@ -275,6 +275,7 @@ export default {
 
     // ── Form submit ─────────────────────────────────────────────────────
     closeModal() {
+      this.rfidScanMode = false
       this.$emit('close')
     },
 

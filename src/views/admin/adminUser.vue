@@ -373,7 +373,10 @@ export default {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  overflow: hidden;
+
+  /* Make it scrollable horizontally */
+  overflow-x: auto;  
+  overflow-y: hidden; /* optional, only scroll horizontally */
 }
 
 .user-table {

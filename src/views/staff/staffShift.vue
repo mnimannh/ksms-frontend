@@ -185,9 +185,9 @@ async fetchShifts() {
     if (!token) return;
 
     // 1️⃣ Fetch all shifts for the current staff
-    const { data: shiftsData } = await axios.get(`${API_BASE_URL}/api/shifts`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+const { data: shiftsData } = await axios.get(`${API_BASE_URL}/api/shifts/staff/me`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
 
     // 2️⃣ Fetch attendance for each shift
     const shiftsWithAttendance = await Promise.all(
@@ -294,22 +294,22 @@ async fetchShifts() {
 <style>
 /* FullCalendar global overrides */
 :root {
-  --fc-border-color: #f0f0f0;
-  --fc-today-bg-color: #fffbf0;
+  --fc-border-color: #f1f5f9;
+  --fc-today-bg-color: #eff6ff;
   --fc-page-bg-color: transparent;
-  --fc-neutral-bg-color: #fafafa;
+  --fc-neutral-bg-color: #f8fafc;
   --fc-event-border-color: transparent;
-  --fc-button-bg-color: #111;
-  --fc-button-border-color: #111;
-  --fc-button-hover-bg-color: #333;
-  --fc-button-active-bg-color: #000;
-  --fc-button-active-border-color: #000;
+  --fc-button-bg-color: #0f172a;
+  --fc-button-border-color: #0f172a;
+  --fc-button-hover-bg-color: #1e293b;
+  --fc-button-active-bg-color: #0f172a;
+  --fc-button-active-border-color: #0f172a;
 }
 
 .fc .fc-toolbar-title {
   font-family: 'DM Serif Display', Georgia, serif;
   font-size: 1.35rem;
-  color: #111;
+  color: #0f172a;
   letter-spacing: -0.02em;
 }
 
@@ -330,19 +330,19 @@ async fetchShifts() {
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #888;
+  color: #94a3b8;
   padding: 10px 0 8px;
 }
 
 .fc .fc-daygrid-day-number {
   font-family: 'DM Mono', monospace;
   font-size: 0.8rem;
-  color: #444;
+  color: #64748b;
   padding: 8px 10px 4px;
 }
 
 .fc .fc-day-today .fc-daygrid-day-number {
-  background: #111;
+  background: #0f172a;
   color: #fff;
   border-radius: 50%;
   width: 26px;
@@ -356,9 +356,9 @@ async fetchShifts() {
 
 /* Event styles */
 .fc .event-morning {
-  background: linear-gradient(135deg, #f5a623, #f7c059) !important;
-  color: #3a2000 !important;
-  border-left: 3px solid #e08800 !important;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+  color: #854d0e !important;
+  border-left: 3px solid #d97706 !important;
   font-family: 'DM Mono', monospace;
   font-size: 0.72rem;
   font-weight: 600;
@@ -366,13 +366,13 @@ async fetchShifts() {
   border-radius: 5px !important;
   padding: 2px 6px !important;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(245, 166, 35, 0.25);
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.25);
 }
 
 .fc .event-evening {
-  background: linear-gradient(135deg, #4a3f7a, #6b5db5) !important;
-  color: #e8e0ff !important;
-  border-left: 3px solid #2d2059 !important;
+  background: linear-gradient(135deg, #5b21b6, #8b5cf6) !important;
+  color: #ede9fe !important;
+  border-left: 3px solid #4c1d95 !important;
   font-family: 'DM Mono', monospace;
   font-size: 0.72rem;
   font-weight: 600;
@@ -380,7 +380,7 @@ async fetchShifts() {
   border-radius: 5px !important;
   padding: 2px 6px !important;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(74, 63, 122, 0.25);
+  box-shadow: 0 1px 4px rgba(139, 92, 246, 0.25);
 }
 
 .fc .fc-list-event-dot {
@@ -438,14 +438,14 @@ async fetchShifts() {
   font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
   letter-spacing: 0.2em;
-  color: #aaa;
+  color: #94a3b8;
   font-weight: 500;
 }
 
 .page-title {
   font-family: 'DM Sans', sans-serif;
   font-size: 2.2rem;
-  color: #111;
+  color: #0f172a;
   margin: 0;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -467,7 +467,7 @@ async fetchShifts() {
 .badge-day {
   font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
-  color: #bbb;
+  color: #94a3b8;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -475,7 +475,7 @@ async fetchShifts() {
 .badge-date {
   font-family: 'DM Sans', sans-serif;
   font-size: 0.82rem;
-  color: #555;
+  color: #475569;
   font-weight: 500;
 }
 
@@ -490,7 +490,7 @@ async fetchShifts() {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #666;
+  color: #64748b;
   letter-spacing: 0.03em;
 }
 
@@ -501,8 +501,8 @@ async fetchShifts() {
   display: inline-block;
 }
 
-.legend-item.morning .legend-dot { background: linear-gradient(135deg, #f5a623, #f7c059); }
-.legend-item.evening .legend-dot { background: linear-gradient(135deg, #4a3f7a, #6b5db5); }
+.legend-item.morning .legend-dot { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+.legend-item.evening .legend-dot { background: linear-gradient(135deg, #5b21b6, #8b5cf6); }
 
 /* Stats */
 .stats-row {
@@ -514,7 +514,7 @@ async fetchShifts() {
 
 .stat-card {
   background: #fff;
-  border: 1px solid #ebebeb;
+  border: 1px solid #f1f5f9;
   border-radius: 12px;
   padding: 20px 22px;
   display: flex;
@@ -531,7 +531,7 @@ async fetchShifts() {
 .stat-number {
   font-family: 'DM Serif Display', Georgia, serif;
   font-size: 2rem;
-  color: #111;
+  color: #0f172a;
   line-height: 1;
   letter-spacing: -0.03em;
 }
@@ -539,7 +539,7 @@ async fetchShifts() {
 .stat-label {
   font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
-  color: #aaa;
+  color: #94a3b8;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -547,17 +547,17 @@ async fetchShifts() {
 /* Calendar */
 .calendar-wrapper {
   background: #fff;
-  border: 1px solid #ebebeb;
+  border: 1px solid #f1f5f9;
   border-radius: 14px;
   padding: 24px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 /* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -581,13 +581,13 @@ async fetchShifts() {
 }
 
 .modal-header.morning {
-  background: linear-gradient(135deg, #f5a623, #f7c059);
-  color: #3a2000;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #854d0e;
 }
 
 .modal-header.evening {
-  background: linear-gradient(135deg, #4a3f7a, #6b5db5);
-  color: #e8e0ff;
+  background: linear-gradient(135deg, #5b21b6, #8b5cf6);
+  color: #ede9fe;
 }
 
 .modal-shift-type {
@@ -630,7 +630,7 @@ async fetchShifts() {
   justify-content: space-between;
   align-items: flex-start;
   padding: 10px 0;
-  border-bottom: 1px solid #f3f3f3;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .modal-row:last-child { border-bottom: none; }
@@ -640,7 +640,7 @@ async fetchShifts() {
 .modal-field {
   font-family: 'DM Mono', monospace;
   font-size: 0.68rem;
-  color: #aaa;
+  color: #94a3b8;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   flex-shrink: 0;
@@ -650,14 +650,14 @@ async fetchShifts() {
 .modal-value {
   font-family: 'DM Sans', sans-serif;
   font-size: 0.875rem;
-  color: #222;
+  color: #0f172a;
   font-weight: 500;
   text-align: right;
 }
 
 .modal-value.notes {
   text-align: right;
-  color: #555;
+  color: #475569;
   font-weight: 400;
   font-size: 0.82rem;
   line-height: 1.5;

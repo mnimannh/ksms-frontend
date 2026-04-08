@@ -197,8 +197,8 @@ function highlight(name) {
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px;
-  background: #f8f9fb;
-  border: 1px solid #f1f5f9;
+  background: #faf8f3;
+  border: 1px solid #e8e5dd;
   border-radius: 12px;
 }
 
@@ -228,7 +228,7 @@ function highlight(name) {
 .selected-name {
   font-size: 11px;
   font-weight: 500;
-  color: #6366f1;
+  color: #c9a96e;
 }
 
 .header-actions {
@@ -240,8 +240,8 @@ function highlight(name) {
 .count-badge {
   font-size: 11px;
   font-weight: 500;
-  color: #94a3b8;
-  background: #e2e8f0;
+  color: #9e9b93;
+  background: #e8e5dd;
   border-radius: 20px;
   padding: 2px 8px;
 }
@@ -253,25 +253,25 @@ function highlight(name) {
   gap: 5px;
   padding: 4px 10px;
   border-radius: 7px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e8e5dd;
   background: #fff;
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  color: #9e9b93;
   cursor: pointer;
   transition: all .15s ease;
   white-space: nowrap;
 }
 .toggle-btn:hover {
-  border-color: #6366f1;
-  color: #6366f1;
-  background: #eef2ff;
+  border-color: #c9a96e;
+  color: #c9a96e;
+  background: #fdf8ef;
 }
 .toggle-btn.expanded {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: #4f46e5;
+  background: #fdf8ef;
+  border-color: #c9a96e;
+  color: #b8924a;
 }
 
 /* ── Search input ─────────────────────────────────────────────── */
@@ -293,20 +293,20 @@ function highlight(name) {
   width: 100%;
   padding: 7px 32px 7px 30px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e8e5dd;
   background: #fff;
   font-family: inherit;
   font-size: 13px;
-  color: #1e293b;
+  color: #1a1a18;
   outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
 
-.search-input::placeholder { color: #cbd5e1; }
+.search-input::placeholder { color: #b5b2a9; }
 
 .search-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+  border-color: #c9a96e;
+  box-shadow: 0 0 0 3px rgba(201,169,110,.12);
 }
 
 .clear-btn {
@@ -319,14 +319,14 @@ function highlight(name) {
   height: 20px;
   border-radius: 50%;
   border: none;
-  background: #e2e8f0;
-  color: #64748b;
+  background: #e8e5dd;
+  color: #9e9b93;
   cursor: pointer;
   transition: all .15s;
 }
 .clear-btn:hover {
-  background: #cbd5e1;
-  color: #1e293b;
+  background: #d8d5cc;
+  color: #1a1a18;
 }
 
 /* ── Scrollable pills container ───────────────────────────────── */
@@ -334,13 +334,12 @@ function highlight(name) {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  max-height: 160px;        /* ~3 rows of pills */
+  max-height: 160px;
   overflow-y: auto;
-  padding-right: 4px;       /* breathing room for scrollbar */
+  padding-right: 4px;
 
-  /* Custom scrollbar */
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #d8d5cc transparent;
 }
 
 .scroll-pills-wrap::-webkit-scrollbar {
@@ -350,11 +349,11 @@ function highlight(name) {
   background: transparent;
 }
 .scroll-pills-wrap::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d8d5cc;
   border-radius: 4px;
 }
 .scroll-pills-wrap::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #b5b2a9;
 }
 
 /* ── Result count hint ────────────────────────────────────────── */
@@ -390,12 +389,12 @@ function highlight(name) {
   gap: 5px;
   padding: 6px 14px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e8e5dd;
   background: #fff;
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 400;
-  color: #64748b;
+  color: #9e9b93;
   cursor: pointer;
   white-space: nowrap;
   transition: all .15s ease;
@@ -404,13 +403,13 @@ function highlight(name) {
 }
 
 .pill:hover:not(.active) {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #1e293b;
+  background: #f5f2eb;
+  border-color: #d8d5cc;
+  color: #1a1a18;
 }
 
 .pill:focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid #c9a96e;
   outline-offset: 2px;
 }
 

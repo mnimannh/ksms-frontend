@@ -35,6 +35,7 @@
           <ShiftCalendarPanel
             :calendar-events="calendarEvents"
             @event-click="onCalendarEventClick"
+            @date-click="onCalendarDateClick"
           />
           <ShiftAttendancePanel
             :logs="filteredAttendanceLogs"
@@ -48,6 +49,7 @@
           v-model:searchQuery="searchQuery"
           @edit-shift="openAssignModal($event)"
           @view-log="onViewLog"
+          @delete-shift="deleteShift"
         />
 
       </div>
@@ -67,52 +69,63 @@
     <ShiftDetailDrawer
       :log="selectedLog"
       @close="selectedLog = null"
+      @delete="deleteShift"
     />
   </div>
 </template>
 
 <script>
-import AdminSidebar        from '@/components/sidebar/AdminSidebar.vue';
-import ShiftKpiStrip       from '@/components/admin-shift/ShiftKpiStrip.vue';
-import ShiftCalendarPanel  from '@/components/admin-shift/ShiftCalendarPanel.vue';
+import AdminSidebar         from '@/components/sidebar/AdminSidebar.vue';
+import ShiftKpiStrip        from '@/components/admin-shift/ShiftKpiStrip.vue';
+import ShiftCalendarPanel   from '@/components/admin-shift/ShiftCalendarPanel.vue';
 import ShiftAttendancePanel from '@/components/admin-shift/ShiftAttendancePanel.vue';
-import ShiftTable          from '@/components/admin-shift/ShiftTable.vue';
-import ShiftAssignModal    from '@/components/admin-shift/ShiftAssignModal.vue';
-import ShiftDetailDrawer   from '@/components/admin-shift/ShiftDetailDrawer.vue';
+import ShiftTable           from '@/components/admin-shift/ShiftTable.vue';
+import ShiftAssignModal     from '@/components/admin-shift/ShiftAssignModal.vue';
+import ShiftDetailDrawer    from '@/components/admin-shift/ShiftDetailDrawer.vue';
+import API_BASE_URL         from '@/services/api.js';
 
-import { STAFF, SHIFTS, ATTENDANCE } from '@/data/shiftData.js';
+// ── HELPER ────────────────────────────────────────────────────────────────
+function authFetch(url, options = {}) {
+  const token = localStorage.getItem('userToken'); // token stored on login
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+  return fetch(url, { ...options, headers });
+}
 
 export default {
   name: 'ShiftAssignment',
   components: {
-    AdminSidebar,
-    ShiftKpiStrip,
-    ShiftCalendarPanel,
-    ShiftAttendancePanel,
-    ShiftTable,
-    ShiftAssignModal,
-    ShiftDetailDrawer,
+    AdminSidebar, ShiftKpiStrip, ShiftCalendarPanel,
+    ShiftAttendancePanel, ShiftTable, ShiftAssignModal, ShiftDetailDrawer,
   },
 
   data() {
     return {
-      staffList:       STAFF,
-      shifts:          [...SHIFTS],
-      attendance:      [...ATTENDANCE],
+      staffList:       [],
+      shifts:          [],
+      attendance:      [],
+      loading:         false,
+      error:           null,
+
       activeFilter:    'all',
       searchQuery:     '',
       showAssignModal: false,
       editingShift:    null,
       selectedLog:     null,
+
       filters: [
-        { key: 'all',       label: 'All' },
-        { key: 'pending',   label: 'Pending' },
+        { key: 'all',       label: 'All'       },
+        { key: 'pending',   label: 'Pending'   },
         { key: 'completed', label: 'Completed' },
-        { key: 'late',      label: 'Late' },
-        { key: 'missed',    label: 'Missed' },
+        { key: 'late',      label: 'Late'      },
+        { key: 'missed',    label: 'Missed'    },
       ],
+
       form: {
-        userID:    STAFF[0].id,
+        userID:    null,
         shiftType: 'Morning',
         startTime: '',
         endTime:   '',
@@ -122,19 +135,17 @@ export default {
   },
 
   computed: {
-    // ── Enriched data ──────────────────────────────────────────────────────────
-
     enrichedRows() {
       return this.shifts.map(s => {
         const staff = this.staffList.find(u => u.id === s.userID);
         const log   = this.attendance.find(a => a.shiftID === s.id);
         return {
           ...s,
-          staffName:        staff ? staff.name : `User #${s.userID}`,
-          checkIn:          log ? log.checkIn  : null,
-          checkOut:         log ? log.checkOut : null,
-          attendanceStatus: log ? log.status   : 'Pending',
-          logNotes:         log ? log.notes    : null,
+          staffName:        staff ? staff.fullName : `User #${s.userID}`,
+          checkIn:          log?.checkIn  ?? null,
+          checkOut:         log?.checkOut ?? null,
+          attendanceStatus: log?.status   ?? 'Pending',
+          logNotes:         log?.notes    ?? null,
         };
       });
     },
@@ -145,31 +156,29 @@ export default {
         const shift = this.shifts.find(s => s.id === a.shiftID);
         return {
           ...a,
-          staffName: staff ? staff.name      : `User #${a.userID}`,
-          shiftType: shift ? shift.shiftType : '—',
-          shiftStart: shift ? shift.startTime : null,
-          shiftEnd:   shift ? shift.endTime   : null,
+          staffName:  staff ? staff.fullName  : `User #${a.userID}`,
+          shiftType:  shift ? shift.shiftType : '—',
+          shiftStart: shift?.startTime ?? null,
+          shiftEnd:   shift?.endTime   ?? null,
         };
       });
     },
 
-    // ── Filtered views ─────────────────────────────────────────────────────────
-
     filteredAttendanceLogs() {
       if (this.activeFilter === 'all') return this.enrichedLogs;
-      return this.enrichedLogs.filter(l => l.status.toLowerCase() === this.activeFilter);
+      return this.enrichedLogs.filter(
+        l => l.status.toLowerCase() === this.activeFilter
+      );
     },
 
     filteredTableRows() {
       const q = this.searchQuery.toLowerCase();
       return this.enrichedRows.filter(r =>
-        r.staffName.toLowerCase().includes(q) ||
-        r.shiftType.toLowerCase().includes(q)  ||
-        r.assignedBy.toLowerCase().includes(q)
+        r.staffName.toLowerCase().includes(q)        ||
+        r.shiftType.toLowerCase().includes(q)        ||
+        (r.assignedByName || '').toLowerCase().includes(q)
       );
     },
-
-    // ── Calendar events ────────────────────────────────────────────────────────
 
     calendarEvents() {
       const statusColors = {
@@ -179,20 +188,53 @@ export default {
         Pending:   '#64748b',
       };
       return this.enrichedRows.map(row => ({
-        id:           row.id,
-        title:        `${row.shiftType === 'Morning' ? '🌤' : '🌙'} ${row.staffName}`,
-        start:        row.startTime,
-        end:          row.endTime,
-        classNames:   [`cal-event-${row.shiftType.toLowerCase()}`],
-        borderColor:  statusColors[row.attendanceStatus] || '#64748b',
+        id:            row.id,
+        title:         `${row.shiftType === 'Morning' ? '🌤' : '🌙'} ${row.staffName}`,
+        start:         row.startTime,
+        end:           row.endTime,
+        classNames:    [`cal-event-${row.shiftType.toLowerCase()}`],
+        borderColor:   statusColors[row.attendanceStatus] ?? '#64748b',
         extendedProps: row,
       }));
     },
   },
 
-  methods: {
-    // ── Modal ──────────────────────────────────────────────────────────────────
+  async created() {
+    await this.fetchAll();
+  },
 
+  methods: {
+    // ── Data fetching ────────────────────────────────────────────────────────
+    async fetchAll() {
+      this.loading = true;
+      this.error   = null;
+      try {
+        const [staffRes, shiftsRes, attendanceRes] = await Promise.all([
+          authFetch(`${API_BASE_URL}/api/users`),
+          authFetch(`${API_BASE_URL}/api/shifts`),
+          authFetch(`${API_BASE_URL}/api/attendance`),
+        ]);
+
+        if (!staffRes.ok || !shiftsRes.ok || !attendanceRes.ok) {
+          throw new Error('One or more API requests failed');
+        }
+
+        this.staffList  = (await staffRes.json()).filter(u => u.role === 'staff');
+        this.shifts     = await shiftsRes.json();
+        this.attendance = await attendanceRes.json();
+
+        if (this.staffList.length && !this.form.userID) {
+          this.form.userID = this.staffList[0].id;
+        }
+      } catch (err) {
+        this.error = err.message;
+        console.error('fetchAll error:', err);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // ── Modal ────────────────────────────────────────────────────────────────
     openAssignModal(shift = null) {
       this.editingShift = shift;
       this.form = shift
@@ -203,56 +245,107 @@ export default {
             endTime:   shift.endTime.slice(0, 16),
             notes:     shift.notes || '',
           }
-        : { userID: this.staffList[0].id, shiftType: 'Morning', startTime: '', endTime: '', notes: '' };
+        : {
+            userID:    this.staffList[0]?.id ?? null,
+            shiftType: 'Morning',
+            startTime: '',
+            endTime:   '',
+            notes:     '',
+          };
       this.showAssignModal = true;
     },
 
-    saveShift(formData) {
-      if (this.editingShift) {
-        const idx = this.shifts.findIndex(s => s.id === this.editingShift.id);
-        if (idx !== -1) {
-          this.shifts[idx] = {
-            ...this.shifts[idx],
-            userID:    formData.userID,
-            shiftType: formData.shiftType,
-            startTime: formData.startTime + ':00',
-            endTime:   formData.endTime   + ':00',
-            notes:     formData.notes,
-          };
+    async saveShift(formData) {
+      const payload = {
+        userID:     formData.userID,
+        assignedBy: 1, // TODO: replace with your logged-in admin ID
+        shiftType:  formData.shiftType,
+        startTime:  formData.startTime + ':00',
+        endTime:    formData.endTime   + ':00',
+        notes:      formData.notes,
+      };
+
+      try {
+        if (this.editingShift) {
+          const res = await authFetch(`${API_BASE_URL}/api/shifts/${this.editingShift.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error('Failed to update shift');
+
+          const idx = this.shifts.findIndex(s => s.id === this.editingShift.id);
+          if (idx !== -1) {
+            this.shifts[idx] = { ...this.shifts[idx], ...payload };
+          }
+
+        } else {
+          const res = await authFetch(`${API_BASE_URL}/api/shifts`, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error('Failed to create shift');
+
+          const { id: newShiftId } = await res.json();
+
+          // Seed attendance
+          const attRes = await authFetch(`${API_BASE_URL}/api/attendance`, {
+            method: 'POST',
+            body: JSON.stringify({
+              shiftID:  newShiftId,
+              userID:   formData.userID,
+              checkIn:  null,
+              checkOut: null,
+              status:   'Pending',
+              notes:    null,
+            }),
+          });
+          if (!attRes.ok) throw new Error('Shift created but attendance seed failed');
+
+          await this.fetchAll();
         }
-      } else {
-        const newId = Math.max(...this.shifts.map(s => s.id)) + 1;
-        this.shifts.push({
-          id:         newId,
-          userID:     formData.userID,
-          assignedBy: 'Admin (You)',
-          startTime:  formData.startTime + ':00',
-          endTime:    formData.endTime   + ':00',
-          shiftType:  formData.shiftType,
-          notes:      formData.notes,
-          created_at: new Date().toISOString(),
-        });
-        this.attendance.push({
-          id:       Math.max(...this.attendance.map(a => a.id)) + 1,
-          shiftID:  newId,
-          userID:   formData.userID,
-          checkIn:  null,
-          checkOut: null,
-          status:   'Pending',
-          notes:    null,
-        });
+      } catch (err) {
+        console.error('saveShift error:', err);
+        this.error = err.message;
+      } finally {
+        this.showAssignModal = false;
       }
-      this.showAssignModal = false;
     },
 
-    // ── Log selection ──────────────────────────────────────────────────────────
+    // ── Delete ───────────────────────────────────────────────────────────────
+    async deleteShift(shiftID) {
+      try {
+        const res = await authFetch(`${API_BASE_URL}/api/shifts/${shiftID}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete shift');
 
+        this.shifts     = this.shifts.filter(s => s.id !== shiftID);
+        this.attendance = this.attendance.filter(a => a.shiftID !== shiftID);
+        this.selectedLog = null;
+      } catch (err) {
+        console.error('deleteShift error:', err);
+        this.error = err.message;
+      }
+    },
+
+    // ── Log selection ────────────────────────────────────────────────────────
     onCalendarEventClick(props) {
-      this.selectedLog = this.enrichedLogs.find(l => l.shiftID === props.id) || null;
+      this.selectedLog = this.enrichedLogs.find(l => l.shiftID === props.id) ?? null;
     },
 
     onViewLog(shiftID) {
-      this.selectedLog = this.enrichedLogs.find(l => l.shiftID === shiftID) || null;
+      this.selectedLog = this.enrichedLogs.find(l => l.shiftID === shiftID) ?? null;
+    },
+
+    // ── Calendar date click ──────────────────────────────────────────────────
+    onCalendarDateClick(dateStr) {
+      this.editingShift = null;
+      this.form = {
+        userID:    this.staffList[0]?.id ?? null,
+        shiftType: 'Morning',
+        startTime: `${dateStr}T09:00`,
+        endTime:   `${dateStr}T17:00`,
+        notes:     '',
+      };
+      this.showAssignModal = true;
     },
   },
 };
@@ -260,7 +353,7 @@ export default {
 
 <style>
 /* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500;600&display=swap');
 </style>
 
 <style scoped>
@@ -272,15 +365,15 @@ export default {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  font-family: 'Sora', sans-serif;
-  background: #f8fafc;
+  font-family: 'DM Sans', sans-serif;
+  background: #f6f7fb;
 }
 .sidebar { flex-shrink: 0; }
 .page-container {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  background: #f1f5f9;
+  background: #f6f7fb;
 }
 .page-content {
   padding: 28px 32px 48px;
@@ -298,7 +391,7 @@ export default {
   gap: 16px;
 }
 .eyebrow {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.6rem;
   letter-spacing: 0.2em;
   color: #94a3b8;
@@ -306,7 +399,7 @@ export default {
   margin-bottom: 4px;
 }
 .main-title {
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 1.85rem;
   font-weight: 700;
   color: #0f172a;
@@ -319,12 +412,12 @@ export default {
 .filter-tabs {
   display: flex;
   gap: 4px;
-  background: #e2e8f0;
+  background: #f1f5f9;
   padding: 3px;
   border-radius: 8px;
 }
 .filter-tab {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -340,7 +433,7 @@ export default {
 .filter-tab.active { background: #fff; color: #0f172a; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
 .btn-assign {
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
   background: #0f172a;

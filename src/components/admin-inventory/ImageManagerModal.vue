@@ -95,7 +95,7 @@
               <div class="order-thumb">
                 <img :src="fullUrl(img.image_url)" />
               </div>
-              <span class="order-label">{{ img.is_main ? '★ Main' : `Image ${i + 1}` }}</span>
+              <span class="order-label">{{ `Image ${i + 1}` }}{{ img.is_main ? ' - Main' : '' }}</span>
               <span class="order-pos">#{{ i + 1 }}</span>
             </div>
           </div>
@@ -308,13 +308,31 @@ export default {
   background: rgba(0,0,0,.45); border-radius: 3px; padding: 1px 4px;
   pointer-events: none;
 }
+
+/* ★ Star Button - Larger & More Prominent */
 .thumb-star {
-  position: absolute; top: 2px; right: 3px;
-  font-size: 11px; background: none; border: none; cursor: pointer;
-  color: rgba(255,255,255,.6); transition: color .1s; line-height: 1; z-index: 2;
+  position: absolute; top: 4px; right: 4px;
+  font-size: 18px; background: rgba(0,0,0,.35); border: none; cursor: pointer;
+  color: rgba(255,255,255,.8); transition: all .15s ease; line-height: 1; z-index: 2;
+  width: 32px; height: 32px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
 }
-.thumb-star.active { color: #f59e0b; }
-.thumb-star:hover  { color: #f59e0b; }
+.thumb-star.active { 
+  color: #fbbf24; 
+  background: rgba(245, 158, 11, .4);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, .6), 0 2px 8px rgba(0,0,0,.2);
+  font-size: 20px;
+  transform: scale(1.1);
+}
+.thumb-star:hover  { 
+  color: #fbbf24;
+  background: rgba(245, 158, 11, .35);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, .5), 0 2px 10px rgba(0,0,0,.2);
+  transform: scale(1.05);
+}
+
 .drag-handle {
   position: absolute; bottom: 3px; right: 4px;
   color: rgba(255,255,255,.55); pointer-events: none; line-height: 1;

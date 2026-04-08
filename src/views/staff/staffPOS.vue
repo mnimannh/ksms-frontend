@@ -11,6 +11,42 @@
       aria-hidden="true"
     />
 
+    <!-- Notification Toast -->
+    <transition name="toast-fade">
+      <div v-if="notification.show" :class="['notification-toast', `notification-${notification.type}`]">
+        <div class="notification-content">
+          <svg v-if="notification.type === 'success'" class="notification-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <svg v-else-if="notification.type === 'error'" class="notification-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <svg v-else-if="notification.type === 'warning'" class="notification-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <svg v-else-if="notification.type === 'info'" class="notification-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <div class="notification-text">
+            <p class="notification-title">{{ notification.title }}</p>
+            <p v-if="notification.message" class="notification-message">{{ notification.message }}</p>
+          </div>
+        </div>
+        <button @click="closeNotification" class="notification-close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </transition>
+
     <main class="pos-layout">
 
       <!-- ── LEFT: PRODUCTS ─────────────────────────────────── -->
@@ -116,6 +152,13 @@ export default {
       searchQuery: '',
       pauseScanner: false,
       productPollInterval: null,
+      notification: {
+        show: false,
+        type: 'info', // success, error, warning, info
+        title: '',
+        message: '',
+      },
+      notificationTimer: null,
     };
   },
 
@@ -149,6 +192,7 @@ export default {
       this.products = prodRes.data;
     } catch (err) {
       console.error('Error loading POS data', err);
+      this.showNotification('error', 'Failed to Load', 'Could not load products and categories. Please refresh the page.');
     }
   },
 
@@ -163,9 +207,36 @@ export default {
     document.removeEventListener('click', this.onDocClick);
     window.removeEventListener('keydown', this.handleKeydown);
     clearInterval(this.productPollInterval);
+    if (this.notificationTimer) clearTimeout(this.notificationTimer);
   },
 
   methods: {
+    // ── Notification system ───────────────────────────────────
+    showNotification(type, title, message = '', duration = 4000) {
+      // Clear existing timer if any
+      if (this.notificationTimer) clearTimeout(this.notificationTimer);
+
+      this.notification = {
+        show: true,
+        type,
+        title,
+        message,
+      };
+
+      // Auto-dismiss after duration
+      this.notificationTimer = setTimeout(() => {
+        this.closeNotification();
+      }, duration);
+    },
+
+    closeNotification() {
+      this.notification.show = false;
+      if (this.notificationTimer) {
+        clearTimeout(this.notificationTimer);
+        this.notificationTimer = null;
+      }
+    },
+
     onDocClick() {
       if (!this.pauseScanner) this.focusScanner();
     },
@@ -181,18 +252,50 @@ export default {
       const existing = this.cart.find((i) => i.id === product.id);
       if (existing) {
         if (existing.orderQty >= product.quantity) {
-          alert('Cannot exceed available stock');
+          this.showNotification(
+            'warning',
+            'Stock Limit Reached',
+            `Cannot exceed available stock for ${product.variant_name}`
+          );
           return;
         }
         existing.orderQty++;
+        this.showNotification(
+          'success',
+          'Quantity Updated',
+          `${product.variant_name} (Qty: ${existing.orderQty})`,
+          2000
+        );
       } else {
-        if (product.quantity <= 0) return;
+        if (product.quantity <= 0) {
+          this.showNotification(
+            'error',
+            'Out of Stock',
+            `${product.variant_name} is currently unavailable`
+          );
+          return;
+        }
         this.cart.push({ ...product, orderQty: 1 });
+        this.showNotification(
+          'success',
+          'Added to Cart',
+          product.variant_name,
+          2000
+        );
       }
     },
 
     removeFromCart(id) {
-      this.cart = this.cart.filter((item) => item.id !== id);
+      const item = this.cart.find((i) => i.id === id);
+      if (item) {
+        this.cart = this.cart.filter((item) => item.id !== id);
+        this.showNotification(
+          'info',
+          'Removed from Cart',
+          item.variant_name,
+          2000
+        );
+      }
     },
 
     updateQty({ id, qty }) {
@@ -200,10 +303,15 @@ export default {
       if (!item) return;
       const max = item.quantity;
       if (qty > max) {
-        alert('Exceeds stock limit');
+        this.showNotification(
+          'warning',
+          'Exceeds Stock',
+          `Only ${max} items available for ${item.variant_name}`
+        );
         item.orderQty = max;
       } else if (qty < 1) {
         item.orderQty = 1;
+        this.showNotification('info', 'Minimum Quantity', 'Minimum quantity is 1', 2000);
       } else {
         item.orderQty = qty;
       }
@@ -211,6 +319,7 @@ export default {
 
     resetCart() {
       this.cart = [];
+      this.showNotification('info', 'Cart Cleared', 'Ready for new order', 2000);
     },
 
     // ── Product polling ───────────────────────────────────────
@@ -228,8 +337,12 @@ export default {
 
     // ── Keyboard shortcuts ────────────────────────────────────
     handleKeydown(event) {
-      if (event.key === 'Delete') this.resetCart();
-      if (event.key === 'Enter' && this.barcode === '') this.processPayment();
+      if (event.key === 'Delete') {
+        this.resetCart();
+      }
+      if (event.key === 'Enter' && this.barcode === '') {
+        this.processPayment();
+      }
     },
 
     // ── Barcode scanner ───────────────────────────────────────
@@ -241,10 +354,18 @@ export default {
         if (res.data) {
           this.addToCart(res.data);
         } else {
-          alert('Product not found!');
+          this.showNotification(
+            'error',
+            'Product Not Found',
+            `Barcode "${cleanedBarcode}" does not exist`
+          );
         }
-      } catch {
-        alert('Product not found!');
+      } catch (err) {
+        this.showNotification(
+          'error',
+          'Barcode Error',
+          'Unable to process barcode. Please try again.'
+        );
       } finally {
         this.barcode = '';
         this.focusScanner();
@@ -253,16 +374,39 @@ export default {
 
     // ── Payment ───────────────────────────────────────────────
     async processPayment() {
-      if (!this.cart.length) return;
+      if (!this.cart.length) {
+        this.showNotification(
+          'warning',
+          'Empty Cart',
+          'Add items before proceeding to payment'
+        );
+        return;
+      }
+
       try {
         await axios.post(`${API_BASE_URL}/api/orders`, {
           items: this.cart.map((i) => ({ id: i.id, quantity: i.orderQty })),
         });
-        alert('Payment successful!');
+
+        // Success notification with order total
+        const orderTotal = this.total.toFixed(2);
+        this.showNotification(
+          'success',
+          'Payment Successful',
+          `Order completed. Total: RM${orderTotal}`,
+          3000
+        );
+
+        // Reset cart and reload products
         this.cart = [];
         this.loadProducts().catch((err) => console.error(err));
       } catch (err) {
-        alert(err.response?.data?.message || 'Payment failed');
+        const errorMessage = err.response?.data?.message || 'An unexpected error occurred';
+        this.showNotification(
+          'error',
+          'Payment Failed',
+          errorMessage
+        );
       }
     },
   },
@@ -292,6 +436,147 @@ export default {
   pointer-events: none;
   width: 1px; height: 1px;
   top: -9999px;
+}
+
+/* ── Notification Toast ────────────────────────────────────────── */
+.notification-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  max-width: 400px;
+  padding: 16px 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e8e5dd;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  z-index: 9999;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notification-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.notification-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notification-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.notification-message {
+  font-size: 13px;
+  opacity: 0.8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.notification-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #b5b2a9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.notification-close:hover {
+  color: #6b6860;
+}
+
+/* Type-specific colors */
+.notification-success {
+  border-color: #d1f2d9;
+  background: #f0fdf4;
+}
+
+.notification-success .notification-icon {
+  color: #10b981;
+}
+
+.notification-success .notification-title {
+  color: #047857;
+}
+
+.notification-error {
+  border-color: #fed7d7;
+  background: #fef2f2;
+}
+
+.notification-error .notification-icon {
+  color: #ef4444;
+}
+
+.notification-error .notification-title {
+  color: #dc2626;
+}
+
+.notification-warning {
+  border-color: #fef3c7;
+  background: #fffbeb;
+}
+
+.notification-warning .notification-icon {
+  color: #f59e0b;
+}
+
+.notification-warning .notification-title {
+  color: #d97706;
+}
+
+.notification-info {
+  border-color: #dbeafe;
+  background: #f0f9ff;
+}
+
+.notification-info .notification-icon {
+  color: #3b82f6;
+}
+
+.notification-info .notification-title {
+  color: #1d4ed8;
+}
+
+/* Toast animations */
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateX(100px);
 }
 
 /* ── Main layout ───────────────────────────────────────────────── */

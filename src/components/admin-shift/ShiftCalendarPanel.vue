@@ -18,7 +18,7 @@ export default {
   props: {
     calendarEvents: { type: Array, required: true },
   },
-  emits: ['event-click'],
+  emits: ['event-click', 'date-click'],
 
   data() {
     return {
@@ -62,13 +62,15 @@ export default {
 
       this.calendar = new window.FullCalendar.Calendar(el, {
         initialView: 'dayGridMonth',
-        initialDate: '2025-03-01',
         headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
         height: '625px',
         events: this.calendarEvents,
         eventClick: (info) => {
           this.$emit('event-click', info.event.extendedProps);
         },
+        dateClick: (info) => {          // ← add this
+  this.$emit('date-click', info.dateStr);
+},
         dayMaxEvents: 3,
         eventDisplay: 'block',
       });
@@ -87,14 +89,14 @@ export default {
 <!-- FullCalendar global overrides -->
 <style>
 #admin-calendar .fc-toolbar-title {
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 1.05rem;
   font-weight: 700;
   color: #0f172a;
   letter-spacing: -0.02em;
 }
 #admin-calendar .fc-button {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -108,7 +110,7 @@ export default {
 #admin-calendar .fc-button:hover        { background: #1e293b !important; }
 #admin-calendar .fc-button-active       { background: #334155 !important; }
 #admin-calendar .fc-col-header-cell-cushion {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -116,7 +118,7 @@ export default {
   color: #94a3b8;
 }
 #admin-calendar .fc-daygrid-day-number {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.72rem;
   color: #475569;
   padding: 6px 8px 2px;
@@ -139,7 +141,7 @@ export default {
   background: linear-gradient(135deg, #fbbf24, #fde68a) !important;
   color: #78350f !important;
   border-left: 3px solid #f59e0b !important;
-  font-family: 'JetBrains Mono', monospace !important;
+  font-family: 'DM Mono', monospace !important;
   font-size: 0.68rem !important;
   font-weight: 600 !important;
   border-radius: 4px !important;
@@ -150,7 +152,7 @@ export default {
   background: linear-gradient(135deg, #1e40af, #3b82f6) !important;
   color: #dbeafe !important;
   border-left: 3px solid #1d4ed8 !important;
-  font-family: 'JetBrains Mono', monospace !important;
+  font-family: 'DM Mono', monospace !important;
   font-size: 0.68rem !important;
   font-weight: 600 !important;
   border-radius: 4px !important;
@@ -162,7 +164,7 @@ export default {
 <style scoped>
 .calendar-panel {
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #f1f5f9;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -174,7 +176,7 @@ export default {
   border-bottom: 1px solid #f1f5f9;
 }
 .panel-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.62rem;
   letter-spacing: 0.15em;
   color: #94a3b8;
@@ -188,7 +190,7 @@ export default {
   border-radius: 6px;
 }
 .view-toggle button {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.05em;
