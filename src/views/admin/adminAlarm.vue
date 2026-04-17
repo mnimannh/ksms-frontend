@@ -6,10 +6,22 @@
       <header class="page-header">
         <div class="header-title">
           <span class="header-eyebrow">Inventory</span>
-          <h1>Low Stock Alerts</h1>
+          <h1>{{ activeTab === 'alarms' ? 'Low Stock Alerts' : 'Operational Insights' }}</h1>
+          <div class="tab-group">
+            <button :class="['tab-btn', activeTab === 'alarms' ? 'active' : '']" @click="activeTab = 'alarms'">
+              Low Stock Alerts
+            </button>
+            <button :class="['tab-btn', activeTab === 'insights' ? 'active' : '']" @click="activeTab = 'insights'">
+              Operational Insights
+              <span v-if="insightUnreadCount > 0" class="tab-badge">{{ insightUnreadCount }}</span>
+            </button>
+          </div>
         </div>
-        <div class="header-meta" v-if="unreadCount > 0">
+        <div class="header-meta" v-if="activeTab === 'alarms' && unreadCount > 0">
           <span class="unread-badge">{{ unreadCount }} unread</span>
+        </div>
+        <div class="header-meta" v-if="activeTab === 'insights' && insightUnreadCount > 0">
+          <span class="unread-badge">{{ insightUnreadCount }} unread</span>
         </div>
       </header>
 
@@ -26,7 +38,7 @@
             </button>
           </div>
 
-          <div class="dropdown">
+          <div class="dropdown" v-if="activeTab === 'alarms'">
             <button class="btn-filter">
               <span class="filter-label">Status</span>
               <span class="filter-value">{{ statusLabel }}</span>
@@ -53,7 +65,8 @@
         </div>
       </div>
 
-      <div class="table-container">
+      <!-- Low Stock Alerts Table -->
+      <div v-if="activeTab === 'alarms'" class="table-container">
         <table class="alarm-table">
           <thead>
             <tr>
@@ -92,13 +105,7 @@
               </td>
               <td class="td-muted">{{ formatDate(alarm.created_at) }}</td>
               <td>
-                <button
-                  v-if="!alarm.is_read"
-                  class="btn-mark"
-                  @click="markAsRead(alarm.id)"
-                >
-                  Mark read
-                </button>
+                <button v-if="!alarm.is_read" class="btn-mark" @click="markAsRead(alarm.id)">Mark read</button>
                 <span v-else class="done-check">
                   <svg width="13" height="11" viewBox="0 0 13 11" fill="none">
                     <path d="M1.5 5.5L5 9L11.5 1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -106,7 +113,6 @@
                 </span>
               </td>
             </tr>
-
             <tr v-if="filteredAlarms.length === 0">
               <td colspan="7" class="empty-state">No alerts found</td>
             </tr>
@@ -114,13 +120,76 @@
         </table>
       </div>
 
-<footer class="pagination">
-  <span>Showing</span>
-  <strong>{{ filteredAlarms.length }}</strong>
-  <span>of</span>
-  <strong>{{ alarms.length }}</strong>
-  <span>alerts</span>
-</footer>
+      <!-- Operational Insights Table -->
+      <div v-if="activeTab === 'insights'" class="table-container">
+        <table class="alarm-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Variant</th>
+              <th>Rule</th>
+              <th>Message</th>
+              <th>Severity</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(ins, index) in filteredInsights" :key="ins.id" class="table-row" :class="{ 'row-unread': !ins.is_read }">
+              <td class="td-num">{{ index + 1 }}</td>
+              <td class="td-variant">
+                <div class="variant-icon">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                    <rect x="1" y="1" width="14" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M4 8h8M8 4v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                {{ ins.variant }}
+              </td>
+              <td><span class="rule-tag">{{ ins.rule_id }}</span></td>
+              <td class="td-message">{{ ins.message }}</td>
+              <td>
+                <span class="status-pill" :class="{
+                  'severity-critical': ins.severity === 'critical',
+                  'severity-warning': ins.severity === 'warning',
+                  'severity-info': ins.severity === 'info'
+                }">
+                  <span class="status-dot"></span>{{ ins.severity }}
+                </span>
+              </td>
+              <td>
+                <span class="status-pill" :class="ins.is_read ? 'status-read' : 'status-unread'">
+                  <span class="status-dot"></span>{{ ins.is_read ? 'Read' : 'Unread' }}
+                </span>
+              </td>
+              <td class="td-muted">{{ formatDate(ins.created_at) }}</td>
+              <td>
+                <button v-if="!ins.is_read" class="btn-mark" @click="markInsightAsRead(ins.id)">Mark read</button>
+                <span v-else class="done-check">
+                  <svg width="13" height="11" viewBox="0 0 13 11" fill="none">
+                    <path d="M1.5 5.5L5 9L11.5 1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </td>
+            </tr>
+            <tr v-if="filteredInsights.length === 0">
+              <td colspan="8" class="empty-state">No insights found</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="pagination">
+        <span>Showing</span>
+        <strong>{{ activeTab === 'alarms' ? filteredAlarms.length : filteredInsights.length }}</strong>
+        <span>of</span>
+        <strong>{{ activeTab === 'alarms' ? alarms.length : insights.length }}</strong>
+        <span>{{ activeTab === 'alarms' ? 'alerts' : 'insights' }}</span>
+      </footer>
+
+      <!-- Toast -->
+      <div v-if="toast.show" class="toast">{{ toast.message }}</div>
     </main>
   </div>
 </template>
@@ -136,28 +205,14 @@ export default {
 
   data() {
     return {
+      activeTab: 'alarms',
+      insights: [],
+      toast: { show: false, message: '' },
       search: '',
       timeOptions: ['All', 'Today', 'Week', 'Month'],
       selectedTime: 'All',
       statusFilter: 'all',
-      alarms: [
-        {
-          id: 2,
-          variant: '500ml Can',
-          stock: 100,
-          threshold: 10,
-          is_read: 1,
-          created_at: '2026-03-04T17:18:02.000Z'
-        },
-        {
-          id: 1,
-          variant: '330ml Bottle',
-          stock: 9,
-          threshold: 10,
-          is_read: 0,
-          created_at: '2026-03-04T16:43:26.000Z'
-        }
-      ]
+      alarms: []
     }
   },
 
@@ -170,10 +225,12 @@ export default {
     unreadCount() {
       return this.alarms.filter(a => !a.is_read).length
     },
+    insightUnreadCount() {
+      return this.insights.filter(i => !i.is_read).length
+    },
     filteredAlarms() {
       return this.alarms.filter(a => {
         const matchSearch = a.variant.toLowerCase().includes(this.search.toLowerCase())
-
         const date = new Date(a.created_at)
         const now = new Date()
         let matchTime = true
@@ -185,24 +242,54 @@ export default {
         } else if (this.selectedTime === 'Month') {
           matchTime = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
         }
-
         let matchStatus = true
         const readValue = Number(a.is_read)
         if (this.statusFilter === 'unread') matchStatus = readValue === 0
         if (this.statusFilter === 'read') matchStatus = readValue === 1
-
         return matchSearch && matchTime && matchStatus
+      })
+    },
+    filteredInsights() {
+      return this.insights.filter(i => {
+        const matchSearch = i.variant.toLowerCase().includes(this.search.toLowerCase()) ||
+                            i.message.toLowerCase().includes(this.search.toLowerCase())
+        const date = new Date(i.created_at)
+        const now = new Date()
+        let matchTime = true
+        if (this.selectedTime === 'Today') {
+          matchTime = date.toDateString() === now.toDateString()
+        } else if (this.selectedTime === 'Week') {
+          const diffDays = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+          matchTime = diffDays <= 7
+        } else if (this.selectedTime === 'Month') {
+          matchTime = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+        }
+        return matchSearch && matchTime
       })
     }
   },
 
- methods: {
+  methods: {
     async fetchAlarms() {
       try {
         const res = await axios.get(`${API_BASE_URL}/api/alarm`)
         this.alarms = res.data
       } catch (err) {
         console.error('Failed to fetch alarms:', err)
+      }
+    },
+
+    async fetchInsights() {
+      try {
+        const { data } = await axios.post(`${API_BASE_URL}/api/analytics/run`)
+        if (data.newInsights > 0) {
+          this.toast = { show: true, message: `${data.newInsights} new operational insight(s) detected` }
+          setTimeout(() => { this.toast.show = false }, 4000)
+        }
+        const res = await axios.get(`${API_BASE_URL}/api/analytics/insights`)
+        this.insights = res.data
+      } catch (err) {
+        console.error('Failed to fetch insights:', err)
       }
     },
 
@@ -216,6 +303,16 @@ export default {
       }
     },
 
+    async markInsightAsRead(id) {
+      try {
+        await axios.patch(`${API_BASE_URL}/api/analytics/insights/read/${id}`)
+        const ins = this.insights.find(i => i.id === id)
+        if (ins) ins.is_read = 1
+      } catch (err) {
+        console.error('Failed to mark insight as read:', err)
+      }
+    },
+
     formatDate(dateStr) {
       return new Date(dateStr).toLocaleDateString('en-GB', {
         day: '2-digit', month: 'short', year: 'numeric',
@@ -226,6 +323,7 @@ export default {
 
   mounted() {
     this.fetchAlarms()
+    this.fetchInsights()
   }
 }
 </script>
@@ -253,7 +351,7 @@ export default {
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: flex-start;
   margin-bottom: 32px;
 }
 
@@ -271,7 +369,7 @@ export default {
   font-size: 26px;
   font-weight: 600;
   color: #111827;
-  margin: 0;
+  margin: 0 0 12px;
   letter-spacing: -0.02em;
 }
 
@@ -286,6 +384,45 @@ export default {
   padding: 5px 12px;
   border-radius: 20px;
   border: 1px solid #fed7aa;
+}
+
+/* ── Tabs ── */
+.tab-group {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.15s;
+}
+
+.tab-btn:hover { border-color: #d1d5db; color: #374151; }
+
+.tab-btn.active {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+.tab-badge {
+  background: #f97316;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 /* ── Toolbar ── */
@@ -304,7 +441,6 @@ export default {
   gap: 10px;
 }
 
-/* Time Filter Pill Group */
 .time-filter {
   display: flex;
   background: #fff;
@@ -329,17 +465,10 @@ export default {
 }
 
 .time-btn:hover { background: #f3f4f6; color: #374151; }
-
-.time-btn.active {
-  background: #111827;
-  color: #fff;
-}
+.time-btn.active { background: #111827; color: #fff; }
 
 /* Dropdown */
-.dropdown {
-  position: relative;
-  display: inline-block;
-}
+.dropdown { position: relative; display: inline-block; }
 
 .btn-filter {
   display: flex;
@@ -357,22 +486,9 @@ export default {
 }
 
 .btn-filter:hover { border-color: #d1d5db; }
-
-.filter-label {
-  color: #9ca3af;
-  font-size: 12px;
-}
-
-.filter-value {
-  font-weight: 500;
-  color: #111827;
-}
-
-.arrow-icon {
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-}
+.filter-label { color: #9ca3af; font-size: 12px; }
+.filter-value { font-weight: 500; color: #111827; }
+.arrow-icon { color: #9ca3af; display: flex; align-items: center; }
 
 .dropdown-menu {
   display: none;
@@ -448,9 +564,7 @@ export default {
   font-size: 13px;
 }
 
-.alarm-table thead tr {
-  border-bottom: 1px solid #f0f0f0;
-}
+.alarm-table thead tr { border-bottom: 1px solid #f0f0f0; }
 
 .alarm-table th {
   background: #fafafa;
@@ -473,9 +587,7 @@ export default {
 .table-row:last-child td { border-bottom: none; }
 .table-row:hover td { background: #fafbfc; }
 
-.row-unread td:first-child {
-  border-left: 3px solid #f97316;
-}
+.row-unread td:first-child { border-left: 3px solid #f97316; }
 
 .td-num {
   color: #d1d5db;
@@ -507,7 +619,25 @@ export default {
 .td-muted {
   color: #9ca3af;
   font-size: 12.5px;
-  font-family: 'DM Sans', sans-serif;
+}
+
+.td-message {
+  max-width: 320px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+/* Rule tag */
+.rule-tag {
+  display: inline-block;
+  background: #f3f4f6;
+  color: #374151;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid #e5e7eb;
 }
 
 /* Stock Value */
@@ -550,17 +680,18 @@ export default {
   border-radius: 50%;
 }
 
-.status-read {
-  background: #f0fdf4;
-  color: #15803d;
-}
+.status-read { background: #f0fdf4; color: #15803d; }
 .status-read .status-dot { background: #22c55e; }
-
-.status-unread {
-  background: #fff7ed;
-  color: #c2410c;
-}
+.status-unread { background: #fff7ed; color: #c2410c; }
 .status-unread .status-dot { background: #f97316; }
+
+/* Severity pills */
+.severity-critical { background: #fef2f2; color: #dc2626; }
+.severity-critical .status-dot { background: #ef4444; }
+.severity-warning { background: #fffbeb; color: #b45309; }
+.severity-warning .status-dot { background: #f59e0b; }
+.severity-info { background: #eff6ff; color: #1d4ed8; }
+.severity-info .status-dot { background: #3b82f6; }
 
 /* Mark Button */
 .btn-mark {
@@ -583,7 +714,6 @@ export default {
   color: #fff;
 }
 
-/* Done check */
 .done-check {
   display: inline-flex;
   align-items: center;
@@ -595,7 +725,6 @@ export default {
   color: #16a34a;
 }
 
-/* Empty */
 .empty-state {
   text-align: center;
   padding: 40px;
@@ -606,12 +735,32 @@ export default {
 /* Pagination */
 .pagination {
   margin-top: 14px;
-  text-align: right;
   font-size: 12px;
   color: #9ca3af;
-    display: flex;
+  display: flex;
   gap: 4px;
 }
 
 .pagination strong { color: #374151; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #111827;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  z-index: 999;
+  animation: fadeInUp 0.2s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 </style>
