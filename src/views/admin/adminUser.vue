@@ -1,101 +1,142 @@
 <template>
-  <div class="admin-container">
+  <div class="app-layout">
     <AdminSidebar />
 
-    <main class="main-content">
-      <header class="page-header">
-        <div class="header-title">
-          <span class="header-eyebrow">Administration</span>
-          <h1>Manage Users</h1>
-        </div>
-        <button class="btn-add" @click="openAddModal">
-          <span class="">+</span> New User
-        </button>
-      </header>
+    <main class="page">
 
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <div class="dropdown">
-            <button class="btn-filter">
-              <span class="filter-label">Role</span>
-              <span class="filter-value">{{ selectedRole }}</span>
-              <span class="arrow-icon">
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                  <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-              </span>
-            </button>
-            <div class="dropdown-menu">
-              <div @click="setRoleFilter('All')" class="dropdown-item" :class="{ active: selectedRole === 'All' }">All Roles</div>
-              <div @click="setRoleFilter('admin')" class="dropdown-item" :class="{ active: selectedRole === 'admin' }">Admin</div>
-              <div @click="setRoleFilter('staff')" class="dropdown-item" :class="{ active: selectedRole === 'staff' }">Staff</div>
+      <!-- ── TOP BAR ── -->
+      <div class="topbar">
+        <div class="topbar-left">
+          <p class="topbar-date">{{ today }}</p>
+          <h1 class="topbar-title">Manage <span class="accent">Users</span></h1>
+        </div>
+        <div class="topbar-right">
+          <button class="btn-add" @click="openAddModal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New User
+          </button>
+        </div>
+      </div>
+
+      <!-- ── SUMMARY CARDS ── -->
+      <div class="summary-row">
+        <div class="summary-card" style="animation-delay:0ms">
+          <div class="summary-icon" style="background:#eef2ff; color:#6366f1">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div>
+            <p class="summary-val">{{ users.length }}</p>
+            <p class="summary-label">Total Users</p>
+          </div>
+        </div>
+        <div class="summary-card" style="animation-delay:60ms">
+          <div class="summary-icon" style="background:#eff6ff; color:#3b82f6">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a8.38 8.38 0 0113 0"/><polyline points="16 11 18 13 22 9"/></svg>
+          </div>
+          <div>
+            <p class="summary-val">{{ users.filter(u => u.role === 'admin').length }}</p>
+            <p class="summary-label">Admins</p>
+          </div>
+        </div>
+        <div class="summary-card" style="animation-delay:120ms">
+          <div class="summary-icon" style="background:#f0fdf4; color:#10b981">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a8.38 8.38 0 0113 0"/></svg>
+          </div>
+          <div>
+            <p class="summary-val">{{ users.filter(u => u.role === 'staff').length }}</p>
+            <p class="summary-label">Staff</p>
+          </div>
+        </div>
+        <div class="summary-card" style="animation-delay:180ms">
+          <div class="summary-icon" style="background:#fffbeb; color:#f59e0b">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <p class="summary-val">{{ users.filter(u => u.status === 'active').length }}</p>
+            <p class="summary-label">Active</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PANEL ── -->
+      <div class="panel">
+        <div class="card-header">
+          <div>
+            <p class="card-title">All Users</p>
+            <p class="card-sub">Manage system access and roles</p>
+          </div>
+          <div class="toolbar-right">
+            <div class="dropdown">
+              <button class="btn-filter">
+                <span class="filter-label">Role</span>
+                <span class="filter-value">{{ selectedRole }}</span>
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+              <div class="dropdown-menu">
+                <div @click="setRoleFilter('All')"   class="dropdown-item" :class="{ active: selectedRole === 'All' }">All Roles</div>
+                <div @click="setRoleFilter('admin')" class="dropdown-item" :class="{ active: selectedRole === 'admin' }">Admin</div>
+                <div @click="setRoleFilter('staff')" class="dropdown-item" :class="{ active: selectedRole === 'staff' }">Staff</div>
+              </div>
+            </div>
+            <div class="search-box">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 9.5L12.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input v-model="searchQuery" type="text" placeholder="Search users..." />
             </div>
           </div>
         </div>
 
-        <div class="toolbar-right">
-          <div class="search-box">
-            <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M9.5 9.5L12.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            <input v-model="searchQuery" type="text" placeholder="Search users..." />
-          </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Last Login</th>
+                <th>Joined</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(user, index) in filteredUsers" :key="user.id" class="table-row">
+                <td class="td-num">{{ index + 1 }}</td>
+                <td>
+                  <div class="cell-user">
+                    <div class="user-avatar" :style="`background:${avatarColor(user.fullName)}`">
+                      {{ user.fullName.charAt(0).toUpperCase() }}
+                    </div>
+                    <span class="user-name">{{ user.fullName }}</span>
+                  </div>
+                </td>
+                <td class="td-email">{{ user.email }}</td>
+                <td>
+                  <span class="role-badge" :class="'role-' + user.role">{{ user.role }}</span>
+                </td>
+                <td class="td-muted">{{ formatDate(user.last_login) }}</td>
+                <td class="td-muted">{{ formatDate(user.created_at) }}</td>
+                <td>
+                  <span class="status-pill" :class="user.status === 'active' ? 'status-active' : 'status-inactive'">
+                    <span class="status-dot"></span>{{ user.status }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn-action" @click="openEditModal(user)">Edit</button>
+                </td>
+              </tr>
+              <tr v-if="filteredUsers.length === 0">
+                <td colspan="8" class="empty-state">No users found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-footer">
+          <span>Showing <strong>{{ filteredUsers.length }}</strong> of <strong>{{ users.length }}</strong> users</span>
         </div>
       </div>
-<div class="grid-container">
-  <div class="col-span-12">
-      <div class="table-container">
-        <table class="user-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Last Login</th>
-              <th>Joined</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(user, index) in filteredUsers" :key="user.id" class="table-row">
-              <td class="td-num">{{ index + 1 }}</td>
-              <td class="td-name">
-                <div class="user-avatar">{{ user.fullName.charAt(0).toUpperCase() }}</div>
-                <span>{{ user.fullName }}</span>
-              </td>
-              <td class="td-email">{{ user.email }}</td>
-              <td>
-                <span class="role-badge" :class="'role-' + user.role">{{ user.role }}</span>
-              </td>
-              <td class="td-muted">{{ formatDate(user.last_login) }}</td>
-              <td class="td-muted">{{ formatDate(user.created_at) }}</td>
-              <td>
-                <span class="status-pill" :class="user.status === 'active' ? 'status-active' : 'status-inactive'">
-                  <span class="status-dot"></span>{{ user.status }}
-                </span>
-              </td>
-              <td>
-                <button class="btn-edit" @click="openEditModal(user)">Edit</button>
-              </td>
-            </tr>
-            <tr v-if="filteredUsers.length === 0">
-              <td colspan="8" class="empty-state">No users found.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-  </div>
-</div>
-<footer class="pagination">
-  <span>Showing</span>
-  <strong>{{ filteredUsers.length }}</strong>
-  <span>of</span>
-  <strong>{{ users.length }}</strong>
-  <span>users</span>
-</footer>
+
     </main>
 
     <UserModal
@@ -113,18 +154,23 @@ import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
 import UserModal from '@/components/admin-user/UserModal.vue'
 import axios from 'axios'
 
+const AVATAR_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6']
+
 export default {
   name: 'AdminUser',
   components: { AdminSidebar, UserModal },
+
   data() {
     return {
+      today: new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
       users: [],
       searchQuery: '',
       showModal: false,
       selectedUser: null,
-      selectedRole: 'All'
+      selectedRole: 'All',
     }
   },
+
   computed: {
     filteredUsers() {
       let users = this.users
@@ -132,15 +178,21 @@ export default {
         users = users.filter(u => u.role.toLowerCase() === this.selectedRole.toLowerCase())
       }
       if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase()
         users = users.filter(u =>
-          u.fullName.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          u.email.toLowerCase().includes(this.searchQuery.toLowerCase())
+          u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
         )
       }
       return users
-    }
+    },
   },
+
   methods: {
+    avatarColor(name) {
+      const i = name.charCodeAt(0) % AVATAR_COLORS.length
+      return AVATAR_COLORS[i]
+    },
+
     async fetchUsers() {
       try {
         const res = await axios.get(`${API_BASE_URL}/api/users`)
@@ -149,6 +201,7 @@ export default {
         console.error('Error fetching users:', err)
       }
     },
+
     async deleteUser(id) {
       if (!confirm('Are you sure you want to delete this user?')) return
       try {
@@ -158,390 +211,228 @@ export default {
         console.error('Error deleting user:', err)
       }
     },
-    refreshUsers() {
-      this.fetchUsers()
-    },
+
+    refreshUsers() { this.fetchUsers() },
+
     formatDate(dateStr) {
       if (!dateStr) return '—'
-      const d = new Date(dateStr)
-      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     },
-    openAddModal() {
-      this.selectedUser = null
-      this.showModal = true
-    },
-    openEditModal(user) {
-      this.selectedUser = user
-      this.showModal = true
-    },
-    setRoleFilter(role) {
-      this.selectedRole = role
-    }
+
+    openAddModal()    { this.selectedUser = null; this.showModal = true },
+    openEditModal(u)  { this.selectedUser = u;    this.showModal = true },
+    setRoleFilter(r)  { this.selectedRole = r },
   },
-  mounted() {
-    this.fetchUsers()
-  }
+
+  mounted() { this.fetchUsers() },
 }
 </script>
 
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap');
+</style>
+
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-* { box-sizing: border-box; }
-
-.admin-container {
+.app-layout {
   display: flex;
-  font-family: 'DM Sans', sans-serif;
-  background-color: #f7f8fa;
   min-height: 100vh;
-  color: #1a1d23;
-}
-
-.main-content {
-  flex: 1;
-  padding: 36px 40px;
-  max-width: 100%;
-}
-
-/* ── Header ── */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 32px;
-}
-
-.header-eyebrow {
-  display: block;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #9ca3af;
-  margin-bottom: 4px;
-}
-
-.page-header h1 {
-  font-size: 26px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-  letter-spacing: -0.02em;
-}
-
-.btn-add {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #16a34a;
-  color: #fff;
-  border: none;
-  padding: 9px 18px;
-  border-radius: 8px;
-  cursor: pointer;
+  background: #f6f7fb;
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  transition: background 0.18s, transform 0.12s;
+  color: #1e293b;
 }
 
-.btn-add:hover {
-  background-color: #124f29;
-  transform: translateY(-1px);
-}
-
-.btn-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-/* ── Toolbar ── */
-.toolbar {
+.page {
+  flex: 1;
+  padding: 32px 36px 48px;
   display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-x: hidden;
+}
+
+/* ── Topbar ── */
+.topbar {
+  display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.topbar-date  { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+.topbar-title { font-size: 26px; font-weight: 600; letter-spacing: -.025em; color: #0f172a; }
+.topbar-title .accent { color: #6366f1; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.btn-add {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #6366f1; color: #fff;
+  border: none; padding: 9px 18px; border-radius: 9px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background .15s, transform .12s;
+}
+.btn-add:hover { background: #4f46e5; transform: translateY(-1px); }
+
+/* ── Summary cards ── */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.summary-card {
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 7px 14px;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  animation: fadeUp .35s ease both;
+  transition: box-shadow .15s;
+}
+.summary-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.search-box:focus-within {
-  border-color: #111827;
-  box-shadow: 0 0 0 3px rgba(17,24,39,0.07);
+.summary-icon {
+  width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.summary-val   { font-size: 26px; font-weight: 700; color: #0f172a; letter-spacing: -.03em; line-height: 1; margin-bottom: 3px; }
+.summary-label { font-size: 12px; color: #94a3b8; }
+
+/* ── Panel ── */
+.panel {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
 }
 
-.search-icon {
-  color: #9ca3af;
-  flex-shrink: 0;
+.card-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 16px;
+  gap: 16px; flex-wrap: wrap;
+  border-bottom: 1px solid #f8fafc;
 }
+.card-title { font-size: 14.5px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+.card-sub   { font-size: 12px; color: #94a3b8; }
 
-.search-box input {
-  border: none;
-  outline: none;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  color: #1a1d23;
-  width: 210px;
-  background: transparent;
-}
+.toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-.search-box input::placeholder { color: #c4c9d4; }
-
-/* ── Dropdown ── */
-.dropdown {
-  position: relative;
-  display: inline-block;
-}
+/* Dropdown */
+.dropdown { position: relative; }
 
 .btn-filter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 7px 14px;
-  cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  color: #374151;
-  transition: border-color 0.18s;
+  display: flex; align-items: center; gap: 7px;
+  background: #f8fafc; border: 1px solid #f1f5f9;
+  border-radius: 8px; padding: 7px 13px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; color: #334155; transition: border-color .15s;
 }
-
-.btn-filter:hover { border-color: #d1d5db; }
-
-.filter-label {
-  color: #9ca3af;
-  font-size: 12px;
-}
-
-.filter-value {
-  font-weight: 500;
-  color: #111827;
-}
-
-.arrow-icon {
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-}
+.btn-filter:hover { border-color: #e2e8f0; }
+.filter-label { color: #94a3b8; font-size: 12px; }
+.filter-value { font-weight: 500; color: #0f172a; }
 
 .dropdown-menu {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  background: #fff;
-  min-width: 140px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
-  border: 1px solid #f0f0f0;
-  border-radius: 10px;
-  z-index: 10;
-  overflow: hidden;
-  padding: 4px;
+  display: none; position: absolute; top: calc(100% + 6px); left: 0;
+  background: #fff; min-width: 130px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.08); border: 1px solid #f0f0f0;
+  border-radius: 10px; z-index: 10; padding: 4px;
 }
-
 .dropdown:hover .dropdown-menu { display: block; }
+.dropdown-item { padding: 8px 12px; cursor: pointer; font-size: 13px; color: #374151; border-radius: 6px; transition: background .12s; }
+.dropdown-item:hover { background: #f8fafc; }
+.dropdown-item.active { background: #f1f5f9; font-weight: 500; color: #0f172a; }
 
-.dropdown-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #374151;
-  border-radius: 6px;
-  transition: background 0.12s;
+/* Search */
+.search-box {
+  display: flex; align-items: center; gap: 7px;
+  background: #f8fafc; border: 1px solid #f1f5f9;
+  border-radius: 8px; padding: 7px 13px;
+  color: #94a3b8; transition: border-color .18s, box-shadow .18s;
 }
-
-.dropdown-item:hover { background: #f9fafb; }
-.dropdown-item.active { background: #f3f4f6; font-weight: 500; color: #111827; }
+.search-box:focus-within { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.1); background: #fff; }
+.search-box input {
+  border: none; outline: none; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; color: #1e293b; width: 200px; background: transparent;
+}
+.search-box input::placeholder { color: #c4c9d4; }
 
 /* ── Table ── */
-.table-container {
-  width: 100%; 
-  margin: 0;  
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+.table-wrap { overflow-x: auto; }
 
-  /* Make it scrollable horizontally */
-  overflow-x: auto;  
-  overflow-y: hidden; /* optional, only scroll horizontally */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+.data-table thead tr { border-bottom: 1px solid #f1f5f9; }
+
+.data-table th {
+  background: #fafafa; text-align: left;
+  padding: 10px 16px; font-size: 11px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: #94a3b8; white-space: nowrap;
 }
 
-.user-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  
-}
-
-.user-table thead tr {
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.user-table th {
-  background: #fafafa;
-  text-align: left;
-  padding: 12px 16px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #9ca3af;
-}
-
-.user-table td {
-  padding: 13px 16px;
-  border-bottom: 1px solid #f9fafb;
-  color: #374151;
-  vertical-align: middle;
+.data-table td {
+  padding: 13px 16px; border-bottom: 1px solid #f8fafc;
+  color: #334155; vertical-align: middle;
 }
 
 .table-row:last-child td { border-bottom: none; }
-
 .table-row:hover td { background: #fafbfc; }
 
-.td-num {
-  color: #d1d5db;
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  width: 40px;
-}
+.td-num   { color: #cbd5e1; font-family: 'DM Mono', monospace; font-size: 12px; width: 36px; }
+.td-email { color: #64748b; font-size: 12.5px; }
+.td-muted { color: #94a3b8; font-size: 12.5px; white-space: nowrap; }
 
-.td-name {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 500;
-  color: #111827;
-}
-
+/* User cell */
+.cell-user { display: flex; align-items: center; gap: 10px; }
 .user-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #f3f4f6;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
 }
+.user-name { font-weight: 500; color: #1e293b; }
 
-.td-email {
-  color: #6b7280;
-  font-size: 12.5px;
-}
-
-.td-muted {
-  color: #9ca3af;
-  font-size: 12.5px;
-  font-family: 'DM Sans', sans-serif;
-}
-
-/* Role Badge */
+/* Role badge */
 .role-badge {
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: capitalize;
+  display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: capitalize;
 }
+.role-admin { background: #eef2ff; color: #4338ca; }
+.role-staff { background: #f0fdf4; color: #15803d; }
 
-.role-admin {
-  background: #eff6ff;
-  color: #3b82f6;
-}
-
-.role-staff {
-  background: #f0fdf4;
-  color: #16a34a;
-}
-
-/* Status Pill */
+/* Status pill */
 .status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 500;
-  text-transform: capitalize;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 6px;
+  font-size: 11.5px; font-weight: 500; text-transform: capitalize;
 }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.status-active   { background: #f0fdf4; color: #15803d; } .status-active   .status-dot { background: #22c55e; }
+.status-inactive { background: #fef2f2; color: #dc2626; } .status-inactive .status-dot { background: #ef4444; }
 
-.status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+/* Action button */
+.btn-action {
+  background: transparent; border: 1px solid #e2e8f0;
+  color: #475569; padding: 5px 13px; border-radius: 7px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
 }
+.btn-action:hover { background: #6366f1; border-color: #6366f1; color: #fff; }
 
-.status-active {
-  background: #f0fdf4;
-  color: #15803d;
+.empty-state { text-align: center; padding: 48px; color: #cbd5e1; font-size: 13px; }
+
+/* Table footer */
+.table-footer {
+  padding: 12px 22px;
+  font-size: 12px; color: #94a3b8;
+  border-top: 1px solid #f8fafc;
 }
-
-.status-active .status-dot { background: #22c55e; }
-
-.status-inactive {
-  background: #fff7f7;
-  color: #b91c1c;
-}
-
-.status-inactive .status-dot { background: #ef4444; }
-
-/* Edit Button */
-.btn-edit {
-  background: transparent;
-  border: 1px solid #e5e7eb;
-  color: #374151;
-  padding: 5px 13px;
-  border-radius: 6px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-edit:hover {
-  background: #111827;
-  border-color: #111827;
-  color: #fff;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #c4c9d4;
-  font-size: 13px;
-}
-
-/* ── Pagination ── */
-.pagination {
-  margin-top: 14px;
-  text-align: right;
-  font-size: 12px;
-  color: #9ca3af;
-    display: flex;
-  gap: 4px;
-}
-
-.pagination strong { color: #374151; }
+.table-footer strong { color: #475569; }
 </style>
