@@ -313,38 +313,26 @@ export default {
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── Base (mobile) ───────────────────────────────────────────── */
 .app-layout {
-  display: flex;
-  min-height: 100vh;
-  background: #f6f7fb;
-  font-family: 'DM Sans', sans-serif;
-  color: #1e293b;
+  display: flex; min-height: 100vh;
+  background: #f6f7fb; font-family: 'DM Sans', sans-serif; color: #1e293b;
 }
 
 .page {
-  flex: 1;
-  padding: 32px 36px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  overflow-x: hidden;
+  flex: 1; padding: 20px 16px 40px;
+  display: flex; flex-direction: column; gap: 16px; overflow-x: hidden;
 }
 
-/* ── Topbar ── */
-.topbar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
+/* Topbar — stacked on mobile */
+.topbar { display: flex; flex-direction: column; gap: 10px; }
 .topbar-date  { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
-.topbar-title { font-size: 26px; font-weight: 600; letter-spacing: -.025em; color: #0f172a; }
+.topbar-title { font-size: 22px; font-weight: 600; letter-spacing: -.025em; color: #0f172a; }
 .topbar-title .accent { color: #6366f1; }
-.topbar-right { display: flex; align-items: center; gap: 20px; }
 
-.legend { display: flex; gap: 14px; }
+.topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+.legend { display: flex; gap: 12px; }
 .legend-item {
   font-family: 'DM Mono', monospace;
   font-size: 0.7rem; display: flex; align-items: center;
@@ -356,7 +344,7 @@ export default {
 
 .live-dot {
   display: flex; align-items: center; gap: 6px;
-  font-size: 12.5px; color: #10b981; font-weight: 500;
+  font-size: 12px; color: #10b981; font-weight: 500;
 }
 .pulse {
   width: 8px; height: 8px;
@@ -368,19 +356,14 @@ export default {
   50%      { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
 }
 
-/* ── Summary cards ── */
+/* Summary cards — 2 cols on mobile */
 .summary-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
 }
-
 .summary-card {
-  background: #fff;
-  border: 1px solid #f1f5f9;
-  border-radius: 14px;
-  padding: 18px 20px;
-  display: flex; align-items: center; gap: 14px;
+  background: #fff; border: 1px solid #f1f5f9;
+  border-radius: 14px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,.04);
   animation: fadeUp .35s ease both;
   transition: box-shadow .15s, transform .15s;
@@ -393,64 +376,51 @@ export default {
 }
 
 .summary-icon {
-  width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
-
 .summary-val {
-  font-size: 26px; font-weight: 700; color: #0f172a;
+  font-size: 22px; font-weight: 700; color: #0f172a;
   letter-spacing: -.03em; line-height: 1; margin-bottom: 3px;
 }
-.summary-unit { font-size: 16px; font-weight: 500; color: #94a3b8; margin-left: 2px; }
-.summary-label { font-size: 12px; color: #94a3b8; }
+.summary-unit { font-size: 14px; font-weight: 500; color: #94a3b8; margin-left: 2px; }
+.summary-label { font-size: 11px; color: #94a3b8; }
 
-/* ── Calendar panel ── */
+/* Calendar panel */
 .calendar-panel {
-  background: #fff;
-  border: 1px solid #f1f5f9;
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.04);
-  overflow: hidden;
+  background: #fff; border: 1px solid #f1f5f9;
+  border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); overflow: hidden;
 }
-
 .card-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #f8fafc;
+  padding: 16px 16px 12px; border-bottom: 1px solid #f8fafc;
 }
-.card-title { font-size: 14.5px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+.card-title { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
 .card-sub   { font-size: 12px; color: #94a3b8; }
+.calendar-body { padding: 12px; }
 
-.calendar-body { padding: 24px; }
-
-/* ── Modal ── */
+/* Modal — full-width on mobile */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(15,23,42,.45);
-  backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000;
+  background: rgba(15,23,42,.45); backdrop-filter: blur(4px);
+  display: flex; align-items: flex-end; justify-content: center;
+  z-index: 1000; padding: 0;
 }
-
 .modal-card {
-  background: #fff; border-radius: 16px;
-  width: 420px; overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  background: #fff; border-radius: 16px 16px 0 0;
+  width: 100%; overflow: hidden;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.2);
 }
-
 .modal-header {
-  padding: 20px 24px;
+  padding: 18px 20px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .modal-header.morning { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #854d0e; }
 .modal-header.evening { background: linear-gradient(135deg, #5b21b6, #8b5cf6); color: #ede9fe; }
-
 .modal-shift-type {
   display: flex; align-items: center; gap: 10px;
-  font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 1rem;
+  font-weight: 600; font-size: 1rem;
 }
-.shift-icon { font-size: 1.2rem; }
-
 .modal-close {
   background: rgba(0,0,0,.1); border: none;
   width: 28px; height: 28px; border-radius: 50%;
@@ -458,16 +428,13 @@ export default {
   cursor: pointer; font-size: 0.75rem; color: inherit; transition: background .15s;
 }
 .modal-close:hover { background: rgba(0,0,0,.2); }
-
-.modal-body { padding: 20px 24px 24px; display: flex; flex-direction: column; }
-
+.modal-body { padding: 16px 20px 28px; display: flex; flex-direction: column; }
 .modal-row {
   display: flex; justify-content: space-between; align-items: flex-start;
   padding: 10px 0; border-bottom: 1px solid #f1f5f9;
 }
 .modal-row:last-child { border-bottom: none; }
 .notes-row { align-items: flex-start; gap: 16px; }
-
 .modal-field {
   font-family: 'DM Mono', monospace; font-size: 0.68rem;
   color: #94a3b8; letter-spacing: 0.08em; text-transform: uppercase;
@@ -479,15 +446,37 @@ export default {
 }
 .modal-value.notes { color: #475569; font-weight: 400; font-size: 0.82rem; line-height: 1.5; }
 
-/* ── Transitions ── */
+/* Transitions */
 .modal-fade-enter-active, .modal-fade-leave-active { transition: opacity .2s ease; }
 .modal-fade-enter-from,  .modal-fade-leave-to      { opacity: 0; }
-.modal-fade-enter-active .modal-card, .modal-fade-leave-active .modal-card { transition: transform .2s ease; }
-.modal-fade-enter-from   .modal-card, .modal-fade-leave-to    .modal-card  { transform: scale(.95) translateY(8px); }
+.modal-fade-enter-active .modal-card, .modal-fade-leave-active .modal-card { transition: transform .25s ease; }
+.modal-fade-enter-from   .modal-card, .modal-fade-leave-to    .modal-card  { transform: translateY(100%); }
 
-@media (max-width: 900px) {
-  .page { padding: 24px 20px; }
-  .summary-row { grid-template-columns: repeat(2, 1fr); }
-  .topbar { flex-direction: column; align-items: flex-start; }
+/* ── Tablet (≥ 600px) ─────────────────────────────────────── */
+@media (min-width: 600px) {
+  .page { padding: 24px 24px 44px; gap: 18px; }
+  .topbar { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+  .topbar-title { font-size: 24px; }
+  .summary-row { gap: 12px; }
+  .summary-card { padding: 16px 18px; }
+  .summary-icon { width: 42px; height: 42px; border-radius: 11px; }
+  .summary-val { font-size: 24px; }
+  .card-header { padding: 18px 20px 14px; }
+  .calendar-body { padding: 16px; }
+  .modal-overlay { align-items: center; padding: 20px; }
+  .modal-card { border-radius: 16px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+  .modal-fade-enter-from .modal-card, .modal-fade-leave-to .modal-card { transform: scale(.95) translateY(8px); }
+}
+
+/* ── Desktop (≥ 900px) ────────────────────────────────────── */
+@media (min-width: 900px) {
+  .page { padding: 32px 36px 48px; gap: 20px; }
+  .topbar-title { font-size: 26px; }
+  .summary-row { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .summary-card { padding: 18px 20px; gap: 14px; }
+  .summary-val { font-size: 26px; }
+  .summary-unit { font-size: 16px; }
+  .card-header { padding: 20px 24px 16px; }
+  .calendar-body { padding: 24px; }
 }
 </style>

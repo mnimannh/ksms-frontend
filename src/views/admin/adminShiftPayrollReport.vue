@@ -17,8 +17,11 @@
         @print="handlePrint"
       />
 
+      <!-- Error state -->
+      <div v-if="error" class="error-banner">{{ error }}</div>
+
       <!-- Empty state -->
-      <div v-if="!generated" class="empty-state">
+      <div v-if="!generated && !generating" class="empty-state">
         <div class="empty-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <rect x="3" y="4" width="18" height="18" rx="2"/>
@@ -31,8 +34,18 @@
         <p class="empty-sub">Select a month, year and (optionally) a staff member, then click <strong>Generate Report</strong>.</p>
       </div>
 
+      <!-- Loading state -->
+      <div v-if="generating" class="empty-state">
+        <div class="empty-icon">
+          <svg class="spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+        </div>
+        <p class="empty-title">Generating report…</p>
+      </div>
+
       <!-- Report Document -->
-      <div v-else class="report-doc" id="report-document">
+      <div v-else-if="generated" class="report-doc" id="report-document">
 
         <!-- Doc Header -->
         <div class="doc-header">
@@ -96,48 +109,14 @@
 </template>
 
 <script>
+import axios from 'axios'
+import API_BASE_URL from '@/services/api'
 import AdminSidebar           from '@/components/sidebar/AdminSidebar.vue'
 import ShiftReportToolbar     from '@/components/admin-shiftpayrollreport/ShiftReportToolbar.vue'
 import ShiftReportSummary     from '@/components/admin-shiftpayrollreport/ShiftReportSummary.vue'
 import ReportStaffTable       from '@/components/admin-shiftpayrollreport/ReportStaffTable.vue'
 import ReportAttendanceLog    from '@/components/admin-shiftpayrollreport/ReportAttendanceLog.vue'
 import ReportPayrollBreakdown from '@/components/admin-shiftpayrollreport/ReportPayrollBreakdown.vue'
-
-// ── Mock data — replace with API calls ────────────────────────────────────────
-
-// hourlyRate added here; in production fetch from a staff_rate or payroll_config table
-const STAFF = [
-  { id:1, fullName:'Ahmad Zulkifli',        role:'staff', hourlyRate: 7.50 },
-  { id:2, fullName:'Nurul Ain Binti Hamid', role:'staff', hourlyRate: 7.50 },
-  { id:3, fullName:'Faizal Ramli',          role:'staff', hourlyRate: 8.00 },
-  { id:4, fullName:'Siti Rahayu',           role:'staff', hourlyRate: 7.50 },
-  { id:5, fullName:'Muhammad Hakim',        role:'staff', hourlyRate: 8.00 },
-]
-
-// shift_attendance_log joined with user
-const ATTENDANCE_LOGS = [
-  { id:1,  shiftID:101, userID:1, fullName:'Ahmad Zulkifli',        checkIn:'2025-03-01 08:02', checkOut:'2025-03-01 16:05', status:'Completed', notes:'' },
-  { id:2,  shiftID:102, userID:2, fullName:'Nurul Ain Binti Hamid', checkIn:'2025-03-01 08:15', checkOut:'2025-03-01 16:00', status:'Late',      notes:'Arrived 15 min late' },
-  { id:3,  shiftID:103, userID:3, fullName:'Faizal Ramli',          checkIn:'2025-03-02 08:00', checkOut:'2025-03-02 16:00', status:'Completed', notes:'' },
-  { id:4,  shiftID:104, userID:4, fullName:'Siti Rahayu',           checkIn:null,               checkOut:null,               status:'Missed',    notes:'MC submitted' },
-  { id:5,  shiftID:105, userID:5, fullName:'Muhammad Hakim',        checkIn:'2025-03-02 08:05', checkOut:'2025-03-02 16:10', status:'Completed', notes:'' },
-  { id:6,  shiftID:106, userID:1, fullName:'Ahmad Zulkifli',        checkIn:'2025-03-03 08:00', checkOut:'2025-03-03 16:00', status:'Completed', notes:'' },
-  { id:7,  shiftID:107, userID:2, fullName:'Nurul Ain Binti Hamid', checkIn:'2025-03-04 08:30', checkOut:'2025-03-04 16:00', status:'Late',      notes:'' },
-  { id:8,  shiftID:108, userID:3, fullName:'Faizal Ramli',          checkIn:null,               checkOut:null,               status:'Missed',    notes:'' },
-  { id:9,  shiftID:109, userID:4, fullName:'Siti Rahayu',           checkIn:'2025-03-05 08:00', checkOut:'2025-03-05 16:00', status:'Completed', notes:'' },
-  { id:10, shiftID:110, userID:5, fullName:'Muhammad Hakim',        checkIn:'2025-03-05 08:00', checkOut:'2025-03-05 16:00', status:'Completed', notes:'' },
-  { id:11, shiftID:111, userID:1, fullName:'Ahmad Zulkifli',        checkIn:'2025-03-06 08:00', checkOut:'2025-03-06 16:00', status:'Completed', notes:'' },
-  { id:12, shiftID:112, userID:3, fullName:'Faizal Ramli',          checkIn:'2025-03-07 08:00', checkOut:'2025-03-07 16:00', status:'Completed', notes:'' },
-]
-
-// payroll table — hoursWorked comes from here (admin-entered or computed)
-const PAYROLL = [
-  { userID:1, hoursWorked:24.08, isCreated:true,  isReceived:true  },
-  { userID:2, hoursWorked:15.75, isCreated:true,  isReceived:false },
-  { userID:3, hoursWorked:16.00, isCreated:false, isReceived:false },
-  { userID:4, hoursWorked: 8.00, isCreated:true,  isReceived:true  },
-  { userID:5, hoursWorked:16.00, isCreated:true,  isReceived:false },
-]
 
 export default {
   name: 'AdminShiftPayrollReport',
@@ -160,18 +139,25 @@ export default {
       appliedStaff:  '',
 
       generated:    false,
+      generating:   false,
       generatedAt:  '',
+      error:        '',
 
       months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
       years,
 
-      staffList:      STAFF,
-      attendanceLogs: ATTENDANCE_LOGS,
-      payrollData:    PAYROLL,
+      staffList:      [],
+      attendanceLogs: [],
+      payrollData:    [],
     }
   },
 
   computed: {
+    monthStr() {
+      if (this.appliedMonth === null) return ''
+      return `${this.appliedYear}-${String(this.appliedMonth + 1).padStart(2, '0')}`
+    },
+
     periodLabel() {
       if (this.appliedMonth === null) return ''
       return `${this.months[this.appliedMonth]} ${this.appliedYear}`
@@ -192,77 +178,100 @@ export default {
     filteredStaffRows() {
       if (!this.generated) return []
       const staffScope = this.appliedStaff
-        ? this.staffList.filter(s => s.id === +this.appliedStaff)
-        : this.staffList
+        ? this.payrollData.filter(s => s.userID === +this.appliedStaff)
+        : this.payrollData
 
       return staffScope.map(s => {
-        const logs       = this.attendanceLogs.filter(l => l.userID === s.id)
-        const payroll    = this.payrollData.find(p => p.userID === s.id) || {}
-        const hoursWorked = payroll.hoursWorked || 0
+        const logs        = this.attendanceLogs.filter(l => l.userID === s.userID)
+        const hoursWorked = parseFloat(s.hoursWorked) || 0
+        const hourlyRate  = parseFloat(s.hourlyRate)  || 0
         const completed   = logs.filter(l => l.status === 'Completed' || l.status === 'Late').length
-        // Pay per shift = hourlyRate × (hoursWorked / completedShifts)
-        // avgHoursPerShift derived from actual attendance
         const avgHoursPerShift = completed > 0
           ? parseFloat((hoursWorked / completed).toFixed(2)) : 0
-        const payPerShift  = parseFloat((s.hourlyRate * avgHoursPerShift).toFixed(2))
-        const totalPay     = parseFloat((s.hourlyRate * hoursWorked).toFixed(2))
+        const payPerShift = parseFloat((hourlyRate * avgHoursPerShift).toFixed(2))
+        const totalPay    = parseFloat((hourlyRate * hoursWorked).toFixed(2))
 
         return {
-          userID:           s.id,
-          fullName:         s.fullName,
-          role:             s.role,
-          hourlyRate:       s.hourlyRate,
-          shiftsAssigned:   logs.length,
-          completed:        logs.filter(l => l.status === 'Completed').length,
-          late:             logs.filter(l => l.status === 'Late').length,
-          missed:           logs.filter(l => l.status === 'Missed').length,
+          userID:          s.userID,
+          fullName:        s.fullName,
+          role:            'staff',
+          hourlyRate,
+          shiftsAssigned:  logs.length,
+          completed:       logs.filter(l => l.status === 'Completed').length,
+          late:            logs.filter(l => l.status === 'Late').length,
+          missed:          logs.filter(l => l.status === 'Missed').length,
           hoursWorked,
           avgHoursPerShift,
           payPerShift,
           totalPay,
-          payrollCreated:   !!payroll.isCreated,
-          payrollReceived:  !!payroll.isReceived,
+          payrollCreated:  !!s.isCreated,
+          payrollReceived: !!s.isReceived,
         }
       })
     },
 
     summaryCards() {
-      const rows  = this.filteredStaffRows
-      const logs  = this.filteredLogs
-      const totalShifts      = logs.length
-      const completedShifts  = logs.filter(l => l.status === 'Completed').length
-      const lateShifts       = logs.filter(l => l.status === 'Late').length
-      const missedShifts     = logs.filter(l => l.status === 'Missed').length
-      const totalHours       = rows.reduce((s, r) => s + r.hoursWorked, 0)
-      const totalPay         = rows.reduce((s, r) => s + r.totalPay, 0)
-      const payrollCreated   = rows.filter(r => r.payrollCreated).length
-      const attendRate       = totalShifts > 0
+      const rows = this.filteredStaffRows
+      const logs = this.filteredLogs
+      const totalShifts     = logs.length
+      const completedShifts = logs.filter(l => l.status === 'Completed').length
+      const lateShifts      = logs.filter(l => l.status === 'Late').length
+      const missedShifts    = logs.filter(l => l.status === 'Missed').length
+      const totalHours      = rows.reduce((s, r) => s + r.hoursWorked, 0)
+      const totalPay        = rows.reduce((s, r) => s + r.totalPay, 0)
+      const payrollCreated  = rows.filter(r => r.payrollCreated).length
+      const attendRate      = totalShifts > 0
         ? Math.round(((completedShifts + lateShifts) / totalShifts) * 100) : 0
       const fmtRM = v => 'RM ' + Number(v).toLocaleString('en-MY', { minimumFractionDigits:2, maximumFractionDigits:2 })
 
       return [
-        { label:'Total Staff',      value: rows.length,                           icon:'users',   color:'#6366f1' },
-        { label:'Total Shifts',     value: totalShifts,                           icon:'clock',   color:'#0f172a' },
-        { label:'Completed',        value: completedShifts,                       icon:'check',   color:'#10b981' },
-        { label:'Late / Missed',    value: `${lateShifts} / ${missedShifts}`,    icon:'alert',   color:'#ef4444' },
-        { label:'Total Hours',      value: totalHours.toFixed(2) + ' h',         icon:'clock',   color:'#3b82f6', sub:'from payroll records' },
-        { label:'Total Payroll',    value: fmtRM(totalPay),                       icon:'dollar',  color:'#f59e0b', sub:'hourly rate × hours' },
-        { label:'Payroll Created',  value: `${payrollCreated} / ${rows.length}`, icon:'dollar',  color:'#6366f1' },
-        { label:'Attendance Rate',  value: attendRate + '%',                      icon:'percent', color:'#14b8a6', sub:'completed + late' },
+        { label:'Total Staff',     value: rows.length,                           icon:'users',   color:'#6366f1' },
+        { label:'Total Shifts',    value: totalShifts,                           icon:'clock',   color:'#0f172a' },
+        { label:'Completed',       value: completedShifts,                       icon:'check',   color:'#10b981' },
+        { label:'Late / Missed',   value: `${lateShifts} / ${missedShifts}`,    icon:'alert',   color:'#ef4444' },
+        { label:'Total Hours',     value: totalHours.toFixed(2) + ' h',         icon:'clock',   color:'#3b82f6', sub:'from payroll records' },
+        { label:'Total Payroll',   value: fmtRM(totalPay),                       icon:'dollar',  color:'#f59e0b', sub:'hourly rate × hours' },
+        { label:'Payroll Created', value: `${payrollCreated} / ${rows.length}`, icon:'dollar',  color:'#6366f1' },
+        { label:'Attendance Rate', value: attendRate + '%',                      icon:'percent', color:'#14b8a6', sub:'completed + late' },
       ]
     },
   },
 
+  async created() {
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/api/users`)
+      this.staffList = data.filter(u => u.role === 'staff')
+    } catch (err) {
+      console.error('Failed to load staff list', err)
+    }
+  },
+
   methods: {
-    generateReport() {
-      this.appliedMonth = this.selectedMonth
-      this.appliedYear  = this.selectedYear
-      this.appliedStaff = this.staffFilter
-      this.generatedAt  = new Date().toLocaleString('en-MY', {
-        day:'numeric', month:'short', year:'numeric',
-        hour:'2-digit', minute:'2-digit',
-      })
-      this.generated = true
+    async generateReport() {
+      this.generating = true
+      this.error = ''
+      const month = `${this.selectedYear}-${String(this.selectedMonth + 1).padStart(2, '0')}`
+      try {
+        const [payrollRes, attRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/payroll/month/${month}`),
+          axios.get(`${API_BASE_URL}/api/attendance/month/${month}`),
+        ])
+        this.payrollData    = payrollRes.data
+        this.attendanceLogs = attRes.data
+        this.appliedMonth   = this.selectedMonth
+        this.appliedYear    = this.selectedYear
+        this.appliedStaff   = this.staffFilter
+        this.generatedAt    = new Date().toLocaleString('en-MY', {
+          day:'numeric', month:'short', year:'numeric',
+          hour:'2-digit', minute:'2-digit',
+        })
+        this.generated = true
+      } catch (err) {
+        this.error = 'Failed to load report data. Please try again.'
+        console.error(err)
+      } finally {
+        this.generating = false
+      }
     },
     handlePrint() { window.print() },
   },
@@ -286,6 +295,17 @@ export default {
   flex: 1; padding: 28px 32px 60px;
   display: flex; flex-direction: column; gap: 24px; overflow-x: hidden;
 }
+
+/* Error banner */
+.error-banner {
+  padding: 12px 16px; border-radius: 10px;
+  background: #fef2f2; border: 1px solid #fecaca;
+  color: #dc2626; font-size: 13.5px; font-weight: 500;
+}
+
+/* Spinner */
+.spin { animation: spin .7s linear infinite; color: #6366f1; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Empty state */
 .empty-state {

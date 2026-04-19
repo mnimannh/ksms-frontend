@@ -4,448 +4,588 @@
 
     <main class="dashboard">
 
-      <!-- ── TOP BAR ────────────────────────────────────────── -->
+      <!-- Top bar -->
       <div class="topbar">
-        <div class="topbar-left">
-          <p class="topbar-date">{{ todayFull }}</p>
-          <h1 class="topbar-title">My <span class="accent">Payroll</span></h1>
-          <p class="topbar-sub">View your monthly hours and payroll status</p>
-        </div>
-        <div class="topbar-right"></div>
-      </div>
-
-      <!-- ── SUMMARY CARDS ──────────────────────────────────── -->
-      <PayrollSummaryCards
-        :records="filteredRecords"
-        :hourlyRate="staff.hourlyRate"
-      />
-
-      <!-- ── CURRENT MONTH HIGHLIGHT ────────────────────────── -->
-      <div class="panel current-month-panel" v-if="currentRecord">
-        <div class="card-header">
-          <div>
-            <p class="card-title">Current Period</p>
-            <p class="card-sub">{{ currentRecord.monthLabel }}</p>
-          </div>
-          <span class="badge"
-            :class="currentRecord.isReceived ? 'green' : currentRecord.isCreated ? 'blue' : 'amber'">
-            {{ currentRecord.isReceived ? 'Received' : currentRecord.isCreated ? 'Generated' : 'Pending' }}
-          </span>
-        </div>
-
-        <div class="current-body">
-          <!-- Big hours number -->
-          <div class="current-hours">
-            <span class="ch-val">{{ currentRecord.hoursWorked }}<span class="ch-unit">h</span></span>
-            <span class="ch-label">hours logged this month</span>
-            <div class="ch-bar">
-              <div class="ch-fill" :style="`width:${Math.min((currentRecord.hoursWorked/200)*100,100)}%`" />
-            </div>
-            <div class="ch-legend"><span>0h</span><span>200h target</span></div>
-            <!-- Total pay line -->
-            <div class="ch-pay">
-              <span class="ch-pay-label">Est. Total Pay</span>
-              <span class="ch-pay-val">{{ formatMoney(currentRecord.hoursWorked * staff.hourlyRate) }}</span>
-            </div>
-          </div>
-
-          <!-- Progress steps -->
-          <div class="current-progress">
-            <p class="prog-eyebrow">Payroll Status</p>
-            <div class="progress-track">
-              <div class="prog-step active">
-                <div class="prog-dot filled" />
-                <span>Logged</span>
-              </div>
-              <div class="prog-line" :class="{ filled: currentRecord.isCreated }" />
-              <div class="prog-step" :class="{ active: currentRecord.isCreated }">
-                <div class="prog-dot" :class="{ filled: currentRecord.isCreated }" />
-                <span>Generated</span>
-              </div>
-              <div class="prog-line" :class="{ filled: currentRecord.isReceived }" />
-              <div class="prog-step" :class="{ active: currentRecord.isReceived }">
-                <div class="prog-dot" :class="{ filled: currentRecord.isReceived }" />
-                <span>Received</span>
-              </div>
-            </div>
-
-            <div class="prog-note" v-if="!currentRecord.isCreated">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              Payroll is pending admin approval. You will be notified once generated.
-            </div>
-            <div class="prog-note success" v-else-if="currentRecord.isReceived">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.5">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              Payroll received. Check with your manager for details.
-            </div>
-            <div class="prog-note info" v-else>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2.5">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-              </svg>
-              Payroll generated. Awaiting disbursement.
-            </div>
-          </div>
+        <div>
+          <span class="eyebrow">{{ todayFull }}</span>
+          <h1 class="page-title">My <span class="accent">Payroll</span></h1>
+          <p class="page-sub">View your monthly hours and payroll status</p>
         </div>
       </div>
 
-      <!-- ── HISTORY TABLE ──────────────────────────────────── -->
-      <PayrollHistoryTable
-        :records="filteredRecords"
-        :hourlyRate="staff.hourlyRate"
-        @view="openDetailModal"
-        @attendance="openAttendanceModal"
-      />
+      <!-- Loading -->
+      <div v-if="loading" class="loading-state">
+        <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+        Loading payroll…
+      </div>
 
-      <!-- ── DETAIL MODAL ───────────────────────────────────── -->
-      <PayrollDetailModal
-        :show="showModal"
-        :record="selectedRecord"
-        :hourlyRate="staff.hourlyRate"
-        @close="showModal = false"
-      />
+      <template v-else>
 
-      <!-- ── ATTENDANCE LOG MODAL ───────────────────────────── -->
+        <!-- KPI strip -->
+        <div class="kpi-strip">
+          <div class="kpi-card">
+            <span class="kpi-label">Total Months</span>
+            <span class="kpi-val">{{ records.length }}</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Total Earned</span>
+            <span class="kpi-val indigo">{{ formatMoney(totalEarned) }}</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Total Hours</span>
+            <span class="kpi-val">{{ totalHours.toFixed(1) }}h</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Pending</span>
+            <span class="kpi-val amber">{{ pendingCount }}</span>
+          </div>
+        </div>
+
+        <!-- Current month panel -->
+        <div class="panel" v-if="latestRecord">
+          <div class="panel-header">
+            <div>
+              <p class="panel-title">Current Period</p>
+              <p class="panel-sub">{{ monthLabel(latestRecord.month) }}</p>
+            </div>
+            <span class="badge" :class="statusClass(latestRecord)">{{ statusLabel(latestRecord) }}</span>
+          </div>
+
+          <div class="current-body">
+            <!-- Hours + pay -->
+            <div class="hours-block">
+              <div class="big-val">
+                {{ Number(latestRecord.hoursWorked).toFixed(1) }}<span class="big-unit">h</span>
+              </div>
+              <p class="hours-label">hours logged this month</p>
+              <div class="bar-wrap">
+                <div class="bar-fill" :style="`width:${Math.min((latestRecord.hoursWorked/200)*100,100)}%`" />
+              </div>
+              <div class="bar-legend"><span>0h</span><span>200h target</span></div>
+              <div class="pay-row" v-if="latestRecord.isCreated">
+                <span class="pay-label">Total Pay</span>
+                <span class="pay-val">{{ formatMoney(latestRecord.totalPay) }}</span>
+              </div>
+              <div class="pay-row estimate" v-else-if="latestRecord.hourlyRate">
+                <span class="pay-label">Estimated Pay</span>
+                <span class="pay-val">{{ formatMoney(latestRecord.hoursWorked * latestRecord.hourlyRate) }}</span>
+              </div>
+            </div>
+
+            <!-- Progress + action -->
+            <div class="progress-block">
+              <p class="prog-eyebrow">Payroll Status</p>
+              <div class="prog-track">
+                <div class="prog-step active">
+                  <div class="prog-dot filled" />
+                  <span>Logged</span>
+                </div>
+                <div class="prog-line" :class="{ filled: latestRecord.isCreated }" />
+                <div class="prog-step" :class="{ active: latestRecord.isCreated }">
+                  <div class="prog-dot" :class="{ filled: latestRecord.isCreated }" />
+                  <span>Generated</span>
+                </div>
+                <div class="prog-line" :class="{ filled: latestRecord.isReceived }" />
+                <div class="prog-step" :class="{ active: latestRecord.isReceived }">
+                  <div class="prog-dot" :class="{ filled: latestRecord.isReceived }" />
+                  <span>Received</span>
+                </div>
+              </div>
+
+              <div class="prog-note" v-if="!latestRecord.isCreated">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Payroll is pending admin approval.
+              </div>
+              <div class="prog-note success" v-else-if="latestRecord.isReceived">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Payroll received. Thank you!
+              </div>
+              <div class="prog-note info" v-else>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Payroll has been generated. Check with your manager.
+              </div>
+
+              <!-- Mark received button -->
+              <button
+                v-if="latestRecord.isCreated && !latestRecord.isReceived"
+                class="btn-received"
+                :disabled="markingId === latestRecord.id"
+                @click="markReceived(latestRecord)"
+              >
+                <svg v-if="markingId === latestRecord.id" class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {{ markingId === latestRecord.id ? 'Confirming…' : 'Mark as Received' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- History table -->
+        <div class="panel" v-if="records.length > 0">
+          <div class="history-header">
+            <p class="panel-title">Payroll History</p>
+            <div class="filter-row">
+              <select v-model="filterMonth" class="sel-sm">
+                <option value="">All Months</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <select v-model="filterYear" class="sel-sm">
+                <option value="">All Years</option>
+                <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+              </select>
+              <button v-if="filterMonth || filterYear" class="btn-clear-filter" @click="filterMonth = ''; filterYear = ''">
+                Clear
+              </button>
+            </div>
+          </div>
+          <div class="table-scroll">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th class="num">Hours</th>
+                <th class="num">Rate</th>
+                <th class="num">Total Pay</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in filteredRecords" :key="r.id">
+                <td class="month-cell">{{ monthLabel(r.month) }}</td>
+                <td class="num mono">{{ Number(r.hoursWorked).toFixed(2) }}h</td>
+                <td class="num mono">
+                  <span v-if="r.hourlyRate">{{ formatMoney(r.hourlyRate) }}/hr</span>
+                  <span v-else class="muted">—</span>
+                </td>
+                <td class="num mono strong">
+                  <span v-if="r.isCreated">{{ formatMoney(r.totalPay) }}</span>
+                  <span v-else class="muted">Pending</span>
+                </td>
+                <td>
+                  <span class="badge" :class="statusClass(r)">{{ statusLabel(r) }}</span>
+                </td>
+                <td>
+                  <div class="action-group">
+                    <button class="btn-att" @click="openAttendance(r)" title="View attendance">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>
+                      </svg>
+                      Attendance
+                    </button>
+                    <button
+                      v-if="r.isCreated && !r.isReceived"
+                      class="btn-recv-sm"
+                      :disabled="markingId === r.id"
+                      @click="markReceived(r)"
+                    >
+                      {{ markingId === r.id ? '…' : 'Received' }}
+                    </button>
+                    <span v-else-if="r.isReceived" class="done-mark">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      Done
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+      <!-- Attendance modal -->
       <AttendanceLogModal
-        :show="showAttendanceModal"
-        :logs="attendanceLogs"
-        :staffName="staff.fullName"
-        :staffDept="staff.department"
-        :monthLabel="attendanceMonthLabel"
-        @close="showAttendanceModal = false"
+        :show="attModal.show"
+        :logs="attModal.logs"
+        :staffName="attModal.staffName"
+        :staffDept="''"
+        :monthLabel="attModal.monthLabel"
+        @close="attModal.show = false"
       />
+
+        <div class="empty-state" v-if="!loading && records.length === 0">
+          No payroll records yet.
+        </div>
+
+      </template>
+
+      <!-- Toast -->
+      <Transition name="toast-fade">
+        <div v-if="toast.show" class="toast" :class="toast.type">
+          <svg v-if="toast.type === 'success'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {{ toast.message }}
+        </div>
+      </Transition>
 
     </main>
   </div>
 </template>
 
 <script>
-import StaffSidebar          from '@/components/sidebar/staffSidebar.vue'
-import PayrollSummaryCards   from '@/components/staff-payroll/PayrollSummaryCards.vue'
-import PayrollHistoryTable   from '@/components/staff-payroll/PayrollHistoryTable.vue'
-import PayrollDetailModal    from '@/components/staff-payroll/PayrollDetailModal.vue'
-import AttendanceLogModal    from '@/components/staff-payroll/AttendanceLogModal.vue'
-
-import { CURRENT_STAFF, PAYROLL_RECORDS } from '@/data/staffPayrollData.js'
+import axios from 'axios';
+import StaffSidebar from '@/components/sidebar/staffSidebar.vue';
+import AttendanceLogModal from '@/components/staff-payroll/AttendanceLogModal.vue';
+import API_BASE_URL from '@/services/api';
 
 export default {
   name: 'StaffPayroll',
-  components: {
-    StaffSidebar,
-    PayrollSummaryCards,
-    PayrollHistoryTable,
-    PayrollDetailModal,
-    AttendanceLogModal,
-  },
+  components: { StaffSidebar, AttendanceLogModal },
 
   data() {
-    const now = new Date()
+    const now = new Date();
     return {
       todayFull: now.toLocaleDateString('en-MY', {
-        weekday:'long', day:'numeric', month:'long', year:'numeric',
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       }),
-
-      staff: CURRENT_STAFF,
-      payrollRecords: PAYROLL_RECORDS,
-
+      records: [],
+      loading: false,
+      markingId: null,
       filterMonth: '',
-      filterYear:  '',
-
-      showModal:      false,
-      selectedRecord: null,
-
-      showAttendanceModal:  false,
-      attendanceLogs:       [],
-      attendanceMonthLabel: '',
-    }
+      filterYear: '',
+      toast: { show: false, message: '', type: 'success' },
+      attModal: { show: false, logs: [], staffName: '', monthLabel: '' },
+    };
   },
 
   computed: {
-    // Unique years present in records
-    yearOptions() {
-      const years = [...new Set(
-        this.payrollRecords.map(r => new Date(r.month).getFullYear())
-      )].sort((a, b) => b - a)
-      return years
-    },
+    latestRecord() { return this.records[0] ?? null; },
+    totalEarned()  { return this.records.filter(r => r.isCreated).reduce((s, r) => s + Number(r.totalPay || 0), 0); },
+    totalHours()   { return this.records.reduce((s, r) => s + Number(r.hoursWorked || 0), 0); },
+    pendingCount() { return this.records.filter(r => !r.isCreated).length; },
 
-    monthOptions() {
-      return [
-        { value: '1',  label: 'January'   },
-        { value: '2',  label: 'February'  },
-        { value: '3',  label: 'March'     },
-        { value: '4',  label: 'April'     },
-        { value: '5',  label: 'May'       },
-        { value: '6',  label: 'June'      },
-        { value: '7',  label: 'July'      },
-        { value: '8',  label: 'August'    },
-        { value: '9',  label: 'September' },
-        { value: '10', label: 'October'   },
-        { value: '11', label: 'November'  },
-        { value: '12', label: 'December'  },
-      ]
+    yearOptions() {
+      const years = [...new Set(this.records.map(r => new Date(r.month).getFullYear()))].sort((a, b) => b - a);
+      return years;
     },
 
     filteredRecords() {
-      return this.payrollRecords.filter(r => {
-        const d = new Date(r.month)
-        if (this.filterMonth && String(d.getMonth() + 1) !== this.filterMonth) return false
-        if (this.filterYear  && d.getFullYear() !== Number(this.filterYear))   return false
-        return true
-      })
+      return this.records.filter(r => {
+        const d = new Date(r.month);
+        const y = d.getFullYear();
+        const m = d.getMonth() + 1;
+        if (this.filterYear  && y !== Number(this.filterYear))              return false;
+        if (this.filterMonth && m !== Number(this.filterMonth))             return false;
+        return true;
+      });
     },
+  },
 
-    // Most recent record overall (not affected by filter) for Current Period panel
-    currentRecord() {
-      return this.payrollRecords[0] ?? null
-    },
+  mounted() {
+    this.fetchRecords();
   },
 
   methods: {
-    openDetailModal(record) {
-      this.selectedRecord = record
-      this.showModal = true
-    },
-
-    openAttendanceModal(record) {
-      this.attendanceMonthLabel = record.monthLabel
-      this.attendanceLogs = this.generateDummyAttendance(record.month)
-      this.showAttendanceModal = true
-
-      // TODO: replace dummy data with real API call:
-      // const month = record.month.slice(0, 7)
-      // const res = await fetch(`/api/staff/attendance?userID=${this.staff.id}&month=${month}`)
-      // const data = await res.json()
-      // this.attendanceLogs = data.logs ?? data ?? []
-    },
-
-    generateDummyAttendance(monthStr) {
-      // monthStr = "YYYY-MM-DD" (first day of month from payroll.month)
-      const base    = new Date(monthStr)
-      const year    = base.getFullYear()
-      const month   = base.getMonth()  // 0-indexed
-
-      // Statuses to sprinkle in realistically
-      const pool = [
-        'Completed','Completed','Completed','Completed',
-        'Late','Late','Missed','Completed',
-      ]
-
-      const notes = {
-        Late:      ['Traffic delay', 'Car breakdown', 'Overslept', ''],
-        Missed:    ['MC submitted', 'Emergency leave', 'No show', 'Annual leave'],
-        Completed: ['', '', '', 'OT approved', ''],
+    async fetchRecords() {
+      this.loading = true;
+      try {
+        const token = localStorage.getItem('userToken');
+        const res = await axios.get(`${API_BASE_URL}/api/payroll/my-records`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        this.records = res.data;
+      } catch (err) {
+        this.showToast('Failed to load payroll records.', 'error');
+      } finally {
+        this.loading = false;
       }
-
-      const logs = []
-      let shiftID = 3010 + (month * 20)
-
-      // Generate one shift per weekday for the month
-      for (let day = 1; day <= new Date(year, month + 1, 0).getDate(); day++) {
-        const date = new Date(year, month, day)
-        if (date.getDay() === 0 || date.getDay() === 6) continue // skip weekends
-
-        const status   = pool[logs.length % pool.length]
-        const notePool = notes[status]
-        const note     = notePool[Math.floor(Math.random() * notePool.length)]
-
-        // Build checkIn / checkOut datetimes
-        let checkIn  = null
-        let checkOut = null
-
-        if (status !== 'Missed') {
-          const inMinutes  = status === 'Late'
-            ? 8 * 60 + 15 + Math.floor(Math.random() * 30)  // 08:15 – 08:45
-            : 8 * 60 + Math.floor(Math.random() * 5)         // 08:00 – 08:04
-          const outMinutes = status === 'Completed' && note === 'OT approved'
-            ? 20 * 60  // 20:00 OT
-            : 16 * 60 + Math.floor(Math.random() * 10)       // ~16:00
-
-          const pad = n => String(n).padStart(2, '0')
-          const dateStr = `${year}-${pad(month + 1)}-${pad(day)}`
-          checkIn  = `${dateStr}T${pad(Math.floor(inMinutes / 60))}:${pad(inMinutes % 60)}:00`
-          checkOut = `${dateStr}T${pad(Math.floor(outMinutes / 60))}:${pad(outMinutes % 60)}:00`
-        }
-
-        logs.push({
-          id:        shiftID,
-          shiftID:   shiftID,
-          startTime: `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}T08:00:00`,
-          checkIn,
-          checkOut,
-          status,
-          notes: note,
-        })
-
-        shiftID++
-      }
-      return logs
     },
 
+    async markReceived(record) {
+      this.markingId = record.id;
+      try {
+        const token = localStorage.getItem('userToken');
+        await axios.patch(`${API_BASE_URL}/api/payroll/${record.id}/received`, {}, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        this.showToast('Payroll marked as received!', 'success');
+        await this.fetchRecords();
+      } catch (err) {
+        this.showToast('Failed to confirm receipt.', 'error');
+      } finally {
+        this.markingId = null;
+      }
+    },
+
+    monthLabel(monthStr) {
+      if (!monthStr) return '—';
+      const d = new Date(monthStr);
+      return d.toLocaleDateString('en-MY', { month: 'long', year: 'numeric', timeZone: 'Asia/Kuala_Lumpur' });
+    },
+    statusLabel(r) {
+      if (r.isReceived) return 'Received';
+      if (r.isCreated)  return 'Generated';
+      return 'Pending';
+    },
+    statusClass(r) {
+      if (r.isReceived) return 'green';
+      if (r.isCreated)  return 'indigo';
+      return 'amber';
+    },
     formatMoney(val) {
-      return 'RM ' + Number(val).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return 'RM ' + Number(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    },
+    async openAttendance(record) {
+      const token = localStorage.getItem('userToken');
+      const staffName = localStorage.getItem('userName') || '';
+      const d = new Date(record.month);
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      this.attModal = { show: true, logs: [], staffName, monthLabel: this.monthLabel(record.month) };
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/attendance/my/month/${month}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        this.attModal.logs = res.data;
+      } catch (err) {
+        this.showToast('Failed to load attendance.', 'error');
+      }
+    },
+
+    showToast(message, type = 'success') {
+      this.toast = { show: true, message, type };
+      setTimeout(() => { this.toast.show = false; }, 3500);
     },
   },
-}
+};
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 </style>
 
 <style scoped>
-*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── Base (mobile) ─────────────────────────────────────────── */
 .app-layout {
-  display:flex; min-height:100vh;
-  background:#f6f7fb;
-  font-family:'DM Sans', sans-serif;
-  color:#1e293b;
+  display: flex; min-height: 100vh;
+  background: #f6f7fb; font-family: 'DM Sans', sans-serif;
 }
 .dashboard {
-  flex:1; padding:32px 36px 48px;
-  overflow-x:hidden;
-  display:flex; flex-direction:column; gap:20px;
+  flex: 1; padding: 20px 16px 40px;
+  display: flex; flex-direction: column; gap: 16px; overflow-x: hidden;
 }
 
-/* ── Top Bar ───────────────────────────────────────────────────── */
-.topbar {
-  display:flex; align-items:flex-start;
-  justify-content:space-between;
-  flex-wrap:wrap; gap:16px;
-}
-.topbar-date  { font-size:12px; color:#94a3b8; margin-bottom:4px; }
-.topbar-title {
-  font-size:26px; font-weight:600;
-  color:#0f172a; letter-spacing:-.025em; margin-bottom:4px;
-}
-.topbar-title .accent { color:#6366f1; }
-.topbar-sub { font-size:13px; color:#64748b; }
+/* Top bar */
+.topbar { display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+.page-title { font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -.025em; margin-bottom: 4px; }
+.accent { color: #6366f1; }
+.page-sub { font-size: 13px; color: #64748b; }
 
-.topbar-right { display:flex; align-items:center; }
-
-.filter-row { display:flex; gap:8px; align-items:center; }
-.select-pill {
-  padding:7px 12px; border-radius:8px;
-  border:1px solid #e2e8f0; background:#fff;
-  font-family:'DM Sans',sans-serif; font-size:13px; color:#374151;
-  cursor:pointer; outline:none; transition:border-color .15s;
-  appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;
-  background-position:right 10px center;
-  padding-right:30px;
+/* KPI strip — 2 cols on mobile */
+.kpi-strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.kpi-card {
+  background: #fff; border: 1px solid #f1f5f9;
+  border-radius: 14px; padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  display: flex; flex-direction: column; gap: 4px;
 }
-.select-pill:focus { border-color:#6366f1; }
+.kpi-label { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; }
+.kpi-val { font-size: 20px; font-weight: 700; color: #0f172a; font-family: 'DM Mono', monospace; }
+.kpi-val.indigo { color: #6366f1; }
+.kpi-val.amber  { color: #b45309; }
 
-/* ── Panel base ────────────────────────────────────────────────── */
+/* Panel */
 .panel {
-  background:#fff;
-  border:1px solid #f1f5f9;
-  border-radius:14px;
-  padding:20px 22px;
-  box-shadow:0 1px 3px rgba(0,0,0,.04);
+  background: #fff; border: 1px solid #f1f5f9;
+  border-radius: 14px; padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
 }
-.card-header {
-  display:flex; align-items:flex-start;
-  justify-content:space-between;
-  margin-bottom:20px; gap:12px;
+.panel-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 16px; gap: 10px;
 }
-.card-title { font-size:14.5px; font-weight:600; color:#0f172a; margin-bottom:2px; }
-.card-sub   { font-size:12px; color:#94a3b8; }
+.panel-title { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+.panel-sub   { font-size: 12px; color: #94a3b8; }
 
 .badge {
-  display:inline-flex; align-items:center;
-  padding:4px 11px; border-radius:6px;
-  font-size:12px; font-weight:600; white-space:nowrap; flex-shrink:0;
+  display: inline-flex; align-items: center;
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 11.5px; font-weight: 600; flex-shrink: 0;
 }
-.badge.blue  { background:#eff6ff; color:#1d4ed8; }
-.badge.green { background:#f0fdf4; color:#15803d; }
-.badge.amber { background:#fffbeb; color:#b45309; }
+.badge.amber  { background: #fffbeb; color: #b45309; }
+.badge.indigo { background: #eef2ff; color: #4338ca; }
+.badge.green  { background: #f0fdf4; color: #15803d; }
 
-/* ── Current Month Panel ───────────────────────────────────────── */
-.current-body {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:24px;
-}
+/* Current body — stacked on mobile */
+.current-body { display: flex; flex-direction: column; gap: 16px; }
 
-.current-hours {
-  background:#f8fafc; border-radius:12px; padding:20px 22px;
+.hours-block { background: #f8fafc; border-radius: 12px; padding: 16px; }
+.big-val { font-size: 40px; font-weight: 700; color: #0f172a; letter-spacing: -.04em; font-family: 'DM Mono', monospace; }
+.big-unit { font-size: 20px; font-weight: 500; color: #94a3b8; }
+.hours-label { font-size: 13px; color: #64748b; margin-top: 4px; margin-bottom: 14px; }
+.bar-wrap { height: 6px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-bottom: 6px; }
+.bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #6366f1, #8b5cf6); transition: width .6s ease; }
+.bar-legend { display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; font-family: 'DM Mono', monospace; margin-bottom: 14px; }
+.pay-row {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #fff; border-radius: 8px; padding: 10px 14px;
+  border: 1px solid #e2e8f0;
 }
-.ch-val  { font-size:48px; font-weight:700; color:#0f172a; letter-spacing:-.04em; }
-.ch-unit { font-size:22px; font-weight:500; color:#94a3b8; }
-.ch-label {
-  display:block; font-size:13px; color:#64748b;
-  margin-top:4px; margin-bottom:16px;
-}
-.ch-bar {
-  height:6px; background:#e2e8f0; border-radius:99px;
-  overflow:hidden; margin-bottom:6px;
-}
-.ch-fill {
-  height:100%; border-radius:99px;
-  background:linear-gradient(90deg,#6366f1,#8b5cf6);
-  transition:width .6s ease;
-}
-.ch-legend {
-  display:flex; justify-content:space-between;
-  font-size:11px; color:#94a3b8;
-  font-family:'DM Mono',monospace;
-  margin-bottom:16px;
-}
-.ch-pay {
-  display:flex; justify-content:space-between; align-items:center;
-  background:#fff; border-radius:8px; padding:10px 14px;
-  border:1px solid #e2e8f0;
-}
-.ch-pay-label { font-size:12px; color:#64748b; }
-.ch-pay-val   { font-size:15px; font-weight:700; color:#6366f1; font-family:'DM Mono',monospace; }
+.pay-row.estimate { border-color: #c7d2fe; background: #eef2ff; }
+.pay-label { font-size: 12px; color: #64748b; }
+.pay-val   { font-size: 14px; font-weight: 700; color: #6366f1; font-family: 'DM Mono', monospace; }
 
-/* Progress in current panel */
-.current-progress { padding:4px 0; }
-.prog-eyebrow {
-  font-size:11px; font-weight:600; color:#94a3b8;
-  text-transform:uppercase; letter-spacing:.07em;
-  margin-bottom:16px;
-}
-.progress-track { display:flex; align-items:center; margin-bottom:16px; }
-.prog-step { display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0; }
-.prog-step span { font-size:11px; color:#94a3b8; white-space:nowrap; }
-.prog-step.active span { color:#475569; font-weight:500; }
-.prog-dot {
-  width:10px; height:10px; border-radius:50%;
-  border:2px solid #e2e8f0; background:#fff; transition:all .3s;
-}
-.prog-dot.filled { background:#0f172a; border-color:#0f172a; }
-.prog-line {
-  flex:1; height:2px; background:#e2e8f0;
-  margin-bottom:18px; transition:background .3s;
-}
-.prog-line.filled { background:#0f172a; }
-
+/* Progress */
+.progress-block { padding: 4px 0; display: flex; flex-direction: column; }
+.prog-eyebrow { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 14px; }
+.prog-track { display: flex; align-items: center; margin-bottom: 14px; }
+.prog-step { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; }
+.prog-step span { font-size: 11px; color: #94a3b8; white-space: nowrap; }
+.prog-step.active span { color: #475569; font-weight: 500; }
+.prog-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #e2e8f0; background: #fff; transition: all .3s; }
+.prog-dot.filled { background: #0f172a; border-color: #0f172a; }
+.prog-line { flex: 1; height: 2px; background: #e2e8f0; margin-bottom: 18px; transition: background .3s; }
+.prog-line.filled { background: #0f172a; }
 .prog-note {
-  display:flex; align-items:flex-start; gap:7px;
-  font-size:12.5px; color:#64748b; line-height:1.55;
-  background:#f8fafc; border-radius:8px; padding:10px 12px;
+  display: flex; align-items: flex-start; gap: 7px;
+  font-size: 12.5px; color: #64748b; line-height: 1.55;
+  background: #f8fafc; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
 }
-.prog-note.success { background:#f0fdf4; color:#15803d; }
-.prog-note.info    { background:#eff6ff; color:#1d4ed8; }
+.prog-note.success { background: #f0fdf4; color: #15803d; }
+.prog-note.info    { background: #eff6ff; color: #1d4ed8; }
 
-/* ── Responsive ────────────────────────────────────────────────── */
-@media(max-width:900px) {
-  .current-body { grid-template-columns:1fr; }
+.btn-received {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #22c55e; color: #fff; border: none;
+  border-radius: 9px; padding: 10px 18px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background .15s, transform .1s;
+  align-self: flex-start; width: 100%;
+  justify-content: center;
 }
-@media(max-width:768px) {
-  .dashboard { padding:20px 18px 40px; }
-  .topbar    { flex-direction:column; }
+.btn-received:hover:not(:disabled) { background: #16a34a; }
+.btn-received:disabled { opacity: .5; cursor: not-allowed; }
+
+/* History table */
+.history-header {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;
 }
-@media(max-width:560px) {
-  .topbar-title { font-size:20px; }
-  .filter-row   { flex-wrap:wrap; }
+.filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sel-sm {
+  flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px;
+  border: 1px solid #e2e8f0; background: #f8fafc;
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: #374151;
+  cursor: pointer; outline: none; transition: border-color .15s;
+}
+.sel-sm:focus { border-color: #6366f1; }
+.btn-clear-filter {
+  padding: 7px 12px; border-radius: 8px;
+  border: 1px solid #e2e8f0; background: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; color: #64748b;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-clear-filter:hover { border-color: #6366f1; color: #6366f1; }
+
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.history-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+.history-table th {
+  padding: 10px 12px; text-align: left;
+  font-size: 10.5px; font-weight: 600; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: .07em;
+  background: #f8fafc; border-bottom: 1px solid #f1f5f9; white-space: nowrap;
+}
+.history-table th.num { text-align: right; }
+.history-table td { padding: 11px 12px; font-size: 13px; color: #1e293b; border-bottom: 1px solid #f8fafc; }
+.history-table tr:last-child td { border-bottom: none; }
+.history-table tr:hover td { background: #fafbff; }
+.history-table td.num { text-align: right; }
+.mono { font-family: 'DM Mono', monospace; }
+.strong { font-weight: 600; }
+.month-cell { font-weight: 600; color: #0f172a; white-space: nowrap; }
+.muted { color: #cbd5e1; }
+.muted-sm { font-size: 12px; color: #cbd5e1; }
+
+.action-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.btn-recv-sm {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f0fdf4; color: #15803d;
+  border: 1px solid #bbf7d0; border-radius: 6px;
+  padding: 5px 10px; font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s;
+}
+.btn-recv-sm:hover:not(:disabled) { background: #22c55e; color: #fff; border-color: #22c55e; }
+.btn-recv-sm:disabled { opacity: .5; cursor: not-allowed; }
+.done-mark { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; color: #15803d; }
+.btn-att {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f8fafc; color: #475569;
+  border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 5px 10px; font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s;
+}
+.btn-att:hover { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+
+/* Loading / empty */
+.loading-state, .empty-state {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 48px 20px; color: #94a3b8; font-size: 13.5px;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; left: 16px; right: 16px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; color: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15); z-index: 9999;
+}
+.toast.success { background: #10b981; }
+.toast.error   { background: #ef4444; }
+.toast-fade-enter-active, .toast-fade-leave-active { transition: all .25s ease; }
+.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translateY(12px); }
+
+.spin { animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Tablet (≥ 600px) ───────────────────────────────────────── */
+@media (min-width: 600px) {
+  .dashboard { padding: 24px 24px 44px; gap: 18px; }
+  .page-title { font-size: 24px; }
+  .kpi-strip { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi-val { font-size: 22px; }
+  .panel { padding: 18px 20px; }
+  .history-header { flex-direction: row; align-items: center; justify-content: space-between; }
+  .sel-sm { flex: none; }
+  .btn-received { width: auto; justify-content: flex-start; }
+  .toast { left: 50%; right: auto; transform: translateX(-50%); white-space: nowrap; font-size: 13.5px; padding: 12px 20px; }
+  .toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translateX(-50%) translateY(12px); }
+}
+
+/* ── Desktop (≥ 900px) ─────────────────────────────────────── */
+@media (min-width: 900px) {
+  .dashboard { padding: 32px 36px 48px; gap: 20px; }
+  .topbar { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  .page-title { font-size: 26px; }
+  .big-val { font-size: 48px; }
+  .big-unit { font-size: 22px; }
+  .current-body { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .panel { padding: 20px 22px; }
+  .hours-block { padding: 20px 22px; }
 }
 </style>
