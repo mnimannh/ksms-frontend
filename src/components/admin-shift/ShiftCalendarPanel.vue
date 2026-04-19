@@ -101,14 +101,14 @@ export default {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: #0f172a !important;
-  border-color: #0f172a !important;
+  background: #6366f1 !important;
+  border-color: #6366f1 !important;
   border-radius: 6px !important;
   padding: 5px 12px !important;
   transition: all 0.15s;
 }
-#admin-calendar .fc-button:hover        { background: #1e293b !important; }
-#admin-calendar .fc-button-active       { background: #334155 !important; }
+#admin-calendar .fc-button:hover        { background: #4f46e5 !important; border-color: #4f46e5 !important; }
+#admin-calendar .fc-button-active       { background: #4338ca !important; border-color: #4338ca !important; }
 #admin-calendar .fc-col-header-cell-cushion {
   font-family: 'DM Mono', monospace;
   font-size: 0.62rem;
@@ -125,7 +125,7 @@ export default {
 }
 #admin-calendar .fc-day-today { background: #f0f9ff !important; }
 #admin-calendar .fc-day-today .fc-daygrid-day-number {
-  background: #0f172a;
+  background: #6366f1;
   color: #fff;
   border-radius: 50%;
   width: 22px;

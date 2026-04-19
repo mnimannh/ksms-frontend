@@ -67,14 +67,14 @@ export default {
   border-bottom: 1px solid #f1f5f9;
 }
 .panel-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.62rem;
   letter-spacing: 0.15em;
   color: #94a3b8;
   font-weight: 600;
 }
 .panel-date {
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.75rem;
   color: #64748b;
   font-weight: 500;
@@ -102,31 +102,31 @@ export default {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #0f172a;
+  background: #6366f1;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.68rem;
   font-weight: 700;
   flex-shrink: 0;
 }
 .att-info { flex: 1; display: flex; flex-direction: column; gap: 1px; }
 .att-name  { font-size: 0.82rem; font-weight: 600; color: #0f172a; }
-.att-shift { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: #94a3b8; }
+.att-shift { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: #94a3b8; }
 .att-times {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.68rem;
   color: #475569;
 }
 .att-sep { color: #cbd5e1; }
 
 .att-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -143,7 +143,7 @@ export default {
 .empty-state {
   padding: 32px;
   text-align: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.72rem;
   color: #cbd5e1;
   letter-spacing: 0.08em;

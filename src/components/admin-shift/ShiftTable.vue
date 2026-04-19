@@ -2,12 +2,34 @@
   <div class="staff-table-section">
     <div class="panel-head">
       <span class="panel-title">ALL ASSIGNED SHIFTS</span>
-      <input
-        class="search-input"
-        :value="searchQuery"
-        @input="$emit('update:searchQuery', $event.target.value)"
-        placeholder="Search staff or shift…"
-      />
+      <div class="head-controls">
+        <!-- Date filter pill -->
+        <label class="date-pill" :class="{ active: dateFilter }">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <span class="date-pill-text">{{ dateFilter ? formatDisplayDate(dateFilter) : 'Filter by date' }}</span>
+          <input type="date" class="date-hidden" v-model="dateFilter" />
+          <button v-if="dateFilter" class="date-clear" @click.prevent="dateFilter = ''">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </label>
+
+        <!-- Search -->
+        <div class="search-wrap">
+          <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            class="search-input"
+            :value="searchQuery"
+            @input="$emit('update:searchQuery', $event.target.value)"
+            placeholder="Search staff or shift…"
+          />
+        </div>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -27,7 +49,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in rows" :key="row.id" class="table-row">
+          <tr v-for="row in filteredRows" :key="row.id" class="table-row">
             <td>
               <div class="staff-cell">
                 <span class="mini-avatar">{{ getInitials(row.staffName) }}</span>
@@ -36,7 +58,7 @@
             </td>
             <td>
               <span class="type-pill" :class="row.shiftType.toLowerCase()">
-                {{ row.shiftType === 'Morning' ? '🌤' : '🌙' }} {{ row.shiftType }}
+                {{ row.shiftType }}
               </span>
             </td>
             <td class="mono">{{ formatShortDate(row.startTime) }}</td>
@@ -58,7 +80,7 @@
               </div>
             </td>
           </tr>
-          <tr v-if="rows.length === 0">
+          <tr v-if="filteredRows.length === 0">
             <td colspan="10" class="empty-td">No shifts found.</td>
           </tr>
         </tbody>
@@ -115,12 +137,26 @@ export default {
   data() {
     return {
       confirmDialog: { show: false, shiftId: null },
+      dateFilter: '',
     };
+  },
+  computed: {
+    filteredRows() {
+      if (!this.dateFilter) return this.rows;
+      return this.rows.filter(row => {
+        const rowDate = row.startTime ? row.startTime.slice(0, 10) : '';
+        return rowDate === this.dateFilter;
+      });
+    },
   },
   methods: {
     getInitials,
     formatTime,
     formatShortDate,
+    formatDisplayDate(dateStr) {
+      if (!dateStr) return '';
+      return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+    },
     openConfirm(id) {
       this.confirmDialog = { show: true, shiftId: id };
     },
@@ -156,7 +192,95 @@ export default {
   color: #94a3b8;
   font-weight: 600;
 }
+.head-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Date pill ── */
+.date-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+.date-pill:hover {
+  border-color: #a5b4fc;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.date-pill.active {
+  border-color: #6366f1;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-weight: 600;
+}
+.date-pill svg { flex-shrink: 0; }
+.date-pill-text { line-height: 1; }
+
+.date-hidden {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+  border: none;
+}
+.date-hidden::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.date-clear {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: #c7d2fe;
+  color: #4f46e5;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+.date-clear:hover { background: #a5b4fc; }
+
+/* ── Search ── */
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-icon {
+  position: absolute;
+  left: 9px;
+  color: #94a3b8;
+  pointer-events: none;
+}
 .search-input {
+  padding-left: 28px !important;
   font-family: 'DM Sans', sans-serif;
   font-size: 0.78rem;
   border: 1px solid #f1f5f9;
@@ -168,7 +292,7 @@ export default {
   width: 200px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.search-input:focus { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(15,23,42,0.08); }
+.search-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
 
 .table-wrap { overflow-x: auto; }
 .shift-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
@@ -206,8 +330,8 @@ export default {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #1e293b;
-  color: #e2e8f0;
+  background: #6366f1;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -17,21 +17,35 @@
 </div>
 
           <div class="form-row">
-            <label>Shift Type</label>
-            <div class="shift-type-toggle">
-              <button :class="{ active: localForm.shiftType === 'Morning' }" @click="localForm.shiftType = 'Morning'">🌤 Morning</button>
-              <button :class="{ active: localForm.shiftType === 'Evening' }" @click="localForm.shiftType = 'Evening'">🌙 Evening</button>
+            <label>Shift Type <span class="label-hint">— auto-detected from start time</span></label>
+            <div class="shift-type-display" :class="localForm.shiftType === 'Morning' ? 'type-morning' : 'type-evening'">
+              <span>{{ localForm.shiftType }}</span>
+              <span class="type-hint">{{ localForm.shiftType === 'Morning' ? 'Before 12:00 PM' : '12:00 PM and later' }}</span>
             </div>
           </div>
 
           <div class="form-row two-col">
             <div>
               <label>Start Time</label>
-              <input type="datetime-local" v-model="localForm.startTime" />
+              <div class="dt-group">
+                <div class="dt-field">
+                  <input type="date" class="dt-input" :value="localForm.startTime ? localForm.startTime.slice(0,10) : ''" @change="e => setDatePart('startTime', e.target.value)" />
+                </div>
+                <div class="dt-field">
+                  <input type="time" class="dt-input" :value="localForm.startTime ? localForm.startTime.slice(11,16) : ''" @change="e => setTimePart('startTime', e.target.value)" />
+                </div>
+              </div>
             </div>
             <div>
               <label>End Time</label>
-              <input type="datetime-local" v-model="localForm.endTime" />
+              <div class="dt-group">
+                <div class="dt-field">
+                  <input type="date" class="dt-input" :value="localForm.endTime ? localForm.endTime.slice(0,10) : ''" @change="e => setDatePart('endTime', e.target.value)" />
+                </div>
+                <div class="dt-field">
+                  <input type="time" class="dt-input" :value="localForm.endTime ? localForm.endTime.slice(11,16) : ''" @change="e => setTimePart('endTime', e.target.value)" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -73,6 +87,21 @@ export default {
   watch: {
     form(val) {
       this.localForm = { ...val };
+    },
+  },
+
+  methods: {
+    setDatePart(field, date) {
+      const time = this.localForm[field] ? this.localForm[field].slice(11, 16) : '00:00';
+      this.localForm[field] = date ? `${date}T${time}` : '';
+    },
+    setTimePart(field, time) {
+      const date = this.localForm[field] ? this.localForm[field].slice(0, 10) : new Date().toISOString().slice(0, 10);
+      this.localForm[field] = time ? `${date}T${time}` : '';
+      if (field === 'startTime' && time) {
+        const hour = parseInt(time.slice(0, 2), 10);
+        this.localForm.shiftType = hour < 12 ? 'Morning' : 'Evening';
+      }
     },
   },
 };
@@ -154,28 +183,82 @@ export default {
 .form-row select:focus,
 .form-row input:focus,
 .form-row textarea:focus {
-  border-color: #0f172a;
-  box-shadow: 0 0 0 3px rgba(15,23,42,0.08);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
   background: #fff;
 }
-.shift-type-toggle { display: flex; gap: 8px; }
-.shift-type-toggle button {
-  flex: 1;
+.label-hint {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: #cbd5e1;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.shift-type-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1.5px solid;
+  width: 100%;
+}
+.type-morning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.type-evening {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+  color: #3730a3;
+}
+.type-hint {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+/* ── DateTime fields ── */
+.dt-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dt-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.dt-input {
+  width: 100%;
   font-family: 'DM Sans', sans-serif;
   font-size: 0.82rem;
-  font-weight: 600;
-  border: 2px solid #f1f5f9;
+  border: 1px solid #f1f5f9;
   border-radius: 8px;
-  padding: 9px;
-  cursor: pointer;
+  padding: 8px 10px;
+  color: #0f172a;
   background: #f8fafc;
-  color: #64748b;
-  transition: all 0.15s;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  cursor: pointer;
 }
-.shift-type-toggle button.active {
-  border-color: #0f172a;
-  background: #0f172a;
-  color: #fff;
+.dt-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+  background: #fff;
+}
+.dt-input::-webkit-calendar-picker-indicator {
+  opacity: 0.4;
+  cursor: pointer;
+}
+.dt-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.8;
 }
 
 .assign-modal-footer {
@@ -202,16 +285,16 @@ export default {
   font-family: 'DM Sans', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
-  background: #0f172a;
+  background: #6366f1;
   color: #fff;
   border: none;
   border-radius: 7px;
   padding: 8px 20px;
   cursor: pointer;
-  transition: background 0.12s, transform 0.1s;
+  transition: background 0.12s, transform 0.1s, box-shadow 0.12s;
   letter-spacing: -0.01em;
 }
-.btn-save:hover { background: #1e293b; transform: translateY(-1px); }
+.btn-save:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.3); }
 
 /* Transition */
 .modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s ease; }

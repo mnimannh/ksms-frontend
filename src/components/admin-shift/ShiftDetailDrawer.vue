@@ -88,7 +88,7 @@ export default {
   justify-content: space-between;
   padding: 18px 20px;
   border-bottom: 1px solid #f1f5f9;
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-weight: 700;
   font-size: 0.9rem;
   color: #0f172a;
@@ -124,12 +124,12 @@ export default {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #0f172a;
+  background: #6366f1;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -141,7 +141,7 @@ export default {
   letter-spacing: -0.02em;
 }
 .drawer-role {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.65rem;
   color: #94a3b8;
   margin: 0;
@@ -152,7 +152,7 @@ export default {
 .dg-item { display: flex; flex-direction: column; gap: 4px; }
 .dg-item.full { grid-column: 1 / -1; }
 .dg-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.58rem;
   letter-spacing: 0.12em;
   color: #cbd5e1;
@@ -160,7 +160,7 @@ export default {
   text-transform: uppercase;
 }
 .dg-val {
-  font-family: 'Sora', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.83rem;
   color: #0f172a;
   font-weight: 500;
@@ -168,10 +168,10 @@ export default {
   align-items: center;
   gap: 6px;
 }
-.dg-val.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+.dg-val.mono { font-family: 'DM Mono', monospace; font-size: 0.78rem; }
 .late-text { color: #d97706; }
 .late-tag {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.55rem;
   background: #fef3c7;
   color: #d97706;
@@ -182,7 +182,7 @@ export default {
 }
 
 .status-pill {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
   font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.08em;

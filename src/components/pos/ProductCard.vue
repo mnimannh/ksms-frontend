@@ -67,9 +67,8 @@ const props = defineProps({
 })
 const emit = defineEmits(['add-to-cart'])
 
-const fallbackImg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0ede6"/%3E%3Ctext x="50" y="54" font-size="28" text-anchor="middle" fill="%23c4bfb5"%3E⬜%3C/text%3E%3C/svg%3E'
+const fallbackImg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f1f5f9"/%3E%3Ctext x="50" y="54" font-size="28" text-anchor="middle" fill="%23cbd5e1"%3E⬜%3C/text%3E%3C/svg%3E'
 
-// Prepend API base for local /uploads/ paths, pass through http URLs, fallback if null
 const resolvedImage = computed(() => {
   const url = props.product.image_url
   if (!url) return fallbackImg
@@ -91,25 +90,25 @@ const formatCurrency = (value) =>
 .product-card {
   position: relative;
   background: #ffffff;
-  border: 1.5px solid #edeae3;
+  border: 1px solid #f1f5f9;
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
   transition: box-shadow .22s ease, transform .22s ease, border-color .22s ease;
   outline: none;
 }
-.product-card:focus-visible { outline: 2px solid #c9a96e; outline-offset: 2px; }
+.product-card:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
 .product-card:hover:not(.disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 10px 32px rgba(26,26,24,.1);
-  border-color: #c9a96e;
+  box-shadow: 0 8px 24px rgba(99,102,241,.12);
+  border-color: #6366f1;
 }
 .product-card.disabled { opacity: .5; cursor: not-allowed; }
 
 /* ── Image ── */
 .image-wrap {
   position: relative; overflow: hidden;
-  background: #f5f3ee; height: 130px;
+  background: #f8fafc; height: 130px;
 }
 img {
   width: 100%; height: 100%; object-fit: cover;
@@ -119,13 +118,13 @@ img {
 
 .out-overlay {
   position: absolute; inset: 0;
-  background: rgba(26,26,24,.55); backdrop-filter: blur(2px);
+  background: rgba(15,23,42,.5); backdrop-filter: blur(2px);
   display: flex; align-items: center; justify-content: center;
 }
 .out-overlay span {
-  font-size: 11px; font-weight: 600; color: #f5f4f0;
+  font-size: 11px; font-weight: 600; color: #fff;
   letter-spacing: .07em; text-transform: uppercase;
-  background: rgba(180,60,60,.8); padding: 4px 10px; border-radius: 99px;
+  background: rgba(239,68,68,.8); padding: 4px 10px; border-radius: 99px;
 }
 .low-badge {
   position: absolute; top: 8px; right: 8px;
@@ -138,26 +137,26 @@ img {
   display: flex; align-items: flex-end; justify-content: center;
   padding-bottom: 14px; opacity: 0;
   transition: opacity .2s ease; pointer-events: none;
-  background: linear-gradient(to top, rgba(201,169,110,.18) 0%, transparent 60%);
+  background: linear-gradient(to top, rgba(99,102,241,.15) 0%, transparent 60%);
 }
 .product-card:hover .hover-overlay { opacity: 1; }
 .add-btn {
   display: inline-flex; align-items: center; gap: 5px;
-  background: #1a1a18; color: #f5f4f0;
+  background: #6366f1; color: #fff;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px; font-weight: 500;
   padding: 7px 14px; border-radius: 99px;
-  box-shadow: 0 4px 14px rgba(26,26,24,.3); letter-spacing: .02em;
+  box-shadow: 0 4px 14px rgba(99,102,241,.35); letter-spacing: .02em;
 }
 
 /* ── Body ── */
 .card-body { padding: 11px 13px 13px; display: flex; flex-direction: column; gap: 3px; }
 .category-tag {
-  font-size: 9.5px; font-weight: 600; color: #b5b2a9;
+  font-size: 9.5px; font-weight: 600; color: #94a3b8;
   letter-spacing: .08em; text-transform: uppercase;
 }
 .product-name {
-  font-size: 13px; font-weight: 500; color: #1a1a18;
+  font-size: 13px; font-weight: 500; color: #1e293b;
   line-height: 1.35; margin-top: 1px;
   display: -webkit-box; -webkit-line-clamp: 2;
   -webkit-box-orient: vertical; overflow: hidden;
@@ -165,6 +164,6 @@ img {
 .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 7px; }
 .stock-indicator { display: flex; align-items: center; gap: 5px; }
 .stock-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.stock-text { font-size: 11px; color: #a8a49c; }
-.price { font-size: 14px; font-weight: 700; color: #1a1a18; letter-spacing: -.02em; }
+.stock-text { font-size: 11px; color: #94a3b8; }
+.price { font-size: 14px; font-weight: 700; color: #6366f1; letter-spacing: -.02em; }
 </style>

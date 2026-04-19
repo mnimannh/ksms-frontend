@@ -8,8 +8,8 @@
         <!-- ═══ TOP HEADER ═══ -->
         <div class="top-header">
           <div class="header-text">
-            <span class="eyebrow">SHIFT CONTROL</span>
-            <h1 class="main-title">Shift Assignment</h1>
+            <span class="eyebrow">{{ todayLabel }}</span>
+            <h1 class="main-title">Shift <span class="accent">Assignment</span></h1>
           </div>
           <div class="header-actions">
             <div class="filter-tabs">
@@ -22,8 +22,10 @@
               >{{ f.label }}</button>
             </div>
             <button class="btn-assign" @click="openAssignModal()">
-              <span class="plus-icon">+</span> Assign Shift
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Assign Shift
             </button>
+            <span class="live-dot" />
           </div>
         </div>
 
@@ -135,6 +137,9 @@ export default {
   },
 
   computed: {
+    todayLabel() {
+      return new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    },
     enrichedRows() {
       return this.shifts.map(s => {
         const staff = this.staffList.find(u => u.id === s.userID);
@@ -189,7 +194,7 @@ export default {
       };
       return this.enrichedRows.map(row => ({
         id:            row.id,
-        title:         `${row.shiftType === 'Morning' ? '🌤' : '🌙'} ${row.staffName}`,
+        title:         `${row.staffName}`,
         start:         row.startTime,
         end:           row.endTime,
         classNames:    [`cal-event-${row.shiftType.toLowerCase()}`],
@@ -436,7 +441,7 @@ export default {
   font-family: 'DM Sans', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
-  background: #0f172a;
+  background: #6366f1;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -445,11 +450,19 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
   letter-spacing: -0.01em;
 }
-.btn-assign:hover { background: #1e293b; transform: translateY(-1px); }
-.plus-icon { font-size: 1.1rem; line-height: 1; }
+.btn-assign:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.3); }
+.accent { color: #6366f1; }
+.live-dot {
+  width: 8px; height: 8px; background: #22c55e; border-radius: 50%; flex-shrink: 0;
+  animation: live-pulse 2s ease infinite;
+}
+@keyframes live-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,.4); }
+  50%      { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
+}
 
 /* ── Main Grid ── */
 .main-grid {

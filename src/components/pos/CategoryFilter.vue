@@ -197,8 +197,8 @@ function highlight(name) {
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px;
-  background: #faf8f3;
-  border: 1px solid #e8e5dd;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
   border-radius: 12px;
 }
 
@@ -228,7 +228,7 @@ function highlight(name) {
 .selected-name {
   font-size: 11px;
   font-weight: 500;
-  color: #c9a96e;
+  color: #6366f1;
 }
 
 .header-actions {
@@ -240,8 +240,8 @@ function highlight(name) {
 .count-badge {
   font-size: 11px;
   font-weight: 500;
-  color: #9e9b93;
-  background: #e8e5dd;
+  color: #64748b;
+  background: #e2e8f0;
   border-radius: 20px;
   padding: 2px 8px;
 }
@@ -253,25 +253,25 @@ function highlight(name) {
   gap: 5px;
   padding: 4px 10px;
   border-radius: 7px;
-  border: 1px solid #e8e5dd;
+  border: 1px solid #e2e8f0;
   background: #fff;
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: #9e9b93;
+  color: #64748b;
   cursor: pointer;
   transition: all .15s ease;
   white-space: nowrap;
 }
 .toggle-btn:hover {
-  border-color: #c9a96e;
-  color: #c9a96e;
-  background: #fdf8ef;
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #eef2ff;
 }
 .toggle-btn.expanded {
-  background: #fdf8ef;
-  border-color: #c9a96e;
-  color: #b8924a;
+  background: #eef2ff;
+  border-color: #6366f1;
+  color: #4f46e5;
 }
 
 /* ── Search input ─────────────────────────────────────────────── */
@@ -293,20 +293,20 @@ function highlight(name) {
   width: 100%;
   padding: 7px 32px 7px 30px;
   border-radius: 8px;
-  border: 1px solid #e8e5dd;
+  border: 1px solid #e2e8f0;
   background: #fff;
   font-family: inherit;
   font-size: 13px;
-  color: #1a1a18;
+  color: #1e293b;
   outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
 
-.search-input::placeholder { color: #b5b2a9; }
+.search-input::placeholder { color: #94a3b8; }
 
 .search-input:focus {
-  border-color: #c9a96e;
-  box-shadow: 0 0 0 3px rgba(201,169,110,.12);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.1);
 }
 
 .clear-btn {
@@ -319,14 +319,14 @@ function highlight(name) {
   height: 20px;
   border-radius: 50%;
   border: none;
-  background: #e8e5dd;
-  color: #9e9b93;
+  background: #e2e8f0;
+  color: #64748b;
   cursor: pointer;
   transition: all .15s;
 }
 .clear-btn:hover {
-  background: #d8d5cc;
-  color: #1a1a18;
+  background: #cbd5e1;
+  color: #1e293b;
 }
 
 /* ── Scrollable pills container ───────────────────────────────── */
@@ -339,7 +339,7 @@ function highlight(name) {
   padding-right: 4px;
 
   scrollbar-width: thin;
-  scrollbar-color: #d8d5cc transparent;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 .scroll-pills-wrap::-webkit-scrollbar {
@@ -349,11 +349,11 @@ function highlight(name) {
   background: transparent;
 }
 .scroll-pills-wrap::-webkit-scrollbar-thumb {
-  background: #d8d5cc;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 .scroll-pills-wrap::-webkit-scrollbar-thumb:hover {
-  background: #b5b2a9;
+  background: #94a3b8;
 }
 
 /* ── Result count hint ────────────────────────────────────────── */
@@ -389,12 +389,12 @@ function highlight(name) {
   gap: 5px;
   padding: 6px 14px;
   border-radius: 8px;
-  border: 1px solid #e8e5dd;
+  border: 1px solid #e2e8f0;
   background: #fff;
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 400;
-  color: #9e9b93;
+  color: #64748b;
   cursor: pointer;
   white-space: nowrap;
   transition: all .15s ease;
@@ -403,22 +403,22 @@ function highlight(name) {
 }
 
 .pill:hover:not(.active) {
-  background: #f5f2eb;
-  border-color: #d8d5cc;
-  color: #1a1a18;
+  background: #eef2ff;
+  border-color: #a5b4fc;
+  color: #4f46e5;
 }
 
 .pill:focus-visible {
-  outline: 2px solid #c9a96e;
+  outline: 2px solid #6366f1;
   outline-offset: 2px;
 }
 
 .pill.active {
-  background: #0f172a;
-  border-color: #0f172a;
+  background: #6366f1;
+  border-color: #6366f1;
   color: #fff;
   font-weight: 500;
-  box-shadow: 0 2px 8px rgba(15,23,42,.2);
+  box-shadow: 0 2px 8px rgba(99,102,241,.3);
 }
 
 .check-icon {

@@ -18,7 +18,12 @@
     <div class="item-list">
       <!-- Empty -->
       <div v-if="!cart || cart.length === 0" class="empty-state">
-        <div class="empty-icon">○</div>
+        <div class="empty-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+        </div>
         <p>No items added yet</p>
         <span>Tap a product to add it here</span>
       </div>
@@ -71,7 +76,7 @@
         :disabled="!cart || cart.length === 0"
         @click="$emit('checkout')"
       >
-        <span>Pay</span>
+        <span>Pay Now</span>
       </button>
     </div>
   </div>
@@ -124,23 +129,23 @@ const formatCurrency = (value) =>
 }
 
 .sidebar-title {
-  font-family: 'DM Serif Display', serif;
-  font-size: 18px;
-  font-weight: 400;
-  color: #1a1a18;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
   line-height: 1;
 }
 
 .sidebar-count {
   font-size: 12px;
-  color: #9e9b93;
+  color: #94a3b8;
   margin-top: 4px;
 }
 
 .btn-new {
   background: transparent;
-  border: 1px solid #dedad2;
-  color: #6b6860;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   padding: 6px 14px;
@@ -151,14 +156,15 @@ const formatCurrency = (value) =>
 }
 
 .btn-new:hover {
-  border-color: #1a1a18;
-  color: #1a1a18;
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #eef2ff;
 }
 
 /* ── Divider ── */
 .divider {
   height: 1px;
-  background: #eeece7;
+  background: #f1f5f9;
   margin: 0 24px;
 }
 
@@ -176,7 +182,7 @@ const formatCurrency = (value) =>
   width: 3px;
 }
 .item-list::-webkit-scrollbar-thumb {
-  background: #dedad2;
+  background: #e2e8f0;
   border-radius: 2px;
 }
 
@@ -188,13 +194,12 @@ const formatCurrency = (value) =>
   justify-content: center;
   gap: 8px;
   padding: 48px 0;
-  color: #9e9b93;
+  color: #94a3b8;
   text-align: center;
 }
 
 .empty-icon {
-  font-size: 28px;
-  color: #d8d5cc;
+  color: #cbd5e1;
   line-height: 1;
   margin-bottom: 4px;
 }
@@ -202,12 +207,12 @@ const formatCurrency = (value) =>
 .empty-state p {
   font-size: 13px;
   font-weight: 500;
-  color: #6b6860;
+  color: #64748b;
 }
 
 .empty-state span {
   font-size: 12px;
-  color: #b5b2a9;
+  color: #94a3b8;
 }
 
 /* Cart rows */
@@ -216,7 +221,7 @@ const formatCurrency = (value) =>
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #f0ede6;
+  border-bottom: 1px solid #f1f5f9;
   gap: 12px;
 }
 
@@ -230,9 +235,11 @@ const formatCurrency = (value) =>
 }
 
 .item-inventory {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: #6b6860;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: .05em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -241,7 +248,7 @@ const formatCurrency = (value) =>
 .item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #1a1a18;
+  color: #1e293b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -249,7 +256,7 @@ const formatCurrency = (value) =>
 
 .item-unit {
   font-size: 11px;
-  color: #b5b2a9;
+  color: #94a3b8;
   margin-top: 2px;
 }
 
@@ -263,25 +270,26 @@ const formatCurrency = (value) =>
 .qty-input {
   width: 44px;
   height: 32px;
-  border: 1px solid #dedad2;
+  border: 1px solid #e2e8f0;
   border-radius: 6px;
   text-align: center;
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
-  color: #1a1a18;
-  background: #faf8f3;
+  color: #1e293b;
+  background: #f8fafc;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .qty-input:focus {
-  border-color: #c9a96e;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.1);
 }
 
 .item-total {
   font-size: 13px;
   font-weight: 600;
-  color: #1a1a18;
+  color: #1e293b;
   min-width: 68px;
   text-align: right;
 }
@@ -289,7 +297,7 @@ const formatCurrency = (value) =>
 .btn-remove {
   background: transparent;
   border: none;
-  color: #c4bfb5;
+  color: #cbd5e1;
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -300,7 +308,7 @@ const formatCurrency = (value) =>
 }
 
 .btn-remove:hover {
-  color: #c0524f;
+  color: #ef4444;
 }
 
 /* ── Footer Summary ── */
@@ -323,7 +331,7 @@ const formatCurrency = (value) =>
 
 .summary-label {
   font-size: 12px;
-  color: #9e9b93;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -331,12 +339,12 @@ const formatCurrency = (value) =>
 .summary-value {
   font-size: 13px;
   font-weight: 500;
-  color: #1a1a18;
+  color: #1e293b;
 }
 
 .summary-total .summary-label {
   font-size: 13px;
-  color: #1a1a18;
+  color: #1e293b;
   font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
@@ -344,8 +352,8 @@ const formatCurrency = (value) =>
 
 .total-price {
   font-size: 18px;
-  font-weight: 600;
-  color: #1a1a18;
+  font-weight: 700;
+  color: #6366f1;
 }
 
 /* ── Pay button ── */
@@ -355,36 +363,33 @@ const formatCurrency = (value) =>
 
 .btn-pay {
   width: 100%;
-  background: #10b981;
-  color: #f5f4f0;
+  background: #22c55e;
+  color: #fff;
   border: none;
   border-radius: 10px;
   padding: 14px 20px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  justify-content: space-between;
+  display: flex;
+  justify-content: center;
   align-items: center;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   letter-spacing: 0.01em;
 }
 
 .btn-pay:hover:not(:disabled) {
-  background: #2e2e2a;
+  background: #16a34a;
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(34,197,94,.35);
 }
 
 .btn-pay:disabled {
-  background: #d8d5cc;
-  color: #9e9b93;
+  background: #e2e8f0;
+  color: #94a3b8;
   cursor: not-allowed;
   transform: none;
-}
-
-.pay-amount {
-  font-size: 14px;
-  font-weight: 600;
-  color: #111111;
+  box-shadow: none;
 }
 </style>
