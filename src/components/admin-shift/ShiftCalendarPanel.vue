@@ -138,26 +138,28 @@ export default {
   font-size: 0.65rem;
 }
 #admin-calendar .cal-event-morning {
-  background: linear-gradient(135deg, #fbbf24, #fde68a) !important;
-  color: #78350f !important;
-  border-left: 3px solid #f59e0b !important;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+  color: #854d0e !important;
+  border-left: 3px solid #d97706 !important;
   font-family: 'DM Mono', monospace !important;
   font-size: 0.68rem !important;
   font-weight: 600 !important;
-  border-radius: 4px !important;
-  padding: 1px 5px !important;
+  border-radius: 5px !important;
+  padding: 2px 6px !important;
   cursor: pointer;
+  box-shadow: 0 1px 4px rgba(245,158,11,.25);
 }
 #admin-calendar .cal-event-evening {
-  background: linear-gradient(135deg, #1e40af, #3b82f6) !important;
-  color: #dbeafe !important;
-  border-left: 3px solid #1d4ed8 !important;
+  background: linear-gradient(135deg, #5b21b6, #8b5cf6) !important;
+  color: #ede9fe !important;
+  border-left: 3px solid #4c1d95 !important;
   font-family: 'DM Mono', monospace !important;
   font-size: 0.68rem !important;
   font-weight: 600 !important;
-  border-radius: 4px !important;
-  padding: 1px 5px !important;
+  border-radius: 5px !important;
+  padding: 2px 6px !important;
   cursor: pointer;
+  box-shadow: 0 1px 4px rgba(139,92,246,.25);
 }
 </style>
 
