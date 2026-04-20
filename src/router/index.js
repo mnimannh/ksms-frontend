@@ -30,10 +30,16 @@ const getUserFromToken = () => {
   if (!token) return null;
 
   try {
-    // Decode JWT payload (without verifying signature)
     const payload = JSON.parse(atob(token.split('.')[1]));
+    // Reject if expired (exp is in seconds)
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userRole');
+      return null;
+    }
     return payload;
-  } catch (err) {
+  } catch {
     return null;
   }
 };
