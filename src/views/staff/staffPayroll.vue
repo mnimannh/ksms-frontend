@@ -13,6 +13,45 @@
         </div>
       </div>
 
+      <!-- Rate card -->
+      <div class="rate-card">
+        <div class="rate-card-left">
+          <div class="rate-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+            </svg>
+          </div>
+          <div>
+            <p class="rate-label">My Hourly Rate</p>
+            <p class="rate-val" v-if="currentRate">
+              {{ formatMoney(currentRate.rate) }}<span class="rate-unit">/hr</span>
+            </p>
+            <p class="rate-val no-rate" v-else>Not set yet</p>
+          </div>
+        </div>
+        <div class="rate-card-right">
+          <div class="rate-since" v-if="currentRate">
+            <span class="rate-since-label">Effective from</span>
+            <span class="rate-since-val">{{ formatDate(currentRate.effective_from) }}</span>
+          </div>
+          <button class="btn-rate-history" @click="showRateHistory = !showRateHistory" v-if="rateHistory.length > 1">
+            {{ showRateHistory ? 'Hide history' : `History (${rateHistory.length})` }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Rate history dropdown -->
+      <div class="rate-history-panel" v-if="showRateHistory && rateHistory.length">
+        <p class="rh-title">Rate History</p>
+        <div class="rh-list">
+          <div v-for="r in rateHistory" :key="r.id" class="rh-row">
+            <span class="rh-rate">{{ formatMoney(r.rate) }}/hr</span>
+            <span class="rh-date">Effective {{ formatDate(r.effective_from) }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Loading -->
       <div v-if="loading" class="loading-state">
         <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5">
@@ -269,10 +308,13 @@ export default {
       filterYear: '',
       toast: { show: false, message: '', type: 'success' },
       attModal: { show: false, logs: [], staffName: '', monthLabel: '' },
+      rateHistory: [],
+      showRateHistory: false,
     };
   },
 
   computed: {
+    currentRate() { return this.rateHistory[0] ?? null; },
     latestRecord() { return this.records[0] ?? null; },
     totalEarned()  { return this.records.filter(r => r.isCreated).reduce((s, r) => s + Number(r.totalPay || 0), 0); },
     totalHours()   { return this.records.reduce((s, r) => s + Number(r.hoursWorked || 0), 0); },
@@ -297,9 +339,22 @@ export default {
 
   mounted() {
     this.fetchRecords();
+    this.fetchMyRates();
   },
 
   methods: {
+    async fetchMyRates() {
+      try {
+        const token = localStorage.getItem('userToken');
+        const res = await axios.get(`${API_BASE_URL}/api/hourly-rates/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        this.rateHistory = res.data;
+      } catch (err) {
+        console.error('Failed to load rate history', err);
+      }
+    },
+
     async fetchRecords() {
       this.loading = true;
       try {
@@ -331,6 +386,10 @@ export default {
       }
     },
 
+    formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+    },
     monthLabel(monthStr) {
       if (!monthStr) return '—';
       const d = new Date(monthStr);
@@ -540,6 +599,50 @@ export default {
   font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s;
 }
 .btn-att:hover { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+
+/* Rate card */
+.rate-card {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  background: #fff; border: 1px solid #c7d2fe;
+  border-radius: 14px; padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(99,102,241,.06);
+}
+.rate-card-left  { display: flex; align-items: center; gap: 12px; }
+.rate-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.rate-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: #eef2ff; color: #6366f1; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.rate-label { font-size: 11px; font-weight: 600; color: #6366f1; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 3px; }
+.rate-val   { font-size: 22px; font-weight: 700; color: #0f172a; font-family: 'DM Mono', monospace; letter-spacing: -.03em; }
+.rate-val.no-rate { font-size: 14px; color: #94a3b8; font-family: 'DM Sans', sans-serif; font-weight: 500; }
+.rate-unit  { font-size: 13px; font-weight: 400; color: #64748b; }
+.rate-since { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.rate-since-label { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; }
+.rate-since-val   { font-size: 12.5px; font-weight: 500; color: #475569; }
+.btn-rate-history {
+  background: none; border: 1px solid #e2e8f0; border-radius: 7px;
+  padding: 4px 10px; font-family: 'DM Sans', sans-serif;
+  font-size: 11.5px; color: #6366f1; cursor: pointer; transition: all .15s;
+}
+.btn-rate-history:hover { background: #eef2ff; border-color: #c7d2fe; }
+
+/* Rate history panel */
+.rate-history-panel {
+  background: #fff; border: 1px solid #f1f5f9;
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.rh-title { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; }
+.rh-list  { display: flex; flex-direction: column; gap: 6px; }
+.rh-row   {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: #f8fafc;
+  border: 1px solid #f1f5f9; border-radius: 8px;
+}
+.rh-rate { font-size: 13px; font-weight: 600; color: #0f172a; font-family: 'DM Mono', monospace; }
+.rh-date { font-size: 12px; color: #64748b; }
 
 /* Loading / empty */
 .loading-state, .empty-state {

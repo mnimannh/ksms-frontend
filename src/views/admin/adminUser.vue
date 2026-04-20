@@ -11,6 +11,10 @@
           <h1 class="topbar-title">Manage <span class="accent">Users</span></h1>
         </div>
         <div class="topbar-right">
+          <button class="btn-bulk-rate" @click="showBulkRateModal = true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Set All Rates
+          </button>
           <button class="btn-add" @click="openAddModal">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             New User
@@ -158,6 +162,13 @@
       :user="rateUser"
       @close="showRateModal = false"
     />
+
+    <BulkRateModal
+      :visible="showBulkRateModal"
+      :staffList="staffUsers"
+      @close="showBulkRateModal = false"
+      @saved="showBulkRateModal = false"
+    />
   </div>
 </template>
 
@@ -166,13 +177,14 @@ import API_BASE_URL from "@/services/api";
 import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
 import UserModal from '@/components/admin-user/UserModal.vue'
 import RateModal from '@/components/admin-user/RateModal.vue'
+import BulkRateModal from '@/components/admin-user/BulkRateModal.vue'
 import axios from 'axios'
 
 const AVATAR_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6']
 
 export default {
   name: 'AdminUser',
-  components: { AdminSidebar, UserModal, RateModal },
+  components: { AdminSidebar, UserModal, RateModal, BulkRateModal },
 
   data() {
     return {
@@ -184,10 +196,14 @@ export default {
       selectedRole: 'All',
       showRateModal: false,
       rateUser: null,
+      showBulkRateModal: false,
     }
   },
 
   computed: {
+    staffUsers() {
+      return this.users.filter(u => u.role === 'staff')
+    },
     filteredUsers() {
       let users = this.users
       if (this.selectedRole !== 'All') {
@@ -270,14 +286,25 @@ export default {
 .topbar-title .accent { color: #6366f1; }
 .topbar-right { display: flex; align-items: center; }
 
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.btn-bulk-rate {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #fff; color: #15803d;
+  border: 1px solid #bbf7d0; padding: 9px 14px; border-radius: 9px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all .15s;
+}
+.btn-bulk-rate:hover { background: #f0fdf4; border-color: #86efac; transform: translateY(-1px); }
+
 .btn-add {
   display: inline-flex; align-items: center; gap: 7px;
-  background: #6366f1; color: #fff;
+  background: #16a34a; color: #fff;
   border: none; padding: 9px 16px; border-radius: 9px;
   font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
   cursor: pointer; transition: background .15s, transform .12s;
 }
-.btn-add:hover { background: #4f46e5; transform: translateY(-1px); }
+.btn-add:hover { background: #15803d; transform: translateY(-1px); }
 
 /* Summary — 2 cols on mobile */
 .summary-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }

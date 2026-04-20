@@ -119,6 +119,10 @@ export default {
     },
   },
 
+  mounted() {
+    if (this.visible) this.fetchRates();
+  },
+
   watch: {
     visible(val) {
       if (val) this.fetchRates();

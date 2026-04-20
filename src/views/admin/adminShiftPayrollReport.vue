@@ -177,37 +177,8 @@ export default {
 
     filteredStaffRows() {
       if (!this.generated) return []
-      const staffScope = this.appliedStaff
-        ? this.payrollData.filter(s => s.userID === +this.appliedStaff)
-        : this.payrollData
-
-      return staffScope.map(s => {
-        const logs        = this.attendanceLogs.filter(l => l.userID === s.userID)
-        const hoursWorked = parseFloat(s.hoursWorked) || 0
-        const hourlyRate  = parseFloat(s.hourlyRate)  || 0
-        const completed   = logs.filter(l => l.status === 'Completed' || l.status === 'Late').length
-        const avgHoursPerShift = completed > 0
-          ? parseFloat((hoursWorked / completed).toFixed(2)) : 0
-        const payPerShift = parseFloat((hourlyRate * avgHoursPerShift).toFixed(2))
-        const totalPay    = parseFloat((hourlyRate * hoursWorked).toFixed(2))
-
-        return {
-          userID:          s.userID,
-          fullName:        s.fullName,
-          role:            'staff',
-          hourlyRate,
-          shiftsAssigned:  logs.length,
-          completed:       logs.filter(l => l.status === 'Completed').length,
-          late:            logs.filter(l => l.status === 'Late').length,
-          missed:          logs.filter(l => l.status === 'Missed').length,
-          hoursWorked,
-          avgHoursPerShift,
-          payPerShift,
-          totalPay,
-          payrollCreated:  !!s.isCreated,
-          payrollReceived: !!s.isReceived,
-        }
-      })
+      if (!this.appliedStaff) return this.payrollData
+      return this.payrollData.filter(r => r.userID === +this.appliedStaff)
     },
 
     summaryCards() {
@@ -239,8 +210,8 @@ export default {
 
   async created() {
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/api/users`)
-      this.staffList = data.filter(u => u.role === 'staff')
+      const { data } = await axios.get(`${API_BASE_URL}/api/reports/shift-payroll/staff`)
+      this.staffList = data.data
     } catch (err) {
       console.error('Failed to load staff list', err)
     }
@@ -252,12 +223,11 @@ export default {
       this.error = ''
       const month = `${this.selectedYear}-${String(this.selectedMonth + 1).padStart(2, '0')}`
       try {
-        const [payrollRes, attRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/payroll/month/${month}`),
-          axios.get(`${API_BASE_URL}/api/attendance/month/${month}`),
-        ])
-        this.payrollData    = payrollRes.data
-        this.attendanceLogs = attRes.data
+        const { data } = await axios.get(`${API_BASE_URL}/api/reports/shift-payroll`, {
+          params: { month },
+        })
+        this.payrollData    = data.data.staffRows
+        this.attendanceLogs = data.data.attendanceLogs
         this.appliedMonth   = this.selectedMonth
         this.appliedYear    = this.selectedYear
         this.appliedStaff   = this.staffFilter
