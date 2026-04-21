@@ -36,6 +36,7 @@
       <table class="shift-table">
         <thead>
           <tr>
+            <th class="th-num">#</th>
             <th>Staff</th>
             <th>Shift Type</th>
             <th>Date</th>
@@ -49,10 +50,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in filteredRows" :key="row.id" class="table-row">
+          <tr v-for="(row, index) in filteredRows" :key="row.id" class="table-row">
+            <td class="td-num">{{ index + 1 }}</td>
             <td>
               <div class="staff-cell">
-                <span class="mini-avatar">{{ getInitials(row.staffName) }}</span>
                 {{ row.staffName }}
               </div>
             </td>
@@ -74,9 +75,21 @@
             </td>
             <td>
               <div class="action-btns">
-                <button class="act-btn edit"   @click="$emit('edit-shift', row)"   title="Edit">✎</button>
-                <button class="act-btn view"   @click="$emit('view-log', row.id)"  title="View Log">◉</button>
-                <button class="act-btn delete" @click="openConfirm(row.id)"        title="Delete">🗑</button>
+                <button class="act-btn edit" @click="$emit('edit-shift', row)" title="Edit">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+                <button class="act-btn view" @click="$emit('view-log', row.id)" title="View Log">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+                <button class="act-btn delete" @click="openConfirm(row.id)" title="Delete">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                  </svg>
+                </button>
               </div>
             </td>
           </tr>
@@ -318,6 +331,8 @@ export default {
 .table-row:hover td { background: #f8fafc; }
 .mono  { font-family: 'DM Mono', monospace; font-size: 0.72rem; }
 .muted { color: #94a3b8; }
+.th-num { width: 36px; text-align: center; }
+.td-num { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: #cbd5e1; text-align: center; }
 
 .staff-cell {
   display: flex;
@@ -369,21 +384,23 @@ export default {
 
 .action-btns { display: flex; gap: 6px; }
 .act-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid #f1f5f9;
-  background: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1.5px solid;
   cursor: pointer;
-  font-size: 0.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.12s;
-  color: #64748b;
+  flex-shrink: 0;
 }
-.act-btn:hover        { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
-.act-btn.delete:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.act-btn.edit   { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+.act-btn.view   { background: #f0fdf4; border-color: #bbf7d0; color: #16a34a; }
+.act-btn.delete { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.act-btn.edit:hover   { background: #2563eb; border-color: #2563eb; color: #fff; }
+.act-btn.view:hover   { background: #16a34a; border-color: #16a34a; color: #fff; }
+.act-btn.delete:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
 
 .empty-td {
   text-align: center;

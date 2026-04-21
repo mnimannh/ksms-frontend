@@ -2,10 +2,29 @@
   <div class="calendar-panel">
     <div class="panel-head">
       <span class="panel-title">SCHEDULE OVERVIEW</span>
-      <div class="view-toggle">
-        <button :class="{ active: calView === 'dayGridMonth' }" @click="switchView('dayGridMonth')">Month</button>
-        <button :class="{ active: calView === 'timeGridWeek' }" @click="switchView('timeGridWeek')">Week</button>
-        <button :class="{ active: calView === 'listWeek' }"    @click="switchView('listWeek')">List</button>
+      <div class="head-right">
+        <!-- User filter dropdown -->
+        <div class="user-filter" v-if="staffList.length">
+          <button class="filter-btn" :class="{ active: selectedUserId !== null }" @click.stop="dropdownOpen = !dropdownOpen">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            {{ selectedUserId ? staffList.find(s => s.id === selectedUserId)?.fullName : 'All Staff' }}
+            <svg width="8" height="8" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="filter-dropdown" v-if="dropdownOpen" @click.stop>
+            <div class="dd-item" :class="{ on: selectedUserId === null }" @click="selectUser(null)">All Staff</div>
+            <div
+              v-for="s in staffList" :key="s.id"
+              class="dd-item" :class="{ on: selectedUserId === s.id }"
+              @click="selectUser(s.id)"
+            >{{ s.fullName }}</div>
+          </div>
+        </div>
+
+        <div class="view-toggle">
+          <button :class="{ active: calView === 'dayGridMonth' }" @click="switchView('dayGridMonth')">Month</button>
+          <button :class="{ active: calView === 'timeGridWeek' }" @click="switchView('timeGridWeek')">Week</button>
+          <button :class="{ active: calView === 'listWeek' }"    @click="switchView('listWeek')">List</button>
+        </div>
       </div>
     </div>
     <div id="admin-calendar"></div>
@@ -17,22 +36,27 @@ export default {
   name: 'ShiftCalendarPanel',
   props: {
     calendarEvents: { type: Array, required: true },
+    staffList:      { type: Array, default: () => [] },
   },
-  emits: ['event-click', 'date-click'],
+  emits: ['event-click', 'date-click', 'filter-user'],
 
   data() {
     return {
       calendar: null,
       calView: 'dayGridMonth',
+      dropdownOpen: false,
+      selectedUserId: null,
     };
   },
 
   mounted() {
     this.loadFullCalendar();
+    document.addEventListener('click', this.closeDropdown);
   },
 
   beforeUnmount() {
     if (this.calendar) this.calendar.destroy();
+    document.removeEventListener('click', this.closeDropdown);
   },
 
   watch: {
@@ -88,6 +112,16 @@ export default {
     switchView(v) {
       this.calView = v;
       if (this.calendar) this.calendar.changeView(v);
+    },
+
+    selectUser(id) {
+      this.selectedUserId = id;
+      this.dropdownOpen = false;
+      this.$emit('filter-user', id);
+    },
+
+    closeDropdown() {
+      this.dropdownOpen = false;
     },
   },
 };
@@ -197,7 +231,39 @@ export default {
   justify-content: space-between;
   padding: 14px 18px;
   border-bottom: 1px solid #f1f5f9;
+  gap: 10px;
 }
+.head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* User filter */
+.user-filter { position: relative; }
+.filter-btn {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'DM Mono', monospace; font-size: 0.6rem;
+  font-weight: 600; letter-spacing: 0.05em;
+  border: 1px solid #e2e8f0; background: #f8fafc;
+  color: #64748b; padding: 4px 10px; border-radius: 6px;
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.filter-btn:hover { border-color: #6366f1; color: #6366f1; }
+.filter-btn.active { background: #eef2ff; border-color: #c7d2fe; color: #6366f1; }
+.filter-dropdown {
+  position: absolute; top: calc(100% + 5px); right: 0;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 50;
+  min-width: 160px; overflow: hidden;
+}
+.dd-item {
+  padding: 8px 14px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: #374151;
+  cursor: pointer; transition: background 0.1s;
+}
+.dd-item:hover { background: #f8fafc; }
+.dd-item.on { background: #eef2ff; color: #6366f1; font-weight: 600; }
 .panel-title {
   font-family: 'DM Mono', monospace;
   font-size: 0.62rem;

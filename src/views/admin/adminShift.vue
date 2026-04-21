@@ -36,8 +36,10 @@
         <div class="main-grid">
           <ShiftCalendarPanel
             :calendar-events="calendarEvents"
+            :staff-list="staffList"
             @event-click="onCalendarEventClick"
             @date-click="onCalendarDateClick"
+            @filter-user="calendarUserFilter = $event"
           />
           <ShiftAttendancePanel
             :logs="filteredAttendanceLogs"
@@ -112,6 +114,7 @@ export default {
       attendance:      [],
       loading:         false,
       error:           null,
+      calendarUserFilter: null,
 
       activeFilter:    'all',
       searchQuery:     '',
@@ -194,7 +197,10 @@ export default {
         Missed:    '#dc2626',
         Pending:   '#64748b',
       };
-      return this.enrichedRows.map(row => ({
+      const rows = this.calendarUserFilter
+        ? this.enrichedRows.filter(r => r.userID === this.calendarUserFilter)
+        : this.enrichedRows;
+      return rows.map(row => ({
         id:            row.id,
         title:         `${row.staffName}`,
         start:         row.startTime,
@@ -226,7 +232,7 @@ export default {
           throw new Error('One or more API requests failed');
         }
 
-        this.staffList  = (await staffRes.json()).filter(u => u.role === 'staff');
+        this.staffList  = (await staffRes.json()).filter(u => u.role === 'staff' && u.status === 'active');
         this.shifts     = await shiftsRes.json();
         this.attendance = await attendanceRes.json();
 
@@ -463,7 +469,7 @@ export default {
   font-family: 'DM Sans', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
-  background: #6366f1;
+  background: #16a34a;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -475,7 +481,7 @@ export default {
   transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
   letter-spacing: -0.01em;
 }
-.btn-assign:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.3); }
+.btn-assign:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,.3); }
 .accent { color: #6366f1; }
 .live-dot {
   width: 8px; height: 8px; background: #22c55e; border-radius: 50%; flex-shrink: 0;

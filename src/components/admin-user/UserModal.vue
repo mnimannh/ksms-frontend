@@ -17,7 +17,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="fullName">Full Name</label>
-            <input id="fullName" type="text" v-model="form.fullName" placeholder="e.g. Jane Smith" required />
+            <input id="fullName" type="text" v-model="form.fullName" placeholder="E.G. JANE SMITH" required class="input-uppercase" @input="form.fullName = form.fullName.toUpperCase()" />
           </div>
         </div>
 
@@ -46,11 +46,11 @@
             <label>Status</label>
             <div class="status-toggle">
               <label class="toggle-option" :class="{ selected: form.status === 'active' }">
-                <input type="radio" value="active" v-model="form.status" />
+                <input type="radio" value="active" :checked="form.status === 'active'" @change="requestStatusChange('active')" />
                 <span class="dot active-dot"></span> Active
               </label>
               <label class="toggle-option" :class="{ selected: form.status === 'inactive' }">
-                <input type="radio" value="inactive" v-model="form.status" />
+                <input type="radio" value="inactive" :checked="form.status === 'inactive'" @change="requestStatusChange('inactive')" />
                 <span class="dot inactive-dot"></span> Inactive
               </label>
             </div>
@@ -247,6 +247,19 @@ export default {
       }
     },
 
+    requestStatusChange(newStatus) {
+      if (newStatus === this.form.status) return
+      if (this.user) {
+        const label = newStatus === 'active' ? 'activate' : 'deactivate'
+        this.showConfirm(
+          `Are you sure you want to ${label} ${this.user.fullName}?`,
+          () => { this.form.status = newStatus }
+        )
+      } else {
+        this.form.status = newStatus
+      }
+    },
+
     confirmRfidScan() {
       const msg = this.form.rfidUid
         ? 'An RFID UID already exists. Are you sure you want to overwrite it by scanning?'
@@ -383,6 +396,7 @@ input[type="password"]:focus {
   box-shadow: 0 0 0 3px rgba(17,24,39,0.07);
 }
 input::placeholder { color: #c4c9d4; }
+.input-uppercase { text-transform: uppercase; }
 
 /* Readonly RFID input */
 input[type="text"][readonly]:not(.scanning) {

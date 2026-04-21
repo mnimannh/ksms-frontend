@@ -7,9 +7,6 @@
           <!-- Header -->
           <div class="modal-header">
             <div class="header-info">
-              <div class="user-avatar" :style="`background:${avatarColor(user.fullName)}`">
-                {{ user.fullName.charAt(0).toUpperCase() }}
-              </div>
               <div>
                 <p class="modal-title">Hourly Rate</p>
                 <p class="modal-sub">{{ user.fullName }}</p>

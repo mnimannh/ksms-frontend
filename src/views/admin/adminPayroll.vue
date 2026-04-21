@@ -102,6 +102,7 @@
           <table class="payroll-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>Staff</th>
                 <th class="num">Hours Worked</th>
                 <th class="num">Hourly Rate</th>
@@ -111,16 +112,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="s in filteredList" :key="s.userID">
+              <tr v-for="(s, index) in filteredList" :key="s.userID">
+                <td class="td-num">{{ index + 1 }}</td>
                 <td>
-                  <div class="staff-cell">
-                    <div class="avatar" :style="`background:${avatarColor(s.fullName)}`">
-                      {{ s.fullName.charAt(0).toUpperCase() }}
-                    </div>
-                    <div>
-                      <p class="staff-name">{{ s.fullName }}</p>
-                      <p class="staff-email">{{ s.email }}</p>
-                    </div>
+                  <div>
+                    <p class="staff-name">{{ s.fullName }}</p>
+                    <p class="staff-email">{{ s.email }}</p>
                   </div>
                 </td>
                 <td class="num mono">{{ Number(s.hoursWorked).toFixed(2) }}h</td>

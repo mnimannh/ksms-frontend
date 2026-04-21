@@ -13,7 +13,7 @@
         :class="'status-' + log.status.toLowerCase()"
         @click="$emit('select-log', log)"
       >
-        <div class="att-avatar">{{ getInitials(log.staffName) }}</div>
+        <span class="att-num">{{ logs.indexOf(log) + 1 }}</span>
         <div class="att-info">
           <span class="att-name">{{ log.staffName }}</span>
           <span class="att-shift">{{ log.shiftType }} — {{ formatShortDate(log.checkIn || log.shiftStart) }}</span>
@@ -98,18 +98,12 @@ export default {
 }
 .attendance-row:hover { background: #f8fafc; }
 
-.att-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: #6366f1;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.68rem;
-  font-weight: 700;
+.att-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  color: #cbd5e1;
+  width: 20px;
+  text-align: center;
   flex-shrink: 0;
 }
 .att-info { flex: 1; display: flex; flex-direction: column; gap: 1px; }

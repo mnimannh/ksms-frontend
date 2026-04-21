@@ -2,7 +2,18 @@
   <div class="inv-modal-backdrop" @click.self="$emit('close')">
     <div class="inv-modal">
       <div class="modal-header">
-        <h2 class="modal-title">{{ mode === 'edit' ? 'Edit Category' : 'New Category' }}</h2>
+        <div class="header-left">
+          <div class="header-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+              <line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+          </div>
+          <div>
+            <p class="header-eyebrow">{{ mode === 'edit' ? 'Edit' : 'New' }} Category</p>
+            <h2 class="modal-title">{{ mode === 'edit' ? (initial?.name || 'Category') : 'Add Category' }}</h2>
+          </div>
+        </div>
         <button class="modal-close" @click="$emit('close')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -57,7 +68,20 @@ export default {
 
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 0;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+.header-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(99,102,241,.25);
+}
+.header-eyebrow {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: #94a3b8; margin-bottom: 2px;
 }
 .modal-title { font-size: 16px; font-weight: 700; color: #0f172a; }
 .modal-close {

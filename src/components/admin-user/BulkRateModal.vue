@@ -48,10 +48,10 @@
             <div class="staff-list">
               <label v-for="s in staffList" :key="s.id" class="staff-row" :class="{ on: selectedIds.has(s.id) }">
                 <input type="checkbox" class="cb" :checked="selectedIds.has(s.id)" @change="toggle(s.id)" />
-                <div class="avatar" :style="`background:${avatarColor(s.fullName)}`">{{ s.fullName[0].toUpperCase() }}</div>
                 <div class="staff-info">
-                  <p class="staff-name">{{ s.fullName }}</p>
-                  <p class="staff-cur">{{ currentRates[s.id] ? `RM ${Number(currentRates[s.id]).toFixed(2)}/hr` : 'No rate set' }}</p>
+                  <span class="staff-name">{{ s.fullName }}</span>
+                  <span class="staff-sep">·</span>
+                  <span class="staff-cur">{{ currentRates[s.id] ? `RM ${Number(currentRates[s.id]).toFixed(2)}/hr` : 'No rate set' }}</span>
                 </div>
                 <svg v-if="selectedIds.has(s.id)" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               </label>
@@ -250,7 +250,7 @@ export default {
 
 .staff-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 10px; border-radius: 10px;
+  padding: 7px 10px; border-radius: 8px;
   border: 1px solid transparent;
   cursor: pointer; transition: background .1s, border-color .1s;
   user-select: none;
@@ -278,9 +278,10 @@ export default {
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; color: #fff;
 }
-.staff-info { flex: 1; min-width: 0; }
+.staff-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
 .staff-name { font-size: 13px; font-weight: 600; color: #0f172a; }
-.staff-cur  { font-size: 11.5px; color: #94a3b8; margin-top: 1px; }
+.staff-sep  { color: #cbd5e1; font-size: 12px; }
+.staff-cur  { font-size: 12px; color: #94a3b8; }
 
 .check-icon { flex-shrink: 0; opacity: .8; }
 .empty { text-align: center; padding: 20px; color: #cbd5e1; font-size: 13px; }

@@ -8,7 +8,6 @@
 
       <div class="drawer-body">
         <div class="drawer-avatar-row">
-          <div class="big-avatar">{{ getInitials(log.staffName) }}</div>
           <div>
             <p class="drawer-name">{{ log.staffName }}</p>
             <p class="drawer-role">{{ log.shiftType }} Shift</p>

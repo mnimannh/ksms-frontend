@@ -82,6 +82,18 @@
                 <div @click="setRoleFilter('staff')" class="dropdown-item" :class="{ active: selectedRole === 'staff' }">Staff</div>
               </div>
             </div>
+            <div class="dropdown">
+              <button class="btn-filter" @click.stop="openDropdown = openDropdown === 'status' ? null : 'status'">
+                <span class="filter-label">Status</span>
+                <span class="filter-value">{{ selectedStatus === 'all' ? 'All' : selectedStatus === 'active' ? 'Active' : 'Inactive' }}</span>
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+              <div class="dropdown-menu" :class="{ open: openDropdown === 'status' }">
+                <div @click="selectedStatus = 'all';    openDropdown = null" class="dropdown-item" :class="{ active: selectedStatus === 'all' }">All</div>
+                <div @click="selectedStatus = 'active'; openDropdown = null" class="dropdown-item" :class="{ active: selectedStatus === 'active' }">Active</div>
+                <div @click="selectedStatus = 'inactive'; openDropdown = null" class="dropdown-item" :class="{ active: selectedStatus === 'inactive' }">Inactive</div>
+              </div>
+            </div>
             <div class="search-box">
               <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 9.5L12.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               <input v-model="searchQuery" type="text" placeholder="Search users..." />
@@ -107,12 +119,7 @@
               <tr v-for="(user, index) in filteredUsers" :key="user.id" class="table-row">
                 <td class="td-num">{{ index + 1 }}</td>
                 <td>
-                  <div class="cell-user">
-                    <div class="user-avatar" :style="`background:${avatarColor(user.fullName)}`">
-                      {{ user.fullName.charAt(0).toUpperCase() }}
-                    </div>
-                    <span class="user-name">{{ user.fullName }}</span>
-                  </div>
+                  <span class="user-name">{{ user.fullName }}</span>
                 </td>
                 <td class="td-email">{{ user.email }}</td>
                 <td>
@@ -128,7 +135,7 @@
                 <td>
                   <div class="action-group">
                     <button class="btn-action" @click="openEditModal(user)">Edit</button>
-                    <button v-if="user.role === 'staff'" class="btn-rate" @click="openRateModal(user)">
+                    <button v-if="user.role === 'staff' && user.status === 'active'" class="btn-rate" @click="openRateModal(user)">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                       Rate
                     </button>
@@ -194,6 +201,7 @@ export default {
       showModal: false,
       selectedUser: null,
       selectedRole: 'All',
+      selectedStatus: 'all',
       showRateModal: false,
       rateUser: null,
       showBulkRateModal: false,
@@ -203,13 +211,14 @@ export default {
 
   computed: {
     staffUsers() {
-      return this.users.filter(u => u.role === 'staff')
+      return this.users.filter(u => u.role === 'staff' && u.status === 'active')
     },
     filteredUsers() {
       let users = this.users
-      if (this.selectedRole !== 'All') {
+      if (this.selectedRole !== 'All')
         users = users.filter(u => u.role.toLowerCase() === this.selectedRole.toLowerCase())
-      }
+      if (this.selectedStatus !== 'all')
+        users = users.filter(u => u.status === this.selectedStatus)
       if (this.searchQuery) {
         const q = this.searchQuery.toLowerCase()
         users = users.filter(u =>
