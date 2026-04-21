@@ -52,10 +52,12 @@
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Shift ID</th>
+                <th>Start Time</th>
+                <th>End Time</th>
                 <th>Check In</th>
                 <th>Check Out</th>
                 <th>Hours</th>
+                <th>Pay</th>
                 <th>Status</th>
                 <th>Notes</th>
               </tr>
@@ -68,10 +70,15 @@
                 :style="`animation-delay:${i*35}ms`"
               >
                 <td class="td-date">{{ formatDay(log.startTime) }}</td>
-                <td class="td-shift">#{{ log.shiftID }}</td>
+                <td class="td-time">{{ log.startTime ? formatTime(log.startTime) : '—' }}</td>
+                <td class="td-time">{{ log.endTime ? formatTime(log.endTime) : '—' }}</td>
                 <td class="td-time">{{ log.checkIn ? formatTime(log.checkIn) : '—' }}</td>
                 <td class="td-time">{{ log.checkOut ? formatTime(log.checkOut) : '—' }}</td>
                 <td class="td-hours">{{ calcHours(log) }}<span class="h-unit">h</span></td>
+                <td class="td-pay">
+                  <span v-if="hourlyRate && calcHoursNum(log) > 0">{{ formatPay(calcHoursNum(log) * hourlyRate) }}</span>
+                  <span v-else class="td-pay--none">—</span>
+                </td>
                 <td>
                   <span class="status-badge" :class="log.status.toLowerCase()">
                     {{ log.status }}
@@ -80,6 +87,17 @@
                 <td class="td-notes">{{ log.notes || '—' }}</td>
               </tr>
             </tbody>
+            <tfoot>
+              <tr class="total-row">
+                <td colspan="5" class="total-label">Total</td>
+                <td class="total-hours">{{ totalHoursDisplay }}<span class="h-unit">h</span></td>
+                <td class="total-pay">
+                  <span v-if="hourlyRate">{{ formatPay(totalPayAmount) }}</span>
+                  <span v-else class="td-pay--none">—</span>
+                </td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
 
@@ -107,11 +125,12 @@ export default {
   name: 'AttendanceLogModal',
   emits: ['close'],
   props: {
-    show:      { type: Boolean, required: true },
-    logs:      { type: Array,   default: () => [] },   // shift_attendance_log rows joined with shift_assignment
-    staffName: { type: String,  default: '' },
-    staffDept: { type: String,  default: '' },
-    monthLabel:{ type: String,  default: '' },
+    show:       { type: Boolean, required: true },
+    logs:       { type: Array,   default: () => [] },
+    staffName:  { type: String,  default: '' },
+    staffDept:  { type: String,  default: '' },
+    monthLabel: { type: String,  default: '' },
+    hourlyRate: { type: Number,  default: 0 },
   },
   computed: {
     stats() {
@@ -124,6 +143,16 @@ export default {
         missed:     logs.filter(l => l.status === 'Missed').length,
         totalHours: totalHours % 1 === 0 ? totalHours : totalHours.toFixed(1),
       }
+    },
+    totalHoursRaw() {
+      return (this.logs || []).reduce((s, l) => s + this.calcHoursNum(l), 0)
+    },
+    totalHoursDisplay() {
+      const h = this.totalHoursRaw
+      return h % 1 === 0 ? h : h.toFixed(1)
+    },
+    totalPayAmount() {
+      return this.totalHoursRaw * (this.hourlyRate || 0)
     },
   },
   methods: {
@@ -144,6 +173,9 @@ export default {
       const h = this.calcHoursNum(log)
       return h % 1 === 0 ? h : h.toFixed(1)
     },
+    formatPay(val) {
+      return 'RM ' + Number(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    },
   },
 }
 </script>
@@ -158,7 +190,7 @@ export default {
 }
 .modal-box {
   background:#fff; border-radius:16px;
-  width:100%; max-width:720px;
+  width:100%; max-width:960px;
   max-height:90vh; overflow-y:auto;
   box-shadow:0 20px 60px rgba(0,0,0,.15);
   display:flex; flex-direction:column;
@@ -228,10 +260,17 @@ export default {
 .att-table td { padding:12px 16px; vertical-align:middle; }
 
 .td-date  { font-size:13.5px; font-weight:500; color:#0f172a; white-space:nowrap; }
-.td-shift { font-size:12.5px; color:#64748b; font-family:'DM Mono',monospace; }
-.td-time  { font-size:13px; color:#475569; font-family:'DM Mono',monospace; }
-.td-hours { font-size:14px; font-weight:700; color:#0f172a; }
-.h-unit   { font-size:11px; font-weight:500; color:#94a3b8; }
+.td-time  { font-size:13px; color:#475569; font-family:'DM Mono',monospace; white-space:nowrap; }
+.td-hours    { font-size:14px; font-weight:700; color:#0f172a; }
+.h-unit      { font-size:11px; font-weight:500; color:#94a3b8; }
+.td-pay      { font-size:13px; font-weight:600; color:#6366f1; font-family:'DM Mono',monospace; white-space:nowrap; }
+.td-pay--none { color:#cbd5e1; }
+
+.total-row { border-top: 2px solid #e2e8f0; background: #f8fafc; }
+.total-row td { padding: 12px 16px; }
+.total-label  { font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.07em; }
+.total-hours  { font-size:15px; font-weight:700; color:#0f172a; font-family:'DM Mono',monospace; }
+.total-pay    { font-size:15px; font-weight:700; color:#6366f1; font-family:'DM Mono',monospace; white-space:nowrap; }
 .td-notes { font-size:12.5px; color:#64748b; }
 
 .status-badge {

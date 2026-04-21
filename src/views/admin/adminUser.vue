@@ -71,12 +71,12 @@
           </div>
           <div class="toolbar-right">
             <div class="dropdown">
-              <button class="btn-filter">
+              <button class="btn-filter" @click.stop="openDropdown = openDropdown === 'role' ? null : 'role'">
                 <span class="filter-label">Role</span>
                 <span class="filter-value">{{ selectedRole }}</span>
                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               </button>
-              <div class="dropdown-menu">
+              <div class="dropdown-menu" :class="{ open: openDropdown === 'role' }">
                 <div @click="setRoleFilter('All')"   class="dropdown-item" :class="{ active: selectedRole === 'All' }">All Roles</div>
                 <div @click="setRoleFilter('admin')" class="dropdown-item" :class="{ active: selectedRole === 'admin' }">Admin</div>
                 <div @click="setRoleFilter('staff')" class="dropdown-item" :class="{ active: selectedRole === 'staff' }">Staff</div>
@@ -197,6 +197,7 @@ export default {
       showRateModal: false,
       rateUser: null,
       showBulkRateModal: false,
+      openDropdown: null,
     }
   },
 
@@ -254,10 +255,17 @@ export default {
     openAddModal()    { this.selectedUser = null; this.showModal = true },
     openEditModal(u)  { this.selectedUser = u;    this.showModal = true },
     openRateModal(u)  { this.rateUser = u;        this.showRateModal = true },
-    setRoleFilter(r)  { this.selectedRole = r },
+    setRoleFilter(r)  { this.selectedRole = r; this.openDropdown = null },
   },
 
-  mounted() { this.fetchUsers() },
+  mounted() {
+    this.fetchUsers()
+    document.addEventListener('click', () => { this.openDropdown = null })
+  },
+
+  beforeUnmount() {
+    document.removeEventListener('click', () => { this.openDropdown = null })
+  },
 }
 </script>
 
@@ -354,12 +362,12 @@ export default {
 .filter-label { color: #94a3b8; font-size: 11.5px; }
 .filter-value { font-weight: 500; color: #0f172a; }
 .dropdown-menu {
-  display: none; position: absolute; top: calc(100% + 6px); left: 0;
+  display: none; position: absolute; top: calc(100% + 4px); left: 0;
   background: #fff; min-width: 130px;
   box-shadow: 0 4px 16px rgba(0,0,0,.08); border: 1px solid #f0f0f0;
-  border-radius: 10px; z-index: 10; padding: 4px;
+  border-radius: 10px; z-index: 100; padding: 4px;
 }
-.dropdown:hover .dropdown-menu { display: block; }
+.dropdown-menu.open { display: block; }
 .dropdown-item { padding: 8px 12px; cursor: pointer; font-size: 13px; color: #374151; border-radius: 6px; transition: background .12s; }
 .dropdown-item:hover { background: #f8fafc; }
 .dropdown-item.active { background: #f1f5f9; font-weight: 500; color: #0f172a; }

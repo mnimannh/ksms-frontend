@@ -22,7 +22,7 @@
           </div>
           <button
             class="btn-generate-all"
-            :disabled="pendingCount === 0 || generatingAll"
+            :disabled="pendingCount === 0 || generatingAll || !canGenerate"
             @click="generateAll"
           >
             <svg v-if="generatingAll" class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -57,6 +57,16 @@
         <div class="kpi-card">
           <span class="kpi-label">Total Payout</span>
           <span class="kpi-val indigo">{{ formatMoney(totalPayout) }}</span>
+        </div>
+      </div>
+
+      <!-- Early-generation warning -->
+      <div v-if="!canGenerate" class="early-warning">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <strong>Payroll not ready yet.</strong>
+          {{ selectedMonthLabel }} {{ selectedYear }} hasn't ended — attendance data is still incomplete.
+          Earliest you can generate is <strong>{{ earliestGenerateLabel }}</strong>.
         </div>
       </div>
 
@@ -137,7 +147,7 @@
                     <button
                       v-if="!s.isCreated && s.hourlyRate"
                       class="btn-gen"
-                      :disabled="generatingId === s.userID"
+                      :disabled="generatingId === s.userID || !canGenerate"
                       @click="generateOne(s)"
                     >
                       <svg v-if="generatingId === s.userID" class="spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -242,6 +252,25 @@ export default {
   computed: {
     monthStr() {
       return `${this.selectedYear}-${this.selectedMonth}`;
+    },
+    canGenerate() {
+      const now = new Date();
+      const currentYear  = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      const selYear  = Number(this.selectedYear);
+      const selMonth = Number(this.selectedMonth);
+      return selYear < currentYear || (selYear === currentYear && selMonth < currentMonth);
+    },
+    selectedMonthLabel() {
+      return MONTHS.find(m => m.value === this.selectedMonth)?.label ?? '';
+    },
+    earliestGenerateLabel() {
+      const selYear  = Number(this.selectedYear);
+      const selMonth = Number(this.selectedMonth);
+      const nextMonth = selMonth === 12 ? 1 : selMonth + 1;
+      const nextYear  = selMonth === 12 ? selYear + 1 : selYear;
+      const label = MONTHS.find(m => m.value === String(nextMonth).padStart(2, '0'))?.label ?? '';
+      return `1 ${label} ${nextYear}`;
     },
     pendingCount()   { return this.staffList.filter(s => !s.isCreated).length; },
     generatedCount() { return this.staffList.filter(s => s.isCreated && !s.isReceived).length; },
@@ -450,6 +479,16 @@ export default {
   color: #64748b; cursor: pointer; transition: all .15s;
 }
 .filter-tab.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+
+/* Early warning banner */
+.early-warning {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 10px; padding: 13px 16px;
+  font-size: 13px; color: #92400e; line-height: 1.5;
+}
+.early-warning svg { flex-shrink: 0; margin-top: 1px; color: #d97706; }
+.early-warning strong { font-weight: 600; }
 
 /* Table card */
 .table-card {

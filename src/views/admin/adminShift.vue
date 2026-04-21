@@ -63,7 +63,8 @@
       :is-editing="!!editingShift"
       :staff-list="staffList"
       :form="form"
-      @close="showAssignModal = false"
+      :conflict-error="shiftConflictError"
+      @close="showAssignModal = false; shiftConflictError = ''"
       @save="saveShift"
     />
 
@@ -114,9 +115,10 @@ export default {
 
       activeFilter:    'all',
       searchQuery:     '',
-      showAssignModal: false,
-      editingShift:    null,
-      selectedLog:     null,
+      showAssignModal:    false,
+      editingShift:       null,
+      selectedLog:        null,
+      shiftConflictError: '',
 
       filters: [
         { key: 'all',       label: 'All'       },
@@ -241,6 +243,7 @@ export default {
 
     // ── Modal ────────────────────────────────────────────────────────────────
     openAssignModal(shift = null) {
+      this.shiftConflictError = '';
       this.editingShift = shift;
       this.form = shift
         ? {
@@ -261,6 +264,20 @@ export default {
     },
 
     async saveShift(formData) {
+      this.shiftConflictError = '';
+      const newDate = formData.startTime.slice(0, 10);
+      const conflict = this.shifts.find(s =>
+        s.userID === formData.userID &&
+        s.startTime.slice(0, 10) === newDate &&
+        (!this.editingShift || s.id !== this.editingShift.id)
+      );
+      if (conflict) {
+        const staff = this.staffList.find(u => u.id === formData.userID);
+        const name  = staff ? staff.fullName : 'This staff member';
+        this.shiftConflictError = `${name} already has a shift on this date.`;
+        return;
+      }
+
       const payload = {
         userID:     formData.userID,
         assignedBy: 1, // TODO: replace with your logged-in admin ID
@@ -342,6 +359,11 @@ export default {
 
     // ── Calendar date click ──────────────────────────────────────────────────
     onCalendarDateClick(dateStr) {
+      const clicked = new Date(dateStr);
+      const today   = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (clicked < today) return;
+
       this.editingShift = null;
       this.form = {
         userID:    this.staffList[0]?.id ?? null,

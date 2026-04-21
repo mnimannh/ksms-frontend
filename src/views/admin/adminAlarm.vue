@@ -76,18 +76,95 @@
             <div class="time-filter">
               <button v-for="t in timeOptions" :key="t" :class="['time-btn', selectedTime === t ? 'active' : '']" @click="selectedTime = t">{{ t }}</button>
             </div>
+
+            <!-- Alarms: Status filter -->
             <div class="dropdown" v-if="activeTab === 'alarms'">
-              <button class="btn-filter">
+              <button class="btn-filter" @click.stop="toggleDropdown('alarmStatus')">
                 <span class="filter-label">Status</span>
                 <span class="filter-value">{{ statusLabel }}</span>
                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               </button>
-              <div class="dropdown-menu">
-                <div @click="statusFilter = 'all'" class="dropdown-item" :class="{ active: statusFilter === 'all' }">All</div>
-                <div @click="statusFilter = 'unread'" class="dropdown-item" :class="{ active: statusFilter === 'unread' }">Unread</div>
-                <div @click="statusFilter = 'read'" class="dropdown-item" :class="{ active: statusFilter === 'read' }">Read</div>
+              <div class="dropdown-menu" :class="{ open: openDropdown === 'alarmStatus' }">
+                <div @click="statusFilter = 'all'; closeDropdown()" class="dropdown-item" :class="{ active: statusFilter === 'all' }">All</div>
+                <div @click="statusFilter = 'unread'; closeDropdown()" class="dropdown-item" :class="{ active: statusFilter === 'unread' }">Unread</div>
+                <div @click="statusFilter = 'read'; closeDropdown()" class="dropdown-item" :class="{ active: statusFilter === 'read' }">Read</div>
               </div>
             </div>
+
+            <!-- Insights filters -->
+            <template v-if="activeTab === 'insights'">
+              <!-- Sort -->
+              <div class="dropdown">
+                <button class="btn-filter" @click.stop="toggleDropdown('sort')">
+                  <span class="filter-label">Sort</span>
+                  <span class="filter-value">{{ insightSortOrder === 'latest' ? 'Latest' : 'Oldest' }}</span>
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <div class="dropdown-menu" :class="{ open: openDropdown === 'sort' }">
+                  <div @click="insightSortOrder = 'latest'; closeDropdown()" class="dropdown-item" :class="{ active: insightSortOrder === 'latest' }">Latest</div>
+                  <div @click="insightSortOrder = 'oldest'; closeDropdown()" class="dropdown-item" :class="{ active: insightSortOrder === 'oldest' }">Oldest</div>
+                </div>
+              </div>
+
+              <!-- Rule -->
+              <div class="dropdown">
+                <button class="btn-filter" @click.stop="toggleDropdown('rule')">
+                  <span class="filter-label">Rule</span>
+                  <span class="filter-value">{{ insightRuleFilter === 'all' ? 'All' : insightRuleFilter }}</span>
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <div class="dropdown-menu" :class="{ open: openDropdown === 'rule' }">
+                  <div @click="insightRuleFilter = 'all'; closeDropdown()" class="dropdown-item" :class="{ active: insightRuleFilter === 'all' }">All</div>
+                  <div v-for="r in insightRules" :key="r" @click="insightRuleFilter = r; closeDropdown()" class="dropdown-item" :class="{ active: insightRuleFilter === r }">{{ ruleLabel(r) }}</div>
+                </div>
+              </div>
+
+              <!-- Severity -->
+              <div class="dropdown">
+                <button class="btn-filter" @click.stop="toggleDropdown('severity')">
+                  <span class="filter-label">Severity</span>
+                  <span class="filter-value">{{ insightSeverityFilter === 'all' ? 'All' : insightSeverityFilter }}</span>
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <div class="dropdown-menu" :class="{ open: openDropdown === 'severity' }">
+                  <div @click="insightSeverityFilter = 'all'; closeDropdown()" class="dropdown-item" :class="{ active: insightSeverityFilter === 'all' }">All</div>
+                  <div @click="insightSeverityFilter = 'critical'; closeDropdown()" class="dropdown-item" :class="{ active: insightSeverityFilter === 'critical' }">Critical</div>
+                  <div @click="insightSeverityFilter = 'warning'; closeDropdown()" class="dropdown-item" :class="{ active: insightSeverityFilter === 'warning' }">Warning</div>
+                  <div @click="insightSeverityFilter = 'info'; closeDropdown()" class="dropdown-item" :class="{ active: insightSeverityFilter === 'info' }">Info</div>
+                </div>
+              </div>
+
+              <!-- Category -->
+              <div class="dropdown">
+                <button class="btn-filter" @click.stop="toggleDropdown('category')">
+                  <span class="filter-label">Category</span>
+                  <span class="filter-value">{{ insightCategoryFilter === 'all' ? 'All' : insightCategoryFilter }}</span>
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <div class="dropdown-menu" :class="{ open: openDropdown === 'category' }">
+                  <div @click="insightCategoryFilter = 'all'; closeDropdown()" class="dropdown-item" :class="{ active: insightCategoryFilter === 'all' }">All</div>
+                  <div v-for="cat in insightCategories" :key="cat" @click="insightCategoryFilter = cat; closeDropdown()" class="dropdown-item" :class="{ active: insightCategoryFilter === cat }">{{ cat }}</div>
+                </div>
+              </div>
+
+              <!-- Status -->
+              <div class="dropdown">
+                <button class="btn-filter" @click.stop="toggleDropdown('insightStatus')">
+                  <span class="filter-label">Status</span>
+                  <span class="filter-value">{{ insightStatusFilter === 'all' ? 'All' : insightStatusFilter === 'unread' ? 'Unread' : 'Read' }}</span>
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <div class="dropdown-menu" :class="{ open: openDropdown === 'insightStatus' }">
+                  <div @click="insightStatusFilter = 'all'; closeDropdown()" class="dropdown-item" :class="{ active: insightStatusFilter === 'all' }">All</div>
+                  <div @click="insightStatusFilter = 'unread'; closeDropdown()" class="dropdown-item" :class="{ active: insightStatusFilter === 'unread' }">Unread</div>
+                  <div @click="insightStatusFilter = 'read'; closeDropdown()" class="dropdown-item" :class="{ active: insightStatusFilter === 'read' }">Read</div>
+                </div>
+              </div>
+
+              <!-- Reset filters -->
+              <button v-if="hasInsightFilters" class="btn-reset" @click="resetInsightFilters">Reset</button>
+            </template>
+
             <div class="search-box">
               <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 9.5L12.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               <input v-model="search" type="text" placeholder="Search..." />
@@ -255,6 +332,12 @@ export default {
       selectedTime: 'All',
       statusFilter: 'all',
       alarms: [],
+      insightSortOrder: 'latest',
+      insightRuleFilter: 'all',
+      insightSeverityFilter: 'all',
+      insightCategoryFilter: 'all',
+      insightStatusFilter: 'all',
+      openDropdown: null,
     }
   },
 
@@ -284,23 +367,66 @@ export default {
       })
     },
 
+    insightRules() {
+      return [...new Set(this.insights.map(i => i.rule_id))].sort()
+    },
+    insightCategories() {
+      return [...new Set(this.insights.map(i => i.category_name).filter(Boolean))].sort()
+    },
+    hasInsightFilters() {
+      return this.insightSortOrder !== 'latest' || this.insightRuleFilter !== 'all' ||
+             this.insightSeverityFilter !== 'all' || this.insightCategoryFilter !== 'all' ||
+             this.insightStatusFilter !== 'all'
+    },
     filteredInsights() {
-      return this.insights.filter(i => {
-        const q = this.search.toLowerCase()
-        const matchSearch = (i.variant_name || '').toLowerCase().includes(q) || (i.message || '').toLowerCase().includes(q)
-        const date = new Date(i.created_at); const now = new Date()
+      const q = this.search.toLowerCase()
+      const now = new Date()
+      let list = this.insights.filter(i => {
+        const matchSearch = !q ||
+          (i.variant_name || '').toLowerCase().includes(q) ||
+          (i.message || '').toLowerCase().includes(q) ||
+          (i.product_name || '').toLowerCase().includes(q) ||
+          (i.category_name || '').toLowerCase().includes(q) ||
+          (i.rule_id || '').toLowerCase().includes(q)
+        const date = new Date(i.created_at)
         let matchTime = true
         if (this.selectedTime === 'Today') matchTime = date.toDateString() === now.toDateString()
         else if (this.selectedTime === 'Week') matchTime = (now - date) / 86400000 <= 7
         else if (this.selectedTime === 'Month') matchTime = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
-        return matchSearch && matchTime
+        const matchRule     = this.insightRuleFilter === 'all'     || i.rule_id === this.insightRuleFilter
+        const matchSeverity = this.insightSeverityFilter === 'all' || i.severity === this.insightSeverityFilter
+        const matchCategory = this.insightCategoryFilter === 'all' || i.category_name === this.insightCategoryFilter
+        const matchStatus   = this.insightStatusFilter === 'all'   ||
+                              (this.insightStatusFilter === 'unread' && !Number(i.is_read)) ||
+                              (this.insightStatusFilter === 'read'   && Number(i.is_read))
+        return matchSearch && matchTime && matchRule && matchSeverity && matchCategory && matchStatus
       })
+      list = [...list].sort((a, b) => {
+        const diff = new Date(a.created_at) - new Date(b.created_at)
+        return this.insightSortOrder === 'latest' ? -diff : diff
+      })
+      return list
     },
   },
 
   methods: {
     ruleLabel(id) { return RULE_META[id]?.label ?? id },
     ruleIcon(id)  { return RULE_META[id]?.icon  ?? '•' },
+
+    toggleDropdown(name) {
+      this.openDropdown = this.openDropdown === name ? null : name
+    },
+    closeDropdown() {
+      this.openDropdown = null
+    },
+
+    resetInsightFilters() {
+      this.insightSortOrder = 'latest'
+      this.insightRuleFilter = 'all'
+      this.insightSeverityFilter = 'all'
+      this.insightCategoryFilter = 'all'
+      this.insightStatusFilter = 'all'
+    },
 
     async fetchAlarms() {
       try { this.alarms = (await axios.get(`${API_BASE_URL}/api/alarm`)).data }
@@ -340,6 +466,11 @@ export default {
   mounted() {
     this.fetchAlarms()
     this.fetchInsights()
+    document.addEventListener('click', this.closeDropdown)
+  },
+
+  beforeUnmount() {
+    document.removeEventListener('click', this.closeDropdown)
   },
 }
 </script>
@@ -466,12 +597,12 @@ export default {
 .filter-label { color: #94a3b8; font-size: 11.5px; }
 .filter-value { font-weight: 500; color: #0f172a; }
 .dropdown-menu {
-  display: none; position: absolute; top: calc(100% + 6px); right: 0;
-  background: #fff; min-width: 130px;
+  display: none; position: absolute; top: calc(100% + 4px); right: 0;
+  background: #fff; min-width: 140px;
   box-shadow: 0 4px 16px rgba(0,0,0,.08); border: 1px solid #f0f0f0;
-  border-radius: 10px; z-index: 10; padding: 4px;
+  border-radius: 10px; z-index: 100; padding: 4px;
 }
-.dropdown:hover .dropdown-menu { display: block; }
+.dropdown-menu.open { display: block; }
 .dropdown-item { padding: 8px 12px; cursor: pointer; font-size: 13px; color: #374151; border-radius: 6px; transition: background .12s; }
 .dropdown-item:hover { background: #f8fafc; }
 .dropdown-item.active { background: #f1f5f9; font-weight: 500; color: #0f172a; }
@@ -543,6 +674,14 @@ export default {
 .badge-red   { background: #fef2f2; color: #dc2626; } .badge-red   .badge-dot { background: #ef4444; }
 .badge-amber { background: #fffbeb; color: #b45309; } .badge-amber .badge-dot { background: #f59e0b; }
 .badge-blue  { background: #eff6ff; color: #1d4ed8; } .badge-blue  .badge-dot { background: #3b82f6; }
+
+.btn-reset {
+  background: #fef2f2; border: 1px solid #fecaca;
+  color: #dc2626; padding: 5px 11px; border-radius: 7px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-reset:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
 
 .btn-action {
   background: transparent; border: 1px solid #e2e8f0;

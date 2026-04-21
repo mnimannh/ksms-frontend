@@ -54,7 +54,7 @@
               </div>
               <div class="field">
                 <label>Effective From</label>
-                <input type="date" v-model="form.effective_from" class="date-input" />
+                <input type="date" v-model="form.effective_from" class="date-input" :min="minDate" />
               </div>
             </div>
             <button class="btn-save" @click="save" :disabled="!form.rate || !form.effective_from || saving">
@@ -108,7 +108,7 @@ export default {
       saving: false,
       form: {
         rate: '',
-        effective_from: new Date().toISOString().slice(0, 10),
+        effective_from: this.tomorrow(),
       },
     };
   },
@@ -129,7 +129,18 @@ export default {
     },
   },
 
+  computed: {
+    minDate() {
+      return this.tomorrow();
+    },
+  },
+
   methods: {
+    tomorrow() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    },
     avatarColor(name) {
       return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
     },
@@ -155,7 +166,7 @@ export default {
           effective_from: this.form.effective_from,
         });
         this.form.rate = '';
-        this.form.effective_from = new Date().toISOString().slice(0, 10);
+        this.form.effective_from = this.tomorrow();
         await this.fetchRates();
       } catch (err) {
         console.error('Failed to save rate', err);

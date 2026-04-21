@@ -29,23 +29,25 @@
               <label>Start Time</label>
               <div class="dt-group">
                 <div class="dt-field">
-                  <input type="date" class="dt-input" :value="localForm.startTime ? localForm.startTime.slice(0,10) : ''" @change="e => setDatePart('startTime', e.target.value)" />
+                  <input type="date" class="dt-input" :class="{ 'dt-input--error': errors.start }" :min="todayStr" :value="localForm.startTime ? localForm.startTime.slice(0,10) : ''" @change="e => setDatePart('startTime', e.target.value)" />
                 </div>
                 <div class="dt-field">
-                  <input type="time" class="dt-input" :value="localForm.startTime ? localForm.startTime.slice(11,16) : ''" @change="e => setTimePart('startTime', e.target.value)" />
+                  <input type="time" class="dt-input" :class="{ 'dt-input--error': errors.start }" :min="minStartTime" :value="localForm.startTime ? localForm.startTime.slice(11,16) : ''" @change="e => setTimePart('startTime', e.target.value)" />
                 </div>
               </div>
+              <span v-if="errors.start" class="field-error">{{ errors.start }}</span>
             </div>
             <div>
               <label>End Time</label>
               <div class="dt-group">
                 <div class="dt-field">
-                  <input type="date" class="dt-input" :value="localForm.endTime ? localForm.endTime.slice(0,10) : ''" @change="e => setDatePart('endTime', e.target.value)" />
+                  <input type="date" class="dt-input" :class="{ 'dt-input--error': errors.end }" :min="localForm.startTime ? localForm.startTime.slice(0,10) : todayStr" :value="localForm.endTime ? localForm.endTime.slice(0,10) : ''" @change="e => setDatePart('endTime', e.target.value)" />
                 </div>
                 <div class="dt-field">
-                  <input type="time" class="dt-input" :value="localForm.endTime ? localForm.endTime.slice(11,16) : ''" @change="e => setTimePart('endTime', e.target.value)" />
+                  <input type="time" class="dt-input" :class="{ 'dt-input--error': errors.end }" :value="localForm.endTime ? localForm.endTime.slice(11,16) : ''" @change="e => setTimePart('endTime', e.target.value)" />
                 </div>
               </div>
+              <span v-if="errors.end" class="field-error">{{ errors.end }}</span>
             </div>
           </div>
 
@@ -56,8 +58,12 @@
         </div>
 
         <div class="assign-modal-footer">
+          <span v-if="conflictError" class="conflict-error">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ conflictError }}
+          </span>
           <button class="btn-cancel" @click="$emit('close')">Cancel</button>
-          <button class="btn-save" @click="$emit('save', localForm)">
+          <button class="btn-save" :disabled="!!errors.start || !!errors.end" @click="handleSave">
             {{ isEditing ? 'Save Changes' : 'Assign Shift' }}
           </button>
         </div>
@@ -71,29 +77,79 @@
 export default {
   name: 'ShiftAssignModal',
   props: {
-    visible:   { type: Boolean, required: true },
-    isEditing: { type: Boolean, default: false },
-    staffList: { type: Array,   required: true },
-    form:      { type: Object,  required: true },
+    visible:       { type: Boolean, required: true },
+    isEditing:     { type: Boolean, default: false },
+    staffList:     { type: Array,   required: true },
+    form:          { type: Object,  required: true },
+    conflictError: { type: String,  default: '' },
   },
   emits: ['close', 'save'],
 
   data() {
     return {
       localForm: { ...this.form },
+      errors: { start: '', end: '' },
     };
+  },
+
+  computed: {
+    todayStr() {
+      return new Date().toISOString().slice(0, 10);
+    },
+    minStartTime() {
+      if (!this.localForm.startTime) return '';
+      const selectedDate = this.localForm.startTime.slice(0, 10);
+      if (selectedDate !== this.todayStr) return '';
+      const now = new Date();
+      return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    },
   },
 
   watch: {
     form(val) {
       this.localForm = { ...val };
+      this.errors = { start: '', end: '' };
     },
   },
 
   methods: {
+    validate() {
+      this.errors.start = '';
+      this.errors.end = '';
+
+      if (!this.localForm.startTime) {
+        this.errors.start = 'Start time is required.';
+        return false;
+      }
+      if (!this.localForm.endTime) {
+        this.errors.end = 'End time is required.';
+        return false;
+      }
+
+      const now   = new Date();
+      const start = new Date(this.localForm.startTime);
+      const end   = new Date(this.localForm.endTime);
+
+      if (start < now) {
+        this.errors.start = 'Start time cannot be in the past.';
+      }
+      if (end <= start) {
+        this.errors.end = 'End time must be after start time.';
+      }
+
+      return !this.errors.start && !this.errors.end;
+    },
+
+    handleSave() {
+      if (this.validate()) {
+        this.$emit('save', this.localForm);
+      }
+    },
+
     setDatePart(field, date) {
       const time = this.localForm[field] ? this.localForm[field].slice(11, 16) : '00:00';
       this.localForm[field] = date ? `${date}T${time}` : '';
+      this.validate();
     },
     setTimePart(field, time) {
       const date = this.localForm[field] ? this.localForm[field].slice(0, 10) : new Date().toISOString().slice(0, 10);
@@ -102,6 +158,7 @@ export default {
         const hour = parseInt(time.slice(0, 2), 10);
         this.localForm.shiftType = hour < 12 ? 'Morning' : 'Evening';
       }
+      this.validate();
     },
   },
 };
@@ -267,6 +324,13 @@ export default {
   padding: 16px 22px;
   border-top: 1px solid #f1f5f9;
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.conflict-error {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px;
+  color: #dc2626; flex: 1;
 }
 .btn-cancel {
   font-family: 'DM Sans', sans-serif;
@@ -294,7 +358,19 @@ export default {
   transition: background 0.12s, transform 0.1s, box-shadow 0.12s;
   letter-spacing: -0.01em;
 }
-.btn-save:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.3); }
+.btn-save:hover:not(:disabled) { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.3); }
+.btn-save:disabled { background: #a5b4fc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.dt-input--error { border-color: #fca5a5 !important; background: #fff5f5 !important; }
+.dt-input--error:focus { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important; }
+
+.field-error {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.7rem;
+  color: #dc2626;
+  margin-top: 3px;
+  display: block;
+}
 
 /* Transition */
 .modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.2s ease; }

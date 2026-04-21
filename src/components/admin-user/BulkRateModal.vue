@@ -29,7 +29,7 @@
               </div>
               <div class="field">
                 <label>Effective From</label>
-                <input type="date" v-model="form.effective_from" class="date-input" />
+                <input type="date" v-model="form.effective_from" class="date-input" :min="minDate" />
               </div>
             </div>
           </div>
@@ -90,7 +90,7 @@ export default {
 
   data() {
     return {
-      form: { rate: '', effective_from: new Date().toISOString().slice(0, 10) },
+      form: { rate: '', effective_from: this.tomorrow() },
       currentRates: {},
       selectedIds:  new Set(),
       saving:       false,
@@ -102,7 +102,7 @@ export default {
     visible(val) {
       if (val) {
         this.form.rate = ''
-        this.form.effective_from = new Date().toISOString().slice(0, 10)
+        this.form.effective_from = this.tomorrow()
         this.doneCount = 0
         this.selectedIds = new Set(this.staffList.map(s => s.id))
         this.fetchCurrentRates()
@@ -110,7 +110,16 @@ export default {
     },
   },
 
+  computed: {
+    minDate() { return this.tomorrow(); },
+  },
+
   methods: {
+    tomorrow() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    },
     avatarColor(name) { return COLORS[name.charCodeAt(0) % COLORS.length] },
     selectAll()  { this.selectedIds = new Set(this.staffList.map(s => s.id)) },
     selectNone() { this.selectedIds = new Set() },

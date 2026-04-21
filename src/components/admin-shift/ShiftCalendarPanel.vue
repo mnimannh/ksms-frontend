@@ -65,12 +65,19 @@ export default {
         headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
         height: '625px',
         events: this.calendarEvents,
+        dayCellClassNames: (arg) => {
+          const cell = new Date(arg.date);
+          cell.setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return cell < today ? ['fc-day-past-blocked'] : [];
+        },
         eventClick: (info) => {
           this.$emit('event-click', info.event.extendedProps);
         },
-        dateClick: (info) => {          // ← add this
-  this.$emit('date-click', info.dateStr);
-},
+        dateClick: (info) => {
+          this.$emit('date-click', info.dateStr);
+        },
         dayMaxEvents: 3,
         eventDisplay: 'block',
       });
@@ -88,6 +95,20 @@ export default {
 
 <!-- FullCalendar global overrides -->
 <style>
+#admin-calendar .fc-day-past-blocked {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(0,0,0,0.03) 4px,
+    rgba(0,0,0,0.03) 8px
+  ) !important;
+  cursor: not-allowed !important;
+}
+#admin-calendar .fc-day-past-blocked .fc-daygrid-day-number {
+  color: #cbd5e1;
+}
+
 #admin-calendar .fc-toolbar-title {
   font-family: 'DM Sans', sans-serif;
   font-size: 1.05rem;
