@@ -11,6 +11,80 @@
       aria-hidden="true"
     />
 
+    <!-- Receipt Modal -->
+    <transition name="modal-fade">
+      <div v-if="receipt.show" class="receipt-overlay" @click.self="closeReceipt">
+        <div class="receipt-modal">
+
+          <!-- Store header -->
+          <div class="rct-head">
+            <p class="rct-store">K S M S</p>
+            <p class="rct-sub">Point of Sale</p>
+            <p class="rct-addr">Koperasi KVSA</p>
+          </div>
+
+          <div class="rct-rule"></div>
+
+          <!-- Meta -->
+          <div class="rct-meta">
+            <div class="rct-meta-row"><span>Order #</span><span>{{ receipt.orderNo }}</span></div>
+            <div class="rct-meta-row"><span>Date</span><span>{{ receipt.date }}</span></div>
+            <div class="rct-meta-row"><span>Cashier</span><span>{{ receipt.cashier }}</span></div>
+          </div>
+
+          <div class="rct-rule"></div>
+
+          <!-- Column headers -->
+          <div class="rct-col-head">
+            <span class="col-item">ITEM</span>
+            <span class="col-qty">QTY</span>
+            <span class="col-unit">UNIT</span>
+            <span class="col-total">TOTAL</span>
+          </div>
+
+          <div class="rct-rule rct-rule--dashed"></div>
+
+          <!-- Items -->
+          <div class="rct-items">
+            <div v-for="item in receipt.items" :key="item.id" class="rct-item-row">
+              <span class="col-item rct-name">{{ item.inventoryName }} {{ item.variant_name }}</span>
+              <span class="col-qty">{{ item.orderQty }}</span>
+              <span class="col-unit">{{ Number(item.price).toFixed(2) }}</span>
+              <span class="col-total">{{ (item.price * item.orderQty).toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <div class="rct-rule rct-rule--dashed"></div>
+
+          <!-- Totals -->
+          <div class="rct-totals">
+            <div class="rct-sub-row"><span>Subtotal</span><span>RM {{ receipt.total }}</span></div>
+            <div class="rct-sub-row"><span>Tax (0%)</span><span>RM 0.00</span></div>
+            <div class="rct-grand"><span>TOTAL</span><span>RM {{ receipt.total }}</span></div>
+          </div>
+
+          <div class="rct-rule"></div>
+
+          <p class="rct-thanks">Thank you! Come again. 🙏</p>
+          <p class="rct-powered">Powered by KSMS</p>
+
+          <!-- Actions -->
+          <div class="receipt-actions">
+            <button class="btn-skip" @click="closeReceipt">
+              <span class="key-hint">Del</span> Skip
+            </button>
+            <button class="btn-print" @click="printReceipt">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+              </svg>
+              <span class="key-hint key-hint--white">P</span> Print Receipt
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+
     <!-- Notification Toast -->
     <transition name="toast-fade">
       <div v-if="notification.show" :class="['notification-toast', `notification-${notification.type}`]">
@@ -111,6 +185,8 @@ export default {
       pauseScanner: false, productPollInterval: null,
       notification: { show: false, type: 'info', title: '', message: '' },
       notificationTimer: null,
+      receipt: { show: false, items: [], total: '0.00', date: '', orderNo: '', cashier: '' },
+      cashierName: localStorage.getItem('userName') || 'Staff',
     };
   },
 
@@ -203,6 +279,11 @@ export default {
     },
 
     handleKeydown(event) {
+      if (this.receipt.show) {
+        if (event.key === 'p' || event.key === 'P') { event.preventDefault(); this.printReceipt(); }
+        if (event.key === 'Delete') this.closeReceipt();
+        return;
+      }
       if (event.key === 'Delete') this.resetCart();
       if (event.key === 'Enter' && this.barcode === '') this.processPayment();
     },
@@ -222,12 +303,95 @@ export default {
       if (!this.cart.length) { this.showNotification('warning', 'Empty Cart', 'Add items before proceeding to payment'); return; }
       try {
         await axios.post(`${API_BASE_URL}/api/orders`, { items: this.cart.map(i => ({ id: i.id, quantity: i.orderQty })) });
-        this.showNotification('success', 'Payment Successful', `Order completed. Total: RM${this.total.toFixed(2)}`, 3000);
+        this.receipt = {
+          show: true,
+          items: [...this.cart],
+          total: this.total.toFixed(2),
+          date: new Date().toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' }),
+          orderNo: Date.now().toString().slice(-6),
+          cashier: this.cashierName,
+        };
         this.cart = [];
         this.loadProducts().catch(console.error);
       } catch (err) {
         this.showNotification('error', 'Payment Failed', err.response?.data?.message || 'An unexpected error occurred');
       }
+    },
+
+    closeReceipt() {
+      this.receipt.show = false;
+      this.showNotification('success', 'Payment Successful', `Total: RM${this.receipt.total}`, 3000);
+    },
+
+    printReceipt() {
+      const items = this.receipt.items.map(item => `
+        <div class="pr-item-row">
+          <span class="pc-item">${item.inventoryName || ''} ${item.variant_name}</span>
+          <span class="pc-qty">${item.orderQty}</span>
+          <span class="pc-unit">${Number(item.price).toFixed(2)}</span>
+          <span class="pc-tot">${(item.price * item.orderQty).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Receipt #${this.receipt.orderNo}</title>
+  <style>
+    @page { size: 80mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Courier New', monospace; font-size: 11px; width: 72mm; padding: 6mm 4mm; color: #000; }
+    .pr-head { text-align: center; margin-bottom: 8px; }
+    .pr-store { font-size: 18px; font-weight: bold; letter-spacing: .2em; }
+    .pr-sub   { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+    .pr-addr  { font-size: 10px; color: #555; margin-top: 2px; }
+    .pr-rule  { border: none; border-top: 1px solid #000; margin: 6px 0; }
+    .pr-rule.dashed { border-top: 1px dashed #999; }
+    .pr-meta  { display: flex; flex-direction: column; gap: 3px; margin: 4px 0; }
+    .pr-meta-row { display: flex; justify-content: space-between; font-size: 10px; }
+    .pr-col-head { display: grid; grid-template-columns: 1fr 20px 44px 48px; gap: 3px; font-size: 9px; font-weight: bold; text-transform: uppercase; color: #555; margin: 4px 0 2px; }
+    .pc-qty, .pc-unit, .pc-tot { text-align: right; }
+    .pr-item-row { display: grid; grid-template-columns: 1fr 20px 44px 48px; gap: 3px; font-size: 10px; margin: 3px 0; }
+    .pr-total { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin: 4px 0; }
+    .pr-thanks  { text-align: center; margin-top: 10px; font-size: 11px; }
+    .pr-powered { text-align: center; font-size: 9px; color: #aaa; margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <div class="pr-head">
+    <p class="pr-store">K S M S</p>
+    <p class="pr-sub">Point of Sale</p>
+    <p class="pr-addr">Koperasi KVSA</p>
+  </div>
+  <hr class="pr-rule"/>
+  <div class="pr-meta">
+    <div class="pr-meta-row"><span>Order #</span><span>${this.receipt.orderNo}</span></div>
+    <div class="pr-meta-row"><span>Date</span><span>${this.receipt.date}</span></div>
+    <div class="pr-meta-row"><span>Cashier</span><span>${this.receipt.cashier}</span></div>
+  </div>
+  <hr class="pr-rule"/>
+  <div class="pr-col-head">
+    <span class="pc-item">ITEM</span><span class="pc-qty">QTY</span><span class="pc-unit">UNIT</span><span class="pc-tot">TOTAL</span>
+  </div>
+  <hr class="pr-rule dashed"/>
+  ${items}
+  <hr class="pr-rule dashed"/>
+  <div class="pr-meta-row"><span>Subtotal</span><span>RM ${this.receipt.total}</span></div>
+  <div class="pr-meta-row"><span>Tax (0%)</span><span>RM 0.00</span></div>
+  <hr class="pr-rule dashed"/>
+  <div class="pr-total"><span>TOTAL</span><span>RM ${this.receipt.total}</span></div>
+  <hr class="pr-rule"/>
+  <p class="pr-thanks">Thank you! Come again.</p>
+  <p class="pr-powered">Powered by KSMS</p>
+</body>
+</html>`;
+
+      const win = window.open('', '_blank', 'width=350,height=600');
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => { win.print(); win.close(); }, 300);
     },
   },
 };
@@ -235,6 +399,7 @@ export default {
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap');
+
 </style>
 
 <style scoped>
@@ -374,6 +539,94 @@ export default {
   display: flex;
   flex-direction: column;
 }
+
+/* ── Receipt Modal ── */
+.receipt-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,.55); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9998; padding: 20px;
+}
+.receipt-modal {
+  background: #fafafa;
+  border-radius: 4px;
+  width: 100%; max-width: 360px;
+  padding: 28px 24px 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25), 2px 2px 0 #e2e8f0;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  font-family: 'DM Mono', monospace;
+  /* paper tear effect */
+  border-top: 2px dashed #e2e8f0;
+}
+
+/* Header */
+.rct-head { text-align: center; }
+.rct-store { font-size: 1.5rem; font-weight: 700; color: #0f172a; letter-spacing: .2em; }
+.rct-sub   { font-size: 11px; color: #64748b; letter-spacing: .1em; text-transform: uppercase; margin-top: 2px; }
+.rct-addr  { font-size: 10px; color: #94a3b8; margin-top: 3px; }
+
+.rct-rule { width: 100%; height: 1px; background: #e2e8f0; border: none; }
+.rct-rule--dashed { background: none; border-top: 1px dashed #e2e8f0; }
+
+/* Meta */
+.rct-meta { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.rct-meta-row { display: flex; justify-content: space-between; font-size: 11.5px; color: #475569; }
+
+/* Column headers */
+.rct-col-head { display: grid; grid-template-columns: 1fr 28px 52px 56px; width: 100%; gap: 4px; }
+.rct-col-head span { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: .08em; }
+.col-qty, .col-unit, .col-total { text-align: right; }
+
+/* Items */
+.rct-items { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.rct-item-row { display: grid; grid-template-columns: 1fr 28px 52px 56px; gap: 4px; align-items: start; }
+.rct-name { font-size: 12px; color: #0f172a; font-weight: 500; line-height: 1.35; word-break: break-word; }
+.col-qty   { font-size: 12px; color: #64748b; text-align: right; }
+.col-unit  { font-size: 12px; color: #64748b; text-align: right; }
+.col-total { font-size: 12px; color: #0f172a; font-weight: 600; text-align: right; }
+
+/* Totals */
+.rct-totals { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.rct-sub-row { display: flex; justify-content: space-between; font-size: 12px; color: #64748b; }
+.rct-grand   { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 4px; }
+
+.rct-thanks  { font-size: 12px; color: #64748b; text-align: center; }
+.rct-powered { font-size: 10px; color: #cbd5e1; text-align: center; letter-spacing: .06em; }
+
+/* Actions */
+.receipt-actions { display: flex; gap: 8px; width: 100%; margin-top: 6px; }
+.btn-skip {
+  flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px;
+  background: #f8fafc; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer;
+  transition: background .15s; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-skip:hover { background: #f1f5f9; }
+.btn-print {
+  flex: 2; padding: 10px; border: none; border-radius: 10px;
+  background: #6366f1; color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 7px; transition: background .15s;
+}
+.btn-print:hover { background: #4f46e5; }
+
+.key-hint {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #e2e8f0; color: #475569;
+  font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700;
+  padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1;
+}
+.key-hint--white {
+  background: rgba(255,255,255,.2); color: #fff; border-color: rgba(255,255,255,.3);
+}
+
+.modal-fade-enter-active, .modal-fade-leave-active { transition: all .2s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-from .receipt-modal, .modal-fade-leave-to .receipt-modal { transform: translateY(12px) scale(.97); }
+
+/* ── Print styles (screen only) ── */
+.print-only { display: none; }
 
 @media (max-width: 900px) {
   .pos-layout { grid-template-columns: 1fr; max-height: none; overflow: visible; }

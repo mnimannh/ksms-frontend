@@ -81,7 +81,8 @@
       <!-- FOOTER -->
       <div class="sidebar-footer">
         <div class="user-card">
-          <div class="user-avatar">{{ (user.fullName || 'A').charAt(0).toUpperCase() }}</div>
+          <img v-if="user.profilePicture" :src="apiBase + user.profilePicture" class="user-avatar user-avatar-img" alt="avatar" />
+          <div v-else class="user-avatar">{{ (user.fullName || 'A').charAt(0).toUpperCase() }}</div>
           <div class="user-info">
             <div class="user-name">{{ user.fullName || 'Admin' }}</div>
             <div class="user-role">{{ user.role || 'Administrator' }}</div>
@@ -153,7 +154,8 @@ export default {
           icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
         }
       ],
-      user: { fullName: "", role: "" }
+      user: { fullName: "", role: "", profilePicture: null },
+      apiBase: API_BASE_URL,
     };
   },
   mounted() {
@@ -201,11 +203,12 @@ export default {
       try {
         const token = localStorage.getItem("userToken");
         if (!token) return;
-        const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        const response = await axios.get(`${API_BASE_URL}/api/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         this.user.fullName = response.data.fullName || "Admin";
         this.user.role = response.data.role || "Administrator";
+        this.user.profilePicture = response.data.profile_picture || null;
         localStorage.setItem("userName", this.user.fullName);
         localStorage.setItem("userRole", this.user.role);
       } catch (error) {
@@ -560,6 +563,10 @@ export default {
   font-size: 13px;
   font-weight: 600;
   flex-shrink: 0;
+}
+.user-avatar-img {
+  object-fit: cover;
+  background: none;
 }
 
 .user-info {

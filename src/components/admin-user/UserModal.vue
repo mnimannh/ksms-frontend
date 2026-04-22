@@ -111,28 +111,6 @@
           </div>
         </transition>
 
-        <div v-if="user" class="form-group password-toggle-group">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="changingPassword" />
-            <span class="checkbox-box">
-              <svg v-if="changingPassword" width="10" height="8" viewBox="0 0 10 8" fill="none">
-                <path d="M1 4L3.8 7L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-            Change password
-          </label>
-        </div>
-
-        <div v-if="!user || changingPassword" class="form-row two-col">
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input id="password" type="password" v-model="form.password" placeholder="••••••••" :required="!user || changingPassword" />
-          </div>
-          <div class="form-group">
-            <label for="confirmPassword">Confirm</label>
-            <input id="confirmPassword" type="password" v-model="form.confirmPassword" placeholder="••••••••" :required="!user || changingPassword" />
-          </div>
-        </div>
 
         <div class="form-divider"></div>
 
@@ -184,10 +162,7 @@ export default {
         role: 'staff',
         status: 'active',
         rfidUid: '',
-        password: '',
-        confirmPassword: ''
       },
-      changingPassword: false,
       loading: false,
       rfidScanMode: false,
       confirmDialog: {
@@ -208,10 +183,7 @@ export default {
             role: val.role,
             status: val.status,
             rfidUid: val.rfidUid || '',
-            password: '',
-            confirmPassword: ''
           }
-          this.changingPassword = false
         } else {
           this.form = {
             fullName: '',
@@ -219,10 +191,7 @@ export default {
             role: 'staff',
             status: 'active',
             rfidUid: '',
-            password: '',
-            confirmPassword: ''
           }
-          this.changingPassword = false
         }
         this.rfidScanMode = false
       }
@@ -293,22 +262,14 @@ export default {
     },
 
     async submitForm() {
-      if ((!this.user || this.changingPassword) && this.form.password !== this.form.confirmPassword) {
-        alert('Passwords do not match!')
-        return
-      }
-
       this.loading = true
       try {
         const payload = { ...this.form }
         if (payload.role !== 'staff') delete payload.rfidUid
 
         if (this.user) {
-          if (!this.changingPassword || !payload.password) delete payload.password
-          delete payload.confirmPassword
           await axios.put(`http://localhost:3000/api/users/${this.user.id}`, payload)
         } else {
-          delete payload.confirmPassword
           await axios.post('http://localhost:3000/api/users', payload)
         }
 

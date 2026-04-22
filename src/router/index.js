@@ -19,6 +19,7 @@ import StaffDashboard from '../views/staff/staffDashboard.vue';
 import StaffPOS from '../views/staff/staffPOS.vue';
 import StaffPayroll from '../views/staff/staffPayroll.vue';
 import ShiftViewing from '../views/staff/staffShift.vue';
+import StaffProfile from '../views/staff/staffProfile.vue';
 import AdminShiftPayrollReport from '../views/admin/adminShiftPayrollReport.vue';
 
 // -----------------------------
@@ -146,6 +147,12 @@ const routes = [
     path: '/staff/shifts',
     name: 'ShiftViewing',
     component: ShiftViewing,
+    meta: { requiresAuth: true, role: 'staff' },
+  },
+  {
+    path: '/staff/profile',
+    name: 'StaffProfile',
+    component: StaffProfile,
     meta: { requiresAuth: true, role: 'staff' },
   },
 

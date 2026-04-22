@@ -67,7 +67,10 @@
               :title="isCollapsed && !isMobile ? item.name : ''"
               @click.stop="handleNavClick"
             >
-              <span class="nav-icon" v-html="item.icon"></span>
+              <span class="nav-icon-wrap">
+                <span class="nav-icon" v-html="item.icon"></span>
+                <span v-if="item.path === '/staff/profile' && isTempPassword" class="temp-badge"></span>
+              </span>
               <span class="nav-label">{{ item.name }}</span>
               <span v-if="$route.path.startsWith(item.path)" class="active-dot"></span>
             </router-link>
@@ -78,7 +81,8 @@
       <!-- FOOTER -->
       <div class="sidebar-footer">
         <div class="user-card">
-          <div class="user-avatar">{{ (user.fullName || 'S').charAt(0).toUpperCase() }}</div>
+          <img v-if="user.profilePicture" :src="apiBase + user.profilePicture" class="user-avatar user-avatar-img" alt="avatar" />
+          <div v-else class="user-avatar">{{ (user.fullName || 'S').charAt(0).toUpperCase() }}</div>
           <div class="user-info">
             <div class="user-name">{{ user.fullName || 'Staff' }}</div>
             <div class="user-role">{{ user.role || 'Employee' }}</div>
@@ -121,8 +125,11 @@ export default {
         { name: "POS", path: "/staff/pos", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h2m2 0h2M5 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 9v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
         { name: "Shift", path: "/staff/shifts", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
         { name: "Payroll", path: "/staff/payroll", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 6v4M6 7.5c0-.83.67-1.5 1.5-1.5h1a1.5 1.5 0 010 3h-1A1.5 1.5 0 006 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+        { name: "Profile", path: "/staff/profile", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
       ],
-      user: { fullName: "", role: "" },
+      user: { fullName: "", role: "", profilePicture: null },
+      isTempPassword: false,
+      apiBase: API_BASE_URL,
     };
   },
   mounted() {
@@ -167,11 +174,13 @@ export default {
       try {
         const token = localStorage.getItem("userToken");
         if (!token) return;
-        const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        const res = await axios.get(`${API_BASE_URL}/api/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         this.user.fullName = res.data.fullName || "Staff";
         this.user.role = res.data.role || "Employee";
+        this.user.profilePicture = res.data.profile_picture || null;
+        this.isTempPassword = !!res.data.is_temp_password;
         localStorage.setItem("userName", this.user.fullName);
         localStorage.setItem("userRole", this.user.role);
       } catch (err) {
@@ -411,15 +420,23 @@ export default {
   padding: 10px;
 }
 
-.nav-icon {
+.nav-icon-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0.75;
 }
 
 .nav-link.active .nav-icon { opacity: 1; }
+.nav-link.active .nav-icon-wrap .nav-icon { opacity: 1; }
 
 .nav-label {
   flex: 1;
@@ -475,6 +492,10 @@ export default {
   font-weight: 600;
   flex-shrink: 0;
 }
+.user-avatar-img {
+  object-fit: cover;
+  background: none;
+}
 
 .user-info {
   overflow: hidden;
@@ -527,6 +548,19 @@ export default {
 .logout-label {
   white-space: nowrap;
   transition: opacity 0.2s ease;
+}
+
+/* ── Temp password badge ── */
+.temp-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 1.5px solid #0f172a;
+  display: block;
 }
 
 /* ── Scrollbar ── */
