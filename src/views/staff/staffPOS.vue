@@ -325,12 +325,12 @@ export default {
 
     printReceipt() {
       const items = this.receipt.items.map(item => `
-        <div class="pr-item-row">
-          <span class="pc-item">${item.inventoryName || ''} ${item.variant_name}</span>
-          <span class="pc-qty">${item.orderQty}</span>
-          <span class="pc-unit">${Number(item.price).toFixed(2)}</span>
-          <span class="pc-tot">${(item.price * item.orderQty).toFixed(2)}</span>
-        </div>
+        <tr>
+          <td class="td-item">${item.inventoryName || ''} ${item.variant_name}</td>
+          <td class="td-c">${item.orderQty}</td>
+          <td class="td-r">${Number(item.price).toFixed(2)}</td>
+          <td class="td-r">${(item.price * item.orderQty).toFixed(2)}</td>
+        </tr>
       `).join('');
 
       const html = `<!DOCTYPE html>
@@ -339,59 +339,101 @@ export default {
   <meta charset="utf-8"/>
   <title>Receipt #${this.receipt.orderNo}</title>
   <style>
-    @page { size: 80mm auto; margin: 0; }
+    @page { margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Courier New', monospace; font-size: 11px; width: 72mm; padding: 6mm 4mm; color: #000; }
-    .pr-head { text-align: center; margin-bottom: 8px; }
-    .pr-store { font-size: 18px; font-weight: bold; letter-spacing: .2em; }
-    .pr-sub   { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
-    .pr-addr  { font-size: 10px; color: #555; margin-top: 2px; }
-    .pr-rule  { border: none; border-top: 1px solid #000; margin: 6px 0; }
-    .pr-rule.dashed { border-top: 1px dashed #999; }
-    .pr-meta  { display: flex; flex-direction: column; gap: 3px; margin: 4px 0; }
-    .pr-meta-row { display: flex; justify-content: space-between; font-size: 10px; }
-    .pr-col-head { display: grid; grid-template-columns: 1fr 20px 44px 48px; gap: 3px; font-size: 9px; font-weight: bold; text-transform: uppercase; color: #555; margin: 4px 0 2px; }
-    .pc-qty, .pc-unit, .pc-tot { text-align: right; }
-    .pr-item-row { display: grid; grid-template-columns: 1fr 20px 44px 48px; gap: 3px; font-size: 10px; margin: 3px 0; }
-    .pr-total { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin: 4px 0; }
-    .pr-thanks  { text-align: center; margin-top: 10px; font-size: 11px; }
-    .pr-powered { text-align: center; font-size: 9px; color: #aaa; margin-top: 3px; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #fff;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .wrap {
+      width: 80mm;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #000;
+      padding: 6mm 4mm;
+    }
+    .head       { text-align: center; margin-bottom: 8px; }
+    .head-store { font-size: 17px; font-weight: bold; letter-spacing: .25em; }
+    .head-sub   { font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em; margin-top: 2px; }
+    .head-brand { font-size: 9.5px; color: #444; margin-top: 1px; }
+    hr          { border: none; border-top: 1px solid #000; margin: 5px 0; }
+    hr.d        { border-top: 1px dashed #888; }
+    table       { width: 100%; border-collapse: collapse; font-size: 10px; margin: 3px 0; }
+    .meta td:last-child { text-align: right; font-weight: 600; }
+    .items thead th { font-size: 9px; text-transform: uppercase; color: #555; }
+    .items thead th:not(:first-child) { text-align: right; }
+    .td-item    { width: 48%; word-break: break-word; padding: 2px 0; }
+    .td-c       { text-align: center; }
+    .td-r       { text-align: right; }
+    .sub td:last-child  { text-align: right; }
+    .tot        { font-size: 13px; font-weight: bold; }
+    .tot td:last-child  { text-align: right; }
+    .footer     { text-align: center; margin-top: 10px; font-size: 11px; }
+    .powered    { text-align: center; font-size: 9px; color: #999; margin-top: 3px; }
   </style>
 </head>
 <body>
-  <div class="pr-head">
-    <p class="pr-store">K S M S</p>
-    <p class="pr-sub">Point of Sale</p>
-    <p class="pr-addr">Koperasi KVSA</p>
+  <div class="wrap">
+    <div class="head">
+      <p class="head-store">K S M S</p>
+      <p class="head-sub">Point of Sale</p>
+      <p class="head-brand">Koperasi KVSA</p>
+    </div>
+    <hr/>
+    <table class="meta">
+      <tr><td>Order #</td><td>${this.receipt.orderNo}</td></tr>
+      <tr><td>Date</td><td>${this.receipt.date}</td></tr>
+      <tr><td>Cashier</td><td>${this.receipt.cashier}</td></tr>
+    </table>
+    <hr/>
+    <table class="items">
+      <thead><tr>
+        <th style="text-align:left">ITEM</th>
+        <th style="text-align:center">QTY</th>
+        <th style="text-align:right">UNIT</th>
+        <th style="text-align:right">TOTAL</th>
+      </tr></thead>
+      <tbody>
+        <tr><td colspan="4"><hr class="d" style="margin:2px 0"/></td></tr>
+        ${items}
+        <tr><td colspan="4"><hr class="d" style="margin:2px 0"/></td></tr>
+      </tbody>
+    </table>
+    <table class="sub">
+      <tr><td>Subtotal</td><td>RM ${this.receipt.total}</td></tr>
+      <tr><td>Tax (0%)</td><td>RM 0.00</td></tr>
+    </table>
+    <hr/>
+    <table><tr class="tot"><td>TOTAL</td><td style="text-align:right">RM ${this.receipt.total}</td></tr></table>
+    <hr/>
+    <p class="footer">Thank you! Come again.</p>
+    <p class="powered">Powered by KSMS</p>
   </div>
-  <hr class="pr-rule"/>
-  <div class="pr-meta">
-    <div class="pr-meta-row"><span>Order #</span><span>${this.receipt.orderNo}</span></div>
-    <div class="pr-meta-row"><span>Date</span><span>${this.receipt.date}</span></div>
-    <div class="pr-meta-row"><span>Cashier</span><span>${this.receipt.cashier}</span></div>
-  </div>
-  <hr class="pr-rule"/>
-  <div class="pr-col-head">
-    <span class="pc-item">ITEM</span><span class="pc-qty">QTY</span><span class="pc-unit">UNIT</span><span class="pc-tot">TOTAL</span>
-  </div>
-  <hr class="pr-rule dashed"/>
-  ${items}
-  <hr class="pr-rule dashed"/>
-  <div class="pr-meta-row"><span>Subtotal</span><span>RM ${this.receipt.total}</span></div>
-  <div class="pr-meta-row"><span>Tax (0%)</span><span>RM 0.00</span></div>
-  <hr class="pr-rule dashed"/>
-  <div class="pr-total"><span>TOTAL</span><span>RM ${this.receipt.total}</span></div>
-  <hr class="pr-rule"/>
-  <p class="pr-thanks">Thank you! Come again.</p>
-  <p class="pr-powered">Powered by KSMS</p>
 </body>
 </html>`;
 
-      const win = window.open('', '_blank', 'width=350,height=600');
-      win.document.write(html);
-      win.document.close();
-      win.focus();
-      setTimeout(() => { win.print(); win.close(); }, 300);
+      // Use hidden iframe — no new tab/window opens
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;opacity:0;';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(html);
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        this.closeReceipt();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+      }, 400);
     },
   },
 };

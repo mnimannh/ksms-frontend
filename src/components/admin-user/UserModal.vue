@@ -269,15 +269,18 @@ export default {
 
         if (this.user) {
           await axios.put(`http://localhost:3000/api/users/${this.user.id}`, payload)
+          this.$emit('save', { isEdit: true, message: `${this.form.fullName} updated successfully.` })
         } else {
           await axios.post('http://localhost:3000/api/users', payload)
+          this.$emit('save', { isEdit: false, message: `${this.form.fullName} created. Temporary password sent to ${this.form.email}.` })
         }
 
-        this.$emit('save')
         this.closeModal()
       } catch (err) {
         console.error('Error saving user:', err)
-        alert('Failed to save user.')
+        const msg = err.response?.data?.message || 'Failed to save user. Please try again.'
+        this.$emit('error', { message: msg })
+        this.closeModal()
       } finally {
         this.loading = false
       }

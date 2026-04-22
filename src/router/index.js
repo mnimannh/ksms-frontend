@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 // Auth
 import Login from '../views/login.vue';
+import ResetPassword from '../views/ResetPassword.vue';
 
 // Admin views
 import AdminDashboard from '../views/admin/adminDashboard.vue';
@@ -54,6 +55,11 @@ const routes = [
     path: '/',
     name: 'Login',
     component: Login,
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: ResetPassword,
   },
 
   // ================= ADMIN =================

@@ -106,6 +106,7 @@
             <thead>
               <tr>
                 <th>#</th>
+                <th class="th-avatar">Photo</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
@@ -118,6 +119,20 @@
             <tbody>
               <tr v-for="(user, index) in filteredUsers" :key="user.id" class="table-row">
                 <td class="td-num">{{ index + 1 }}</td>
+                <td class="td-avatar">
+                  <img
+                    v-if="user.profile_picture"
+                    :src="apiBase + user.profile_picture"
+                    class="row-avatar row-avatar-img"
+                    :alt="user.fullName"
+                    @click="openLightbox(user)"
+                  />
+                  <div
+                    v-else
+                    class="row-avatar row-avatar-initials"
+                    :style="{ background: avatarColor(user.fullName) }"
+                  >{{ user.fullName.charAt(0).toUpperCase() }}</div>
+                </td>
                 <td>
                   <span class="user-name">{{ user.fullName }}</span>
                 </td>
@@ -143,7 +158,7 @@
                 </td>
               </tr>
               <tr v-if="filteredUsers.length === 0">
-                <td colspan="8" class="empty-state">No users found.</td>
+                <td colspan="9" class="empty-state">No users found.</td>
               </tr>
             </tbody>
           </table>
@@ -160,7 +175,8 @@
       :visible="showModal"
       :user="selectedUser"
       @close="showModal = false"
-      @save="refreshUsers"
+      @save="onUserSaved"
+      @error="onUserError"
     />
 
     <RateModal
@@ -176,6 +192,33 @@
       @close="showBulkRateModal = false"
       @saved="showBulkRateModal = false"
     />
+
+    <!-- TOAST -->
+    <transition name="toast-slide">
+      <div v-if="toast.show" class="toast" :class="'toast-' + toast.type">
+        <div class="toast-icon">
+          <svg v-if="toast.type === 'success'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <span class="toast-msg">{{ toast.message }}</span>
+        <button class="toast-close" @click="toast.show = false">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </transition>
+
+    <!-- LIGHTBOX -->
+    <transition name="lb">
+      <div v-if="lightboxUser" class="lightbox" @click.self="closeLightbox">
+        <button class="lb-close" @click="closeLightbox">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="lb-content">
+          <img :src="apiBase + lightboxUser.profile_picture" class="lb-img" :alt="lightboxUser.fullName" />
+          <p class="lb-name">{{ lightboxUser.fullName }}</p>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -206,6 +249,10 @@ export default {
       rateUser: null,
       showBulkRateModal: false,
       openDropdown: null,
+      lightboxUser: null,
+      apiBase: API_BASE_URL,
+      toast: { show: false, type: 'success', message: '' },
+      toastTimer: null,
     }
   },
 
@@ -261,19 +308,37 @@ export default {
       return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     },
 
+    showToast(type, message) {
+      clearTimeout(this.toastTimer)
+      this.toast = { show: true, type, message }
+      this.toastTimer = setTimeout(() => { this.toast.show = false }, 4000)
+    },
+    onUserSaved({ message }) {
+      this.refreshUsers()
+      this.showToast('success', message)
+    },
+    onUserError({ message }) {
+      this.showToast('error', message)
+    },
+
     openAddModal()    { this.selectedUser = null; this.showModal = true },
     openEditModal(u)  { this.selectedUser = u;    this.showModal = true },
     openRateModal(u)  { this.rateUser = u;        this.showRateModal = true },
     setRoleFilter(r)  { this.selectedRole = r; this.openDropdown = null },
+    openLightbox(u)   { this.lightboxUser = u; },
+    closeLightbox()   { this.lightboxUser = null; },
+    onKeydown(e)      { if (e.key === 'Escape') this.closeLightbox(); },
   },
 
   mounted() {
     this.fetchUsers()
     document.addEventListener('click', () => { this.openDropdown = null })
+    window.addEventListener('keydown', this.onKeydown)
   },
 
   beforeUnmount() {
     document.removeEventListener('click', () => { this.openDropdown = null })
+    window.removeEventListener('keydown', this.onKeydown)
   },
 }
 </script>
@@ -409,8 +474,46 @@ export default {
 .table-row:hover td { background: #fafbfc; }
 
 .td-num   { color: #cbd5e1; font-family: 'DM Mono', monospace; font-size: 12px; width: 36px; }
+.th-avatar { width: 52px; text-align: center; }
+.td-avatar { width: 52px; text-align: center; }
 .td-email { color: #64748b; font-size: 12.5px; }
 .td-muted { color: #94a3b8; font-size: 12.5px; white-space: nowrap; }
+
+.row-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  flex-shrink: 0; vertical-align: middle;
+}
+.row-avatar-img  { object-fit: cover; cursor: zoom-in; border: 2px solid #e2e8f0; transition: border-color .15s, transform .15s; }
+.row-avatar-img:hover { border-color: #6366f1; transform: scale(1.08); }
+.row-avatar-initials { font-size: 13px; }
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.88); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+}
+.lb-content { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.lb-img {
+  max-width: min(88vw, 420px); max-height: 80vh;
+  border-radius: 14px; object-fit: contain;
+  box-shadow: 0 32px 80px rgba(0,0,0,.5);
+  animation: lb-pop .22s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes lb-pop { from { transform: scale(.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.lb-name { color: #fff; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.lb-close {
+  position: absolute; top: 18px; right: 18px;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.lb-close:hover { background: rgba(255,255,255,0.22); }
+.lb-enter-active, .lb-leave-active { transition: opacity .2s ease; }
+.lb-enter-from, .lb-leave-to { opacity: 0; }
 
 .cell-user { display: flex; align-items: center; gap: 10px; }
 .user-avatar {
@@ -458,6 +561,34 @@ export default {
 
 .table-footer { padding: 12px 16px; font-size: 12px; color: #94a3b8; border-top: 1px solid #f8fafc; }
 .table-footer strong { color: #475569; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9998;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,.12); max-width: 380px;
+  pointer-events: all;
+}
+.toast-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+.toast-error   { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+.toast-icon {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.toast-success .toast-icon { background: #dcfce7; }
+.toast-error   .toast-icon { background: #fee2e2; }
+.toast-msg  { flex: 1; line-height: 1.4; }
+.toast-close {
+  background: none; border: none; cursor: pointer; padding: 2px;
+  color: inherit; opacity: .5; display: flex; align-items: center; flex-shrink: 0;
+}
+.toast-close:hover { opacity: 1; }
+.toast-slide-enter-active { transition: all .3s cubic-bezier(.34,1.56,.64,1); }
+.toast-slide-leave-active { transition: all .2s ease; }
+.toast-slide-enter-from { opacity: 0; transform: translateY(16px) scale(.95); }
+.toast-slide-leave-to   { opacity: 0; transform: translateY(8px); }
 
 /* ── Tablet (≥ 600px) ─────────────────────────────────────── */
 @media (min-width: 600px) {
