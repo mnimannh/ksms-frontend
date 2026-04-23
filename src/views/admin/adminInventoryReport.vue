@@ -94,6 +94,7 @@
         <ReportSummary
           :overview="overviewSummary"
           :financials="financialSummary"
+          :profits="profitSummary"
         />
 
         <div class="doc-divider" />
@@ -204,24 +205,23 @@ export default {
       const f = this.apiSummary.financials
       const fmtRM = v => 'RM ' + Number(v).toLocaleString('en-MY', { minimumFractionDigits: 2 })
       return [
-        {
-          label: 'Revenue Earned',
-          value: fmtRM(f.revenue),
-          sub:   'Selling price × qty sold',
-          color: '#10b981',
-        },
-        {
-          label: 'Potential Revenue',
-          value: fmtRM(f.potentialRevenue),
-          sub:   'Selling price × current stock',
-          color: '#6366f1',
-        },
-        {
-          label: 'Combined Value',
-          value: fmtRM(f.combined),
-          sub:   `${f.realisedPct}% already realised`,
-          color: '#0f172a',
-        },
+        { label: 'Revenue Earned',    value: fmtRM(f.revenue),          sub: 'Sell price × qty sold',     color: '#10b981' },
+        { label: 'Potential Revenue', value: fmtRM(f.potentialRevenue), sub: 'Sell price × current stock', color: '#6366f1' },
+        { label: 'Combined Value',    value: fmtRM(f.combined),         sub: `${f.realisedPct}% realised`, color: '#0f172a' },
+      ]
+    },
+
+    profitSummary() {
+      if (!this.apiSummary?.profits) return []
+      const p = this.apiSummary.profits
+      const fmtRM = v => 'RM ' + Number(v).toLocaleString('en-MY', { minimumFractionDigits: 2 })
+      return [
+        { label: 'Total COGS',       value: fmtRM(p.totalCogs),           sub: 'Cost price × qty sold',            color: '#ef4444' },
+        { label: 'Gross Profit',     value: fmtRM(p.totalGrossProfit),     sub: 'Revenue − COGS',                   color: '#10b981' },
+        { label: 'Profit Margin',    value: p.overallMarginPct + '%',      sub: 'Gross profit ÷ revenue',           color: '#6366f1' },
+        { label: 'Stock at Cost',    value: fmtRM(p.totalStockValueCost),  sub: 'Cost price × current stock',       color: '#f59e0b' },
+        { label: 'Best Margin',      value: p.bestMargin  ? p.bestMargin.marginPct  + '%' : '—', sub: p.bestMargin?.name  || '', color: '#10b981' },
+        { label: 'Worst Margin',     value: p.worstMargin ? p.worstMargin.marginPct + '%' : '—', sub: p.worstMargin?.name || '', color: '#ef4444' },
       ]
     },
 

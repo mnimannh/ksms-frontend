@@ -127,6 +127,7 @@ export default {
   name: 'ImageManagerModal',
   emits: ['close', 'save'],
   props: {
+    productName: { type: String, default: '' },
     variantName: { type: String, default: '' },
     initial:     { type: Array,  default: () => [] },
   },
@@ -175,7 +176,8 @@ export default {
       try {
         const formData = new FormData()
         formData.append('image', file)
-        const { data } = await axios.post(`${API_BASE_URL}/api/upload/product-image`, formData)
+        const params = new URLSearchParams({ product: this.productName, variant: this.variantName })
+        const { data } = await axios.post(`${API_BASE_URL}/api/upload/product-image?${params}`, formData)
 
         const isFirst = this.images.length === 0
         this.images.push({

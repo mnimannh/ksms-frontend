@@ -14,6 +14,7 @@ import AdminAlarm from '../views/admin/adminAlarm.vue';
 import adminInventoryReport from '../views/admin/adminInventoryReport.vue';
 import adminShiftPayrollReport from '../views/admin/adminShiftPayrollReport.vue';
 import adminUser from '../views/admin/adminUser.vue';
+import AdminProfile from '../views/admin/adminProfile.vue';
 
 // Staff views
 import StaffDashboard from '../views/staff/staffDashboard.vue';
@@ -122,6 +123,12 @@ const routes = [
   path: '/admin/user',
   name: 'AdminUser',
   component: adminUser,
+  meta: { requiresAuth: true, role: 'admin' },
+},
+{
+  path: '/admin/profile',
+  name: 'AdminProfile',
+  component: AdminProfile,
   meta: { requiresAuth: true, role: 'admin' },
 },
 

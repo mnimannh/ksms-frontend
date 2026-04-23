@@ -108,6 +108,7 @@
       />
       <ImageManagerModal
         v-if="showImageModal"
+        :product-name="selectedInventory?.inventoryName || ''"
         :variant-name="imageModalVariant?.variant_name || ''"
         :initial="imagesFor(imageModalVariant?.id)"
         @close="showImageModal = false"

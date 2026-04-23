@@ -35,8 +35,16 @@
             <span class="fin-val green">RM {{ fmt(c.revenue) }}</span>
           </div>
           <div class="fin-row">
-            <span class="fin-lbl">Potential</span>
-            <span class="fin-val indigo">RM {{ fmt(c.potentialRevenue) }}</span>
+            <span class="fin-lbl">COGS</span>
+            <span class="fin-val red">RM {{ fmt(c.cogs) }}</span>
+          </div>
+          <div class="fin-row">
+            <span class="fin-lbl">Gross Profit</span>
+            <span class="fin-val" :class="c.grossProfit >= 0 ? 'green' : 'red'">RM {{ fmt(c.grossProfit) }}</span>
+          </div>
+          <div class="fin-row">
+            <span class="fin-lbl">Margin</span>
+            <span class="fin-val" :class="c.marginPct >= 20 ? 'indigo' : c.marginPct >= 0 ? 'amber' : 'red'">{{ c.marginPct }}%</span>
           </div>
         </div>
 
@@ -123,6 +131,8 @@ export default {
 .fin-val   { font-size: 12.5px; font-weight: 700; font-family: 'DM Mono', monospace; }
 .fin-val.green  { color: #10b981; }
 .fin-val.indigo { color: #6366f1; }
+.fin-val.red    { color: #ef4444; }
+.fin-val.amber  { color: #b45309; }
 
 .cat-bar-wrap { display: flex; flex-direction: column; gap: 4px; }
 .cat-bar  { height: 4px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }

@@ -151,7 +151,11 @@ export default {
         },
         {
           name: "User", path: "/admin/user",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="5.5" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 14c0-2.76 2.02-4.5 4.5-4.5S10 11.24 10 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="11.5" cy="5" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 9.6c.32-.07.66-.1 1-.1 2.21 0 4 1.57 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+        },
+        {
+          name: "Profile", path: "/admin/profile",
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 10l1.5 1.5L15 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
         }
       ],
       user: { fullName: "", role: "", profilePicture: null },

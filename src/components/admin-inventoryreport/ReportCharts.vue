@@ -1,19 +1,19 @@
 <template>
-  <div class="charts-section">
+  <div class="charts-section no-print">
 
-    <!-- Stock vs Sold -->
+    <!-- Top 10 Gross Profit -->
     <div class="chart-block">
-      <p class="chart-title">Stock vs Sold — {{ periodLabel }}</p>
+      <p class="chart-title">Top 10 Items by Gross Profit (RM) — {{ periodLabel }}</p>
       <div class="chart-area">
-        <canvas ref="barChart" />
+        <canvas ref="profitChart" />
       </div>
     </div>
 
-    <!-- Revenue vs Potential -->
+    <!-- Revenue vs COGS by category -->
     <div class="chart-block">
-      <p class="chart-title">Revenue Earned vs Potential Revenue (RM) — {{ periodLabel }}</p>
+      <p class="chart-title">Revenue vs COGS by Category (RM) — {{ periodLabel }}</p>
       <div class="chart-area">
-        <canvas ref="revenueChart" />
+        <canvas ref="cogsChart" />
       </div>
     </div>
 
@@ -32,56 +32,95 @@ export default {
   name: 'ReportCharts',
   props: {
     periodLabel: { type: String, required: true },
-    rows:        { type: Array,  required: true }, // enriched rows
+    rows:        { type: Array,  required: true },
   },
 
   computed: {
-    top10Stock() {
-      return [...this.rows].sort((a, b) => b.stock - a.stock).slice(0, 10)
+    top10Profit() {
+      return [...this.rows]
+        .filter(r => r.sold > 0)
+        .sort((a, b) => b.grossProfit - a.grossProfit)
+        .slice(0, 10)
     },
-    top10Revenue() {
-      return [...this.rows].sort((a, b) => b.revenue - a.revenue).slice(0, 10)
+    categoryTotals() {
+      const map = {}
+      this.rows.forEach(r => {
+        if (!map[r.category]) map[r.category] = { revenue: 0, cogs: 0 }
+        map[r.category].revenue += r.revenue
+        map[r.category].cogs    += r.cogs
+      })
+      return Object.entries(map)
+        .map(([name, v]) => ({ name, revenue: parseFloat(v.revenue.toFixed(2)), cogs: parseFloat(v.cogs.toFixed(2)) }))
+        .sort((a, b) => b.revenue - a.revenue)
     },
   },
 
   watch: {
-    rows() { this.$nextTick(() => { this.rebuildBar(); this.rebuildRevenue() }) },
+    rows() { this.$nextTick(() => { this.rebuildProfit(); this.rebuildCogs() }) },
   },
 
   mounted() {
-    this.$nextTick(() => { this.initBar(); this.initRevenue() })
+    this.$nextTick(() => { this.initProfit(); this.initCogs() })
   },
 
   beforeUnmount() {
-    this._barChart?.destroy()
-    this._revenueChart?.destroy()
+    this._profitChart?.destroy()
+    this._cogsChart?.destroy()
   },
 
   methods: {
-    shortName(name) {
-      return name.length > 14 ? name.slice(0, 13) + '…' : name
+    short(name) { return name.length > 16 ? name.slice(0, 15) + '…' : name },
+
+    rmTooltip(v) { return 'RM ' + Number(v).toLocaleString('en-MY', { minimumFractionDigits: 2 }) },
+
+    baseOptions(yLabel) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true, position: 'top', align: 'end',
+            labels: { boxWidth: 10, boxHeight: 10, borderRadius: 3, font: { family: 'DM Sans', size: 12 }, color: '#64748b', padding: 16 },
+          },
+          tooltip: { mode: 'index', intersect: false },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'DM Sans', size: 11 } } },
+          y: {
+            grid: { color: '#f1f5f9' }, beginAtZero: true,
+            ticks: { color: '#94a3b8', font: { family: 'DM Sans', size: 11 }, callback: v => 'RM ' + v.toLocaleString() },
+          },
+        },
+      }
     },
 
-    initBar() {
-      const ctx = this.$refs.barChart?.getContext('2d')
+    initProfit() {
+      const ctx = this.$refs.profitChart?.getContext('2d')
       if (!ctx) return
-      const top = this.top10Stock
-      this._barChart = new Chart(ctx, {
+      const top = this.top10Profit
+      this._profitChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: top.map(r => this.shortName(r.name)),
+          labels: top.map(r => this.short(r.name)),
           datasets: [
             {
-              label: 'Total Stock',
-              data: top.map(r => r.stock),
-              backgroundColor: 'rgba(99,102,241,0.15)',
-              borderColor: '#6366f1', borderWidth: 1.5,
+              label: 'Revenue (RM)',
+              data: top.map(r => r.revenue),
+              backgroundColor: 'rgba(16,185,129,0.18)',
+              borderColor: '#10b981', borderWidth: 1.5,
               borderRadius: 4, borderSkipped: false,
             },
             {
-              label: 'Qty Sold',
-              data: top.map(r => r.sold),
-              backgroundColor: 'rgba(16,185,129,0.8)',
+              label: 'COGS (RM)',
+              data: top.map(r => r.cogs),
+              backgroundColor: 'rgba(239,68,68,0.18)',
+              borderColor: '#ef4444', borderWidth: 1.5,
+              borderRadius: 4, borderSkipped: false,
+            },
+            {
+              label: 'Gross Profit (RM)',
+              data: top.map(r => r.grossProfit),
+              backgroundColor: 'rgba(99,102,241,0.8)',
               borderColor: 'transparent',
               borderRadius: 4, borderSkipped: false,
             },
@@ -91,90 +130,52 @@ export default {
       })
     },
 
-    initRevenue() {
-      const ctx = this.$refs.revenueChart?.getContext('2d')
+    initCogs() {
+      const ctx = this.$refs.cogsChart?.getContext('2d')
       if (!ctx) return
-      const top = this.top10Revenue
-      this._revenueChart = new Chart(ctx, {
+      const cats = this.categoryTotals
+      this._cogsChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: top.map(r => this.shortName(r.name)),
+          labels: cats.map(c => c.name),
           datasets: [
             {
-              label: 'Revenue Earned (RM)',
-              data: top.map(r => r.revenue),
+              label: 'Revenue (RM)',
+              data: cats.map(c => c.revenue),
               backgroundColor: 'rgba(16,185,129,0.8)',
               borderColor: 'transparent',
               borderRadius: 4, borderSkipped: false,
             },
             {
-              label: 'Potential Revenue (RM)',
-              data: top.map(r => r.potentialRevenue),
-              backgroundColor: 'rgba(99,102,241,0.15)',
-              borderColor: '#6366f1', borderWidth: 1.5,
+              label: 'COGS (RM)',
+              data: cats.map(c => c.cogs),
+              backgroundColor: 'rgba(239,68,68,0.75)',
+              borderColor: 'transparent',
               borderRadius: 4, borderSkipped: false,
             },
           ],
         },
-        options: {
-          ...this.baseOptions(),
-          scales: {
-            x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'DM Sans', size: 11 } } },
-            y: {
-              grid: { color: '#f1f5f9' },
-              ticks: {
-                color: '#94a3b8', font: { family: 'DM Sans', size: 11 },
-                callback: v => 'RM ' + v.toLocaleString(),
-              },
-              beginAtZero: true,
-            },
-          },
-        },
+        options: this.baseOptions(),
       })
     },
 
-    baseOptions() {
-      return {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true, position: 'top', align: 'end',
-            labels: {
-              boxWidth: 10, boxHeight: 10, borderRadius: 3,
-              font: { family: 'DM Sans', size: 12 },
-              color: '#64748b', padding: 16,
-            },
-          },
-          tooltip: { mode: 'index', intersect: false },
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'DM Sans', size: 11 } } },
-          y: {
-            grid: { color: '#f1f5f9' },
-            ticks: { color: '#94a3b8', font: { family: 'DM Sans', size: 11 }, stepSize: 20 },
-            beginAtZero: true,
-          },
-        },
-      }
+    rebuildProfit() {
+      if (!this._profitChart) return this.initProfit()
+      const top = this.top10Profit
+      this._profitChart.data.labels = top.map(r => this.short(r.name))
+      this._profitChart.data.datasets[0].data = top.map(r => r.revenue)
+      this._profitChart.data.datasets[1].data = top.map(r => r.cogs)
+      this._profitChart.data.datasets[2].data = top.map(r => r.grossProfit)
+      this._profitChart.update()
     },
 
-    rebuildBar() {
-      if (!this._barChart) return this.initBar()
-      const top = this.top10Stock
-      this._barChart.data.labels = top.map(r => this.shortName(r.name))
-      this._barChart.data.datasets[0].data = top.map(r => r.stock)
-      this._barChart.data.datasets[1].data = top.map(r => r.sold)
-      this._barChart.update()
-    },
-
-    rebuildRevenue() {
-      if (!this._revenueChart) return this.initRevenue()
-      const top = this.top10Revenue
-      this._revenueChart.data.labels = top.map(r => this.shortName(r.name))
-      this._revenueChart.data.datasets[0].data = top.map(r => r.revenue)
-      this._revenueChart.data.datasets[1].data = top.map(r => r.potentialRevenue)
-      this._revenueChart.update()
+    rebuildCogs() {
+      if (!this._cogsChart) return this.initCogs()
+      const cats = this.categoryTotals
+      this._cogsChart.data.labels = cats.map(c => c.name)
+      this._cogsChart.data.datasets[0].data = cats.map(c => c.revenue)
+      this._cogsChart.data.datasets[1].data = cats.map(c => c.cogs)
+      this._cogsChart.update()
     },
   },
 }
@@ -182,37 +183,14 @@ export default {
 
 <style scoped>
 .charts-section { display: flex; flex-direction: column; gap: 24px; }
-
-.chart-block { display: flex; flex-direction: column; gap: 12px; }
-
+.chart-block    { display: flex; flex-direction: column; gap: 12px; }
 .chart-title {
   font-size: 12px; font-weight: 700; color: #94a3b8;
   text-transform: uppercase; letter-spacing: .07em;
 }
-.chart-area { height: 220px; position: relative; }
+.chart-area { height: 240px; position: relative; }
 
 @media print {
-  /* Force charts to not overflow */
-  .chart-area {
-    height: 150px !important;
-    overflow: hidden !important;
-    page-break-inside: avoid;
-  }
-
-  /* Force sections to break cleanly */
-  .chart-section    { page-break-after: always; }
-  .table-section    { page-break-before: auto; break-inside: avoid; }
-
-  /* Fix scrollable table */
-  .table-wrap {
-    overflow: visible !important;
-    overflow-x: visible !important;
-  }
-
-  /* Canvas explicit sizing */
-  canvas {
-    max-width: 100% !important;
-    height: 150px !important;
-  }
+  .no-print { display: none !important; }
 }
 </style>

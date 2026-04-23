@@ -113,6 +113,7 @@
                 <th>Last Login</th>
                 <th>Joined</th>
                 <th>Status</th>
+                <th>Rate</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -140,7 +141,7 @@
                 <td>
                   <span class="role-badge" :class="'role-' + user.role">{{ user.role }}</span>
                 </td>
-                <td class="td-muted">{{ formatDate(user.last_login) }}</td>
+                <td :class="user.last_login ? 'td-muted' : 'td-dash'">{{ formatDate(user.last_login) }}</td>
                 <td class="td-muted">{{ formatDate(user.created_at) }}</td>
                 <td>
                   <span class="status-pill" :class="user.status === 'active' ? 'status-active' : 'status-inactive'">
@@ -148,17 +149,18 @@
                   </span>
                 </td>
                 <td>
-                  <div class="action-group">
-                    <button class="btn-action" @click="openEditModal(user)">Edit</button>
-                    <button v-if="user.role === 'staff' && user.status === 'active'" class="btn-rate" @click="openRateModal(user)">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-                      Rate
-                    </button>
-                  </div>
+                  <button v-if="user.role === 'staff' && user.status === 'active'" class="btn-rate" @click="openRateModal(user)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                    Rate
+                  </button>
+                  <span v-else class="td-dash">—</span>
+                </td>
+                <td>
+                  <button class="btn-action" @click="openEditModal(user)">Edit</button>
                 </td>
               </tr>
               <tr v-if="filteredUsers.length === 0">
-                <td colspan="9" class="empty-state">No users found.</td>
+                <td colspan="10" class="empty-state">No users found.</td>
               </tr>
             </tbody>
           </table>
@@ -474,6 +476,7 @@ export default {
 .table-row:hover td { background: #fafbfc; }
 
 .td-num   { color: #cbd5e1; font-family: 'DM Mono', monospace; font-size: 12px; width: 36px; }
+.td-dash  { color: #cbd5e1; font-size: 13px; text-align: center; }
 .th-avatar { width: 52px; text-align: center; }
 .td-avatar { width: 52px; text-align: center; }
 .td-email { color: #64748b; font-size: 12.5px; }

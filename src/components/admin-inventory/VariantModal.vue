@@ -20,16 +20,77 @@
           <p v-if="errors.variant_name" class="field-error">{{ errors.variant_name }}</p>
         </div>
 
-        <!-- Price & Quantity row -->
+        <!-- Cost Price section -->
+        <div class="cost-section">
+          <div class="cost-section-head">
+            <label class="field-label">Cost Price (Modal) <span class="req">*</span></label>
+            <div class="cost-toggle">
+              <button type="button" :class="['cost-tab', costMode === 'direct' ? 'active' : '']" @click="costMode = 'direct'">Direct</button>
+              <button type="button" :class="['cost-tab', costMode === 'bulk'   ? 'active' : '']" @click="costMode = 'bulk'">Bulk</button>
+            </div>
+          </div>
+
+          <!-- Direct mode -->
+          <div v-if="costMode === 'direct'" class="field-row" style="margin-top:6px">
+            <div class="field">
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">RM</span>
+                <input v-model.number="form.cost_price" type="number" min="0" step="0.01" class="field-input prefix-input" placeholder="0.00" />
+              </div>
+              <p v-if="errors.cost_price" class="field-error">{{ errors.cost_price }}</p>
+            </div>
+          </div>
+
+          <!-- Bulk mode -->
+          <div v-else class="bulk-calc">
+            <div class="bulk-fields">
+              <div class="field">
+                <label class="field-label">Cost / Carton (RM)</label>
+                <div class="input-prefix-wrap">
+                  <span class="input-prefix">RM</span>
+                  <input v-model.number="bulk.costPerCarton" type="number" min="0" step="0.01" class="field-input prefix-input" placeholder="0.00" />
+                </div>
+              </div>
+              <div class="bulk-divider">÷</div>
+              <div class="field">
+                <label class="field-label">Units / Carton</label>
+                <input v-model.number="bulk.unitsPerCarton" type="number" min="1" class="field-input" placeholder="12" />
+              </div>
+              <div class="bulk-divider">=</div>
+              <div class="field field--result">
+                <label class="field-label">Unit Cost</label>
+                <div class="result-box" :class="bulkUnitCost > 0 ? 'result-box--active' : ''">
+                  <span class="result-rm">RM</span>
+                  <span class="result-val">{{ bulkUnitCost > 0 ? bulkUnitCost.toFixed(4) : '—' }}</span>
+                </div>
+              </div>
+            </div>
+            <p v-if="errors.cost_price" class="field-error">{{ errors.cost_price }}</p>
+          </div>
+        </div>
+
+        <!-- Sell Price row -->
         <div class="field-row">
           <div class="field">
-            <label class="field-label">Price (RM) <span class="req">*</span></label>
+            <label class="field-label">Sell Price (RM) <span class="req">*</span></label>
             <div class="input-prefix-wrap">
               <span class="input-prefix">RM</span>
               <input v-model.number="form.price" type="number" min="0" step="0.01" class="field-input prefix-input" placeholder="0.00" />
             </div>
             <p v-if="errors.price" class="field-error">{{ errors.price }}</p>
           </div>
+          <!-- Live margin pill -->
+          <div class="field field--margin">
+            <label class="field-label">Margin</label>
+            <div class="margin-display" :class="marginClass">
+              <span class="margin-pct">{{ marginPct }}</span>
+              <span class="margin-rm">{{ marginRM }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quantity & Threshold row -->
+        <div class="field-row">
           <div class="field">
             <label class="field-label">Quantity</label>
             <input v-model.number="form.quantity" type="number" min="0" class="field-input" placeholder="0" />
@@ -139,11 +200,14 @@ export default {
     return {
       form: {
         variant_name: this.initial?.variant_name || '',
+        cost_price:   this.initial?.cost_price   ?? '',
         price:        this.initial?.price        || '',
         quantity:     this.initial?.quantity      ?? 0,
         threshold:    this.initial?.threshold     ?? 10,
         barcode:      this.initial?.barcode       || '',
       },
+      costMode: 'direct',
+      bulk: { costPerCarton: '', unitsPerCarton: '' },
       errors:       {},
       scanMode:     false,
       generated:    false,
@@ -154,6 +218,38 @@ export default {
         onConfirm: null,
       },
     }
+  },
+
+  computed: {
+    bulkUnitCost() {
+      const cost  = parseFloat(this.bulk.costPerCarton)  || 0
+      const units = parseFloat(this.bulk.unitsPerCarton) || 0
+      if (!cost || !units) return 0
+      return cost / units
+    },
+    marginValue() {
+      const sell = parseFloat(this.form.price) || 0
+      const cost = parseFloat(this.form.cost_price) || 0
+      return sell - cost
+    },
+    marginPct() {
+      const sell = parseFloat(this.form.price) || 0
+      if (!sell) return '—'
+      return ((this.marginValue / sell) * 100).toFixed(1) + '%'
+    },
+    marginRM() {
+      if (!this.form.price && !this.form.cost_price) return ''
+      return (this.marginValue >= 0 ? '+' : '') + 'RM ' + this.marginValue.toFixed(2)
+    },
+    marginClass() {
+      const sell = parseFloat(this.form.price) || 0
+      if (!sell) return 'margin--neutral'
+      const pct = (this.marginValue / sell) * 100
+      if (pct < 0)  return 'margin--loss'
+      if (pct < 10) return 'margin--low'
+      if (pct < 30) return 'margin--ok'
+      return 'margin--good'
+    },
   },
 
   methods: {
@@ -241,7 +337,8 @@ export default {
     validate() {
       this.errors = {}
       if (!this.form.variant_name.trim()) this.errors.variant_name = 'Variant name is required.'
-      if (!this.form.price || this.form.price <= 0) this.errors.price = 'Enter a valid price.'
+      if (this.form.cost_price === '' || this.form.cost_price < 0) this.errors.cost_price = 'Enter a valid cost price.'
+      if (!this.form.price || this.form.price <= 0) this.errors.price = 'Enter a valid sell price.'
       if (!this.form.barcode.trim()) this.errors.barcode = 'Barcode is required. Scan or generate one.'
       return !Object.keys(this.errors).length
     },
@@ -253,6 +350,18 @@ export default {
   },
 
   watch: {
+    bulkUnitCost(val) {
+      if (this.costMode === 'bulk' && val > 0) {
+        this.form.cost_price = Math.round(val * 10000) / 10000
+      }
+    },
+    costMode(mode) {
+      if (mode === 'direct') {
+        this.bulk = { costPerCarton: '', unitsPerCarton: '' }
+      } else {
+        this.form.cost_price = ''
+      }
+    },
     'form.barcode'() {
       this.$nextTick(() => this.updateBarcodePreview())
     },
@@ -322,6 +431,53 @@ export default {
 .input-prefix-wrap { position: relative; display: flex; align-items: center; }
 .input-prefix      { position: absolute; left: 10px; font-size: 13px; font-weight: 600; color: #94a3b8; pointer-events: none; }
 .prefix-input      { padding-left: 30px !important; }
+
+/* ── Cost section ────────────────────────────────────────────────────── */
+.cost-section { display: flex; flex-direction: column; gap: 0; }
+.cost-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+
+.cost-toggle {
+  display: flex; background: #f1f5f9; border-radius: 7px; padding: 2px; gap: 2px;
+}
+.cost-tab {
+  font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 600;
+  color: #64748b; background: transparent; border: none;
+  padding: 4px 12px; border-radius: 5px; cursor: pointer; transition: all .15s;
+}
+.cost-tab.active { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* Bulk calculator */
+.bulk-calc { display: flex; flex-direction: column; gap: 6px; }
+.bulk-fields { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.bulk-divider {
+  font-size: 18px; font-weight: 300; color: #94a3b8;
+  padding-bottom: 8px; flex-shrink: 0;
+}
+.field--result { min-width: 90px; }
+.result-box {
+  display: flex; align-items: center; gap: 4px;
+  height: 38px; border-radius: 8px; padding: 0 10px;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+}
+.result-box--active { background: #f0fdf4; border-color: #bbf7d0; }
+.result-rm  { font-size: 12px; font-weight: 600; color: #94a3b8; }
+.result-val { font-size: 14px; font-weight: 700; color: #15803d; letter-spacing: -.01em; }
+.result-box:not(.result-box--active) .result-val { color: #94a3b8; font-weight: 400; }
+
+/* ── Margin display ──────────────────────────────────────────────────── */
+.field--margin { max-width: 100px; flex: none; }
+.margin-display {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 38px; border-radius: 8px; padding: 0 10px; gap: 1px;
+  border: 1px solid #e2e8f0;
+}
+.margin-pct  { font-size: 14px; font-weight: 700; line-height: 1; }
+.margin-rm   { font-size: 10px; opacity: .7; }
+.margin--neutral { background: #f8fafc; color: #94a3b8; }
+.margin--loss { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.margin--low  { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.margin--ok   { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.margin--good { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
 
 /* ── Barcode row & preview ───────────────────────────────────────────── */
 .barcode-row   { display: flex; gap: 8px; }

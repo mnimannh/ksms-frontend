@@ -14,9 +14,21 @@
 
     <!-- Financials -->
     <div class="summary-block">
-      <p class="block-title">Financials</p>
+      <p class="block-title">Revenue</p>
       <div class="summary-strip fin-strip">
         <div class="sum-item" v-for="s in financials" :key="s.label">
+          <p class="sum-val fin-val" :style="`color:${s.color}`">{{ s.value }}</p>
+          <p class="sum-label">{{ s.label }}</p>
+          <p class="sum-sub" v-if="s.sub">{{ s.sub }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profit & Margin -->
+    <div class="summary-block" v-if="profits.length">
+      <p class="block-title">Profit & Margin</p>
+      <div class="summary-strip profit-strip">
+        <div class="sum-item" v-for="s in profits" :key="s.label">
           <p class="sum-val fin-val" :style="`color:${s.color}`">{{ s.value }}</p>
           <p class="sum-label">{{ s.label }}</p>
           <p class="sum-sub" v-if="s.sub">{{ s.sub }}</p>
@@ -33,6 +45,7 @@ export default {
   props: {
     overview:   { type: Array, required: true },
     financials: { type: Array, required: true },
+    profits:    { type: Array, default: () => [] },
   },
 }
 </script>
@@ -60,10 +73,11 @@ export default {
 
 .sum-val   { font-size: 21px; font-weight: 700; letter-spacing: -.03em; margin-bottom: 3px; }
 .sum-label { font-size: 11.5px; color: #94a3b8; font-weight: 500; }
-.sum-sub   { font-size: 11px; color: #cbd5e1; margin-top: 3px; }
+.sum-sub   { font-size: 11px; color: #64748b; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.fin-strip  { background: #fafbfc; }
-.fin-val    { font-size: 17px !important; font-family: 'DM Mono', monospace; }
+.fin-strip    { background: #fafbfc; }
+.profit-strip { background: #fdfcff; }
+.fin-val      { font-size: 17px !important; font-family: 'DM Mono', monospace; }
 
 @media (max-width: 900px) {
   .summary-strip { flex-wrap: wrap; }
