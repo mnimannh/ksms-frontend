@@ -81,7 +81,7 @@
       <!-- FOOTER -->
       <div class="sidebar-footer">
         <div class="user-card">
-          <img v-if="user.profilePicture" :src="apiBase + user.profilePicture" class="user-avatar user-avatar-img" alt="avatar" />
+          <img v-if="user.profilePicture" :src="picUrl(user.profilePicture)" class="user-avatar user-avatar-img" alt="avatar" />
           <div v-else class="user-avatar">{{ (user.fullName || 'S').charAt(0).toUpperCase() }}</div>
           <div class="user-info">
             <div class="user-name">{{ user.fullName || 'Staff' }}</div>
@@ -150,6 +150,11 @@ export default {
     window.removeEventListener('resize', this.checkMobile);
   },
   methods: {
+    picUrl(url) {
+      if (!url) return ''
+      if (url.startsWith('http')) return url
+      return `${this.apiBase}${url}`
+    },
     checkMobile() {
       this.isMobile = window.innerWidth < 768;
       if (!this.isMobile) this.isOpen = false;

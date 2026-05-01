@@ -124,9 +124,24 @@
                 <span class="modal-value notes">{{ selectedShift.notes }}</span>
               </div>
             </div>
+            <div class="modal-footer-actions">
+              <button class="btn-swap" @click="openSwapModal(selectedShift)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+                Request Swap
+              </button>
+            </div>
           </div>
         </div>
       </transition>
+
+      <!-- ── SWAP REQUEST MODAL ── -->
+      <SwapRequestModal
+        v-if="swapShift"
+        :shift="swapShift"
+        :staff-list="staffList"
+        @close="swapShift = null"
+        @submitted="onSwapSubmitted"
+      />
 
     </main>
   </div>
@@ -135,15 +150,18 @@
 <script>
 import API_BASE_URL from "@/services/api";
 import StaffSidebar from "@/components/sidebar/staffSidebar.vue";
+import SwapRequestModal from "@/components/admin-shift/SwapRequestModal.vue";
 import axios from "axios";
 
 export default {
   name: "StaffShift",
-  components: { StaffSidebar },
+  components: { StaffSidebar, SwapRequestModal },
 
   data() {
     return {
       selectedShift: null,
+      swapShift:     null,
+      staffList:     [],
       calendar: null,
       shifts: [],
       loading: false,
@@ -194,6 +212,14 @@ export default {
   },
 
   methods: {
+    openSwapModal(shift) {
+      this.swapShift    = shift;
+      this.selectedShift = null;
+    },
+    onSwapSubmitted() {
+      this.swapShift = null;
+    },
+
     async fetchShifts() {
       this.loading = true;
       try {
@@ -220,6 +246,15 @@ export default {
         );
 
         this.shifts = shiftsWithAttendance;
+
+        // Fetch colleague list for swap modal
+        try {
+          const { data: users } = await axios.get(`${API_BASE_URL}/api/users`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const myId = JSON.parse(atob(token.split('.')[1])).id;
+          this.staffList = users.filter(u => u.role === 'staff' && u.status === 'active' && u.id !== myId);
+        } catch { /* non-fatal */ }
 
         if (this.calendar) {
           this.calendar.getEventSources().forEach(s => s.remove());
@@ -445,6 +480,19 @@ export default {
   color: #0f172a; font-weight: 500; text-align: right;
 }
 .modal-value.notes { color: #475569; font-weight: 400; font-size: 0.82rem; line-height: 1.5; }
+
+.modal-footer-actions {
+  padding: 12px 20px 16px; border-top: 1px solid #f1f5f9;
+  display: flex; justify-content: flex-end;
+}
+.btn-swap {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0;
+  background: #f8fafc; color: #475569;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.btn-swap:hover { background: #6366f1; border-color: #6366f1; color: #fff; }
 
 /* Transitions */
 .modal-fade-enter-active, .modal-fade-leave-active { transition: opacity .2s ease; }

@@ -55,7 +55,7 @@
           <div class="hero-inner">
             <!-- Avatar -->
             <div class="avatar-wrap">
-              <img v-if="profile.profile_picture" :src="apiBase + profile.profile_picture" class="avatar-img" :class="{ clickable: !editing }" alt="Profile" @click="!editing && openLightbox()" />
+              <img v-if="profile.profile_picture" :src="picUrl(profile.profile_picture)" class="avatar-img" :class="{ clickable: !editing }" alt="Profile" @click="!editing && openLightbox()" />
               <div v-else class="avatar-initials">{{ initials }}</div>
               <label v-if="editing" class="avatar-cam" :class="{ uploading: avatarUploading }" title="Change photo">
                 <input type="file" accept="image/*" class="hidden-input" @change="onAvatarChange" :disabled="avatarUploading" />
@@ -251,7 +251,7 @@
           <button class="lb-close" @click="closeLightbox">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
-          <img :src="apiBase + profile.profile_picture" class="lb-img" :alt="profile.fullName" />
+          <img :src="picUrl(profile.profile_picture)" class="lb-img" :alt="profile.fullName" />
         </div>
       </transition>
 
@@ -327,6 +327,11 @@ export default {
       }
     },
 
+    picUrl(url) {
+      if (!url) return ''
+      if (url.startsWith('http')) return url
+      return `${this.apiBase}${url}`
+    },
     openLightbox()  { this.lightbox = true; },
     closeLightbox() { this.lightbox = false; },
     onKeydown(e)    { if (e.key === 'Escape') this.closeLightbox(); },
