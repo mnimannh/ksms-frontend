@@ -214,7 +214,7 @@
             </div>
           </div>
 
-          <!-- Change Password — only in edit mode or when temp password -->
+          <!-- Change Password -->
           <div v-if="editing || profile.is_temp_password" class="info-card" ref="passwordCard" :class="{ 'card-urgent': profile.is_temp_password }">
             <div class="card-accent" :class="profile.is_temp_password ? 'red' : 'slate'"></div>
             <div class="card-head">
@@ -235,7 +235,6 @@
               </div>
             </div>
             <p v-if="pwError" class="pw-error">{{ pwError }}</p>
-            <p v-if="pwSuccess" class="pw-success">{{ pwSuccess }}</p>
             <div class="pw-actions">
               <button class="btn-pw" :disabled="pwSaving" @click="submitChangePassword">
                 {{ pwSaving ? 'Saving…' : 'Update Password' }}
@@ -245,6 +244,7 @@
 
         </div>
       </div>
+
       <!-- LIGHTBOX -->
       <transition name="lb">
         <div v-if="lightbox" class="lightbox" @click.self="closeLightbox" @keydown.esc="closeLightbox">
@@ -252,6 +252,25 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
           <img :src="picUrl(profile.profile_picture)" class="lb-img" :alt="profile.fullName" />
+        </div>
+      </transition>
+
+      <!-- STATUS MODAL -->
+      <transition name="modal-fade">
+        <div v-if="modal.show" class="modal-backdrop" @click.self="closeModal">
+          <div class="modal-box" :class="modal.type">
+            <div class="modal-icon-wrap">
+              <svg v-if="modal.type === 'success'" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>
+              </svg>
+              <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <p class="modal-title">{{ modal.type === 'success' ? 'Changes Saved' : 'Something went wrong' }}</p>
+            <p class="modal-msg">{{ modal.message }}</p>
+            <button class="modal-btn" :class="modal.type" @click="closeModal">OK</button>
+          </div>
         </div>
       </transition>
 
@@ -277,11 +296,11 @@ export default {
       form: {},
       pwForm: { newPassword: '', confirmPassword: '' },
       pwError: '',
-      pwSuccess: '',
       pwSaving: false,
       avatarUploading: false,
       apiBase: API_BASE_URL,
       lightbox: false,
+      modal: { show: false, type: 'success', message: '' },
     };
   },
 
@@ -328,13 +347,25 @@ export default {
     },
 
     picUrl(url) {
-      if (!url) return ''
-      if (url.startsWith('http')) return url
-      return `${this.apiBase}${url}`
+      if (!url) return '';
+      if (url.startsWith('http')) return url;
+      return `${this.apiBase}${url}`;
     },
     openLightbox()  { this.lightbox = true; },
     closeLightbox() { this.lightbox = false; },
-    onKeydown(e)    { if (e.key === 'Escape') this.closeLightbox(); },
+    onKeydown(e) {
+      if (e.key === 'Escape') {
+        this.closeLightbox();
+        this.closeModal();
+      }
+    },
+
+    showModal(type, message) {
+      this.modal = { show: true, type, message };
+    },
+    closeModal() {
+      this.modal.show = false;
+    },
 
     startEdit() {
       this.form = {
@@ -357,7 +388,6 @@ export default {
     cancelEdit() {
       this.editing = false;
       this.pwError = '';
-      this.pwSuccess = '';
     },
 
     async saveProfile() {
@@ -369,8 +399,10 @@ export default {
         });
         Object.assign(this.profile, this.form);
         this.editing = false;
+        this.showModal('success', 'Profile updated successfully!');
       } catch (err) {
         console.error('Failed to save profile', err);
+        this.showModal('error', err.response?.data?.message || 'Failed to save changes.');
       } finally {
         this.saving = false;
       }
@@ -378,7 +410,6 @@ export default {
 
     async submitChangePassword() {
       this.pwError = '';
-      this.pwSuccess = '';
       if (!this.pwForm.newPassword || this.pwForm.newPassword.length < 6) {
         this.pwError = 'Password must be at least 6 characters.';
         return;
@@ -394,11 +425,11 @@ export default {
           { newPassword: this.pwForm.newPassword },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        this.pwSuccess = 'Password updated successfully!';
         this.pwForm = { newPassword: '', confirmPassword: '' };
         this.profile.is_temp_password = false;
+        this.showModal('success', 'Password updated successfully!');
       } catch (err) {
-        this.pwError = err.response?.data?.message || 'Failed to update password.';
+        this.showModal('error', err.response?.data?.message || 'Failed to update password.');
       } finally {
         this.pwSaving = false;
       }
@@ -418,6 +449,7 @@ export default {
         this.profile.profile_picture = res.data.url;
       } catch (err) {
         console.error('Avatar upload failed', err);
+        this.showModal('error', 'Failed to upload profile picture.');
       } finally {
         this.avatarUploading = false;
         e.target.value = '';
@@ -475,8 +507,6 @@ export default {
 /* ── Hero card ── */
 .hero-card   { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; position: relative; }
 .hero-stripe { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #6366f1, #8b5cf6, #3b82f6); }
-
-/* Mobile: stacked hero */
 .hero-inner {
   display: flex; flex-direction: column; align-items: center;
   gap: 14px; padding: 24px 20px 20px; text-align: center;
@@ -505,14 +535,14 @@ export default {
 .meta-item { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #64748b; }
 .meta-item svg { color: #94a3b8; flex-shrink: 0; }
 
-/* Stats strip — horizontal row at bottom on mobile */
+/* Stats strip */
 .hero-stats    { display: flex; align-items: center; width: 100%; border-top: 1px solid #f1f5f9; padding-top: 16px; justify-content: center; }
 .stat-item     { display: flex; flex-direction: column; align-items: center; padding: 0 16px; text-align: center; flex: 1; }
 .stat-val      { font-size: 13px; font-weight: 700; color: #0f172a; white-space: nowrap; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
 .stat-label    { font-size: 10px; color: #94a3b8; margin-top: 3px; white-space: nowrap; }
 .stat-divider  { width: 1px; height: 32px; background: #f1f5f9; flex-shrink: 0; }
 
-/* ── Cards grid — single column on mobile ── */
+/* ── Cards grid ── */
 .cards-grid { display: grid; grid-template-columns: 1fr; gap: 14px; flex: 1; align-content: start; }
 
 /* ── Info card ── */
@@ -539,7 +569,6 @@ export default {
 
 .badge-urgent { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: #fee2e2; color: #dc2626; padding: 3px 8px; border-radius: 99px; }
 
-/* Fields — single column on mobile */
 .field-grid { display: grid; grid-template-columns: 1fr; gap: 14px; padding-left: 8px; }
 .field-group { display: flex; flex-direction: column; gap: 5px; }
 .field-group.full-span { grid-column: 1 / -1; }
@@ -561,8 +590,7 @@ export default {
 .btn-pw { display: inline-flex; align-items: center; padding: 9px 20px; border-radius: 9px; border: none; background: #6366f1; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
 .btn-pw:hover:not(:disabled) { background: #4f46e5; }
 .btn-pw:disabled { opacity: .6; cursor: not-allowed; }
-.pw-error   { margin-top: 10px; padding-left: 8px; font-size: 12.5px; color: #dc2626; }
-.pw-success { margin-top: 10px; padding-left: 8px; font-size: 12.5px; color: #16a34a; font-weight: 500; }
+.pw-error { margin-top: 10px; padding-left: 8px; font-size: 12.5px; color: #dc2626; }
 
 /* ── Lightbox ── */
 .lightbox {
@@ -572,17 +600,12 @@ export default {
   backdrop-filter: blur(6px);
 }
 .lb-img {
-  max-width: min(90vw, 480px);
-  max-height: 85vh;
-  border-radius: 14px;
-  object-fit: contain;
+  max-width: min(90vw, 480px); max-height: 85vh;
+  border-radius: 14px; object-fit: contain;
   box-shadow: 0 32px 80px rgba(0,0,0,0.5);
   animation: lb-pop .22s cubic-bezier(.34,1.56,.64,1) both;
 }
-@keyframes lb-pop {
-  from { transform: scale(.88); opacity: 0; }
-  to   { transform: scale(1);   opacity: 1; }
-}
+@keyframes lb-pop { from { transform: scale(.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .lb-close {
   position: absolute; top: 18px; right: 18px;
   width: 38px; height: 38px; border-radius: 50%;
@@ -593,8 +616,25 @@ export default {
 .lb-close:hover { background: rgba(255,255,255,0.22); }
 .lb-enter-active, .lb-leave-active { transition: opacity .2s ease; }
 .lb-enter-from,  .lb-leave-to      { opacity: 0; }
-
 .avatar-img.clickable { cursor: zoom-in; }
+
+/* ── Status Modal ── */
+.modal-backdrop { position: fixed; inset: 0; z-index: 99999; background: rgba(15,23,42,0.55); display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+.modal-box { background: #fff; border-radius: 16px; padding: 28px 24px 22px; max-width: 340px; width: 100%; text-align: center; border: 1px solid #e2e8f0; }
+.modal-icon-wrap { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.modal-box.success .modal-icon-wrap { background: #f0fdf4; color: #16a34a; }
+.modal-box.error   .modal-icon-wrap { background: #fef2f2; color: #dc2626; }
+.modal-title { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+.modal-msg   { font-size: 13px; color: #64748b; line-height: 1.55; margin-bottom: 20px; }
+.modal-btn   { padding: 9px 28px; border-radius: 9px; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.modal-btn.success { background: #16a34a; color: #fff; }
+.modal-btn.success:hover { background: #15803d; }
+.modal-btn.error   { background: #dc2626; color: #fff; }
+.modal-btn.error:hover { background: #b91c1c; }
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity .2s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-active .modal-box { transition: transform .22s cubic-bezier(.34,1.56,.64,1); }
+.modal-fade-enter-from .modal-box { transform: scale(.9); }
 
 /* ════════════════════════════════
    Tablet  ≥ 640px

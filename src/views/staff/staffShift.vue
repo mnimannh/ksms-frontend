@@ -150,7 +150,7 @@
 <script>
 import API_BASE_URL from "@/services/api";
 import StaffSidebar from "@/components/sidebar/staffSidebar.vue";
-import SwapRequestModal from "@/components/admin-shift/SwapRequestModal.vue";
+import SwapRequestModal from "@/components/staff-shift/SwapRequestModal.vue";
 import axios from "axios";
 
 export default {

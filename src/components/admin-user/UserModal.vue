@@ -74,9 +74,9 @@
                   ref="rfidInput"
                   type="text"
                   :value="form.rfidUid"
-                  placeholder="Scan RFID card…"
+                  placeholder="e.g. 02B6494C"
                   :required="form.role === 'staff'"
-                  maxlength="32"
+                  maxlength="8"
                   :readonly="!rfidScanMode"
                   :class="{ scanning: rfidScanMode }"
                   @keydown.enter.prevent="onRfidEnter"
@@ -106,7 +106,7 @@
               <span v-if="rfidScanMode" class="field-hint scan-hint">
                 <span class="scan-dot" /> Awaiting RFID scan — tap or swipe card now.
               </span>
-              <span v-else class="field-hint">Scan the staff member's RFID card UID</span>
+              <span v-else class="field-hint">Hex UID (e.g. 02B6494C) — scan or enter manually</span>
             </div>
           </div>
         </transition>
@@ -246,7 +246,20 @@ export default {
     },
 
     onRfidInput(e) {
-      this.form.rfidUid = e.target.value
+      let raw = e.target.value.trim()
+
+      // Scanner outputs decimal → convert to hex
+      if (/^\d+$/.test(raw) && raw.length > 0) {
+        raw = BigInt(raw).toString(16).toUpperCase()
+      }
+
+      const cleaned = raw
+        .replace(/[^0-9a-fA-F]/g, '')
+        .toUpperCase()
+        .slice(0, 8)
+
+      this.form.rfidUid = cleaned
+      e.target.value = cleaned
     },
 
     onRfidEnter() {
@@ -419,8 +432,9 @@ select:focus { border-color: #111827; background: #fff; box-shadow: 0 0 0 3px rg
 .rfid-input-wrapper input[type="text"] {
   width: 100%;
   padding-right: 72px;
-  font-family: 'DM Sans', monospace;
-  letter-spacing: 0.05em;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 .rfid-badge {
   position: absolute; right: 10px;
@@ -478,21 +492,6 @@ select:focus { border-color: #111827; background: #fff; box-shadow: 0 0 0 3px rg
 .rfid-slide-leave-active { transition: all 0.15s ease; }
 .rfid-slide-enter-from   { opacity: 0; transform: translateY(-6px); }
 .rfid-slide-leave-to     { opacity: 0; transform: translateY(-4px); }
-
-/* Checkbox */
-.password-toggle-group { margin-bottom: 16px; }
-.checkbox-label {
-  display: flex; align-items: center; gap: 9px;
-  font-size: 13px; font-weight: 400 !important; color: #6b7280;
-  cursor: pointer; letter-spacing: 0;
-}
-.checkbox-box {
-  width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #d1d5db;
-  background: #fff; display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: all 0.15s;
-}
-input[type="checkbox"] { display: none; }
-input[type="checkbox"]:checked + .checkbox-box { background: #111827; border-color: #111827; }
 
 /* Divider */
 .form-divider { height: 1px; background: #f3f4f6; margin: 20px 0; }

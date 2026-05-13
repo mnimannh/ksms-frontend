@@ -55,15 +55,26 @@
 </template>
 
 <script>
-import { getInitials, formatTime, formatShortDate, isLate } from '@/data/shiftData.js';
-
 export default {
   name: 'ShiftDetailDrawer',
   props: {
     log: { type: Object, default: null },
   },
   emits: ['close'],
-  methods: { getInitials, formatTime, formatShortDate, isLate },
+  methods: {
+    formatTime(val) {
+      if (!val) return '—';
+      return new Date(val).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+    },
+    formatShortDate(val) {
+      if (!val) return '—';
+      return new Date(val).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' });
+    },
+    isLate(log) {
+      if (!log.checkIn || !log.shiftStart) return false;
+      return new Date(log.checkIn) > new Date(log.shiftStart);
+    },
+  },
 };
 </script>
 

@@ -204,6 +204,25 @@
         </div>
       </transition>
 
+      <!-- STATUS MODAL -->
+      <transition name="modal-fade">
+        <div v-if="modal.show" class="modal-backdrop" @click.self="closeModal">
+          <div class="modal-box" :class="modal.type">
+            <div class="modal-icon-wrap">
+              <svg v-if="modal.type === 'success'" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>
+              </svg>
+              <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <p class="modal-title">{{ modal.type === 'success' ? 'Changes Saved' : 'Something went wrong' }}</p>
+            <p class="modal-msg">{{ modal.message }}</p>
+            <button class="modal-btn" :class="modal.type" @click="closeModal">OK</button>
+          </div>
+        </div>
+      </transition>
+
     </main>
   </div>
 </template>
@@ -231,6 +250,7 @@ export default {
       avatarUploading: false,
       apiBase: API_BASE_URL,
       lightbox: false,
+      modal: { show: false, type: 'success', message: '' },
     };
   },
 
@@ -277,13 +297,25 @@ export default {
     },
 
     picUrl(url) {
-      if (!url) return ''
-      if (url.startsWith('http')) return url
-      return `${this.apiBase}${url}`
+      if (!url) return '';
+      if (url.startsWith('http')) return url;
+      return `${this.apiBase}${url}`;
     },
     openLightbox()  { this.lightbox = true; },
     closeLightbox() { this.lightbox = false; },
-    onKeydown(e)    { if (e.key === 'Escape') this.closeLightbox(); },
+    onKeydown(e)    {
+      if (e.key === 'Escape') {
+        this.closeLightbox();
+        this.closeModal();
+      }
+    },
+
+    showModal(type, message) {
+      this.modal = { show: true, type, message };
+    },
+    closeModal() {
+      this.modal.show = false;
+    },
 
     startEdit() {
       this.form = {
@@ -315,8 +347,10 @@ export default {
         });
         Object.assign(this.profile, this.form);
         this.editing = false;
+        this.showModal('success', 'Profile updated successfully!');
       } catch (err) {
         console.error('Failed to save profile', err);
+        this.showModal('error', err.response?.data?.message || 'Failed to save changes.');
       } finally {
         this.saving = false;
       }
@@ -340,11 +374,11 @@ export default {
           { newPassword: this.pwForm.newPassword },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        this.pwSuccess = 'Password updated successfully!';
         this.pwForm = { newPassword: '', confirmPassword: '' };
         this.profile.is_temp_password = false;
+        this.showModal('success', 'Password updated successfully!');
       } catch (err) {
-        this.pwError = err.response?.data?.message || 'Failed to update password.';
+        this.showModal('error', err.response?.data?.message || 'Failed to update password.');
       } finally {
         this.pwSaving = false;
       }
@@ -364,6 +398,7 @@ export default {
         this.profile.profile_picture = res.data.url;
       } catch (err) {
         console.error('Avatar upload failed', err);
+        this.showModal('error', 'Failed to upload profile picture.');
       } finally {
         this.avatarUploading = false;
         e.target.value = '';
@@ -492,6 +527,24 @@ export default {
 .lb-enter-active, .lb-leave-active { transition: opacity .2s ease; }
 .lb-enter-from, .lb-leave-to { opacity: 0; }
 .avatar-img.clickable { cursor: zoom-in; }
+
+/* Status Modal */
+.modal-backdrop { position: fixed; inset: 0; z-index: 99999; background: rgba(15,23,42,0.55); display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+.modal-box { background: #fff; border-radius: 16px; padding: 28px 24px 22px; max-width: 340px; width: 100%; text-align: center; border: 1px solid #e2e8f0; }
+.modal-icon-wrap { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.modal-box.success .modal-icon-wrap { background: #f0fdf4; color: #16a34a; }
+.modal-box.error   .modal-icon-wrap { background: #fef2f2; color: #dc2626; }
+.modal-title { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+.modal-msg   { font-size: 13px; color: #64748b; line-height: 1.55; margin-bottom: 20px; }
+.modal-btn   { padding: 9px 28px; border-radius: 9px; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.modal-btn.success { background: #16a34a; color: #fff; }
+.modal-btn.success:hover { background: #15803d; }
+.modal-btn.error   { background: #dc2626; color: #fff; }
+.modal-btn.error:hover { background: #b91c1c; }
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity .2s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-active .modal-box { transition: transform .22s cubic-bezier(.34,1.56,.64,1); }
+.modal-fade-enter-from .modal-box { transform: scale(.9); }
 
 /* Tablet ≥ 640px */
 @media (min-width: 640px) {

@@ -138,8 +138,6 @@
 </template>
 
 <script>
-import { getInitials, formatTime, formatShortDate } from '@/data/shiftData.js';
-
 export default {
   name: 'ShiftTable',
   props: {
@@ -163,9 +161,14 @@ export default {
     },
   },
   methods: {
-    getInitials,
-    formatTime,
-    formatShortDate,
+    formatTime(val) {
+      if (!val) return '—';
+      return new Date(val).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+    },
+    formatShortDate(val) {
+      if (!val) return '—';
+      return new Date(val).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' });
+    },
     formatDisplayDate(dateStr) {
       if (!dateStr) return '';
       return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
