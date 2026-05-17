@@ -175,6 +175,7 @@
         :staffName="attModal.staffName"
         :staffDept="''"
         :monthLabel="attModal.monthLabel"
+        :hourlyRate="attModal.hourlyRate"
         @close="attModal.show = false"
       />
 
@@ -242,7 +243,7 @@ export default {
       activeFilter: 'all',
 
       toast: { show: false, message: '', type: 'success' },
-      attModal: { show: false, logs: [], staffName: '', monthLabel: '' },
+      attModal: { show: false, logs: [], staffName: '', monthLabel: '', hourlyRate: 0 },
     };
   },
 
@@ -366,9 +367,17 @@ export default {
     formatMoney(val) {
       return 'RM ' + Number(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     },
+
     async openAttendance(s) {
       const monthLabel = (this.MONTHS.find(m => m.value === this.selectedMonth)?.label || '') + ' ' + this.selectedYear;
-      this.attModal = { show: true, logs: [], staffName: s.fullName, monthLabel };
+      // ✅ FIX: include hourlyRate so the modal can calculate per-row pay
+      this.attModal = {
+        show: true,
+        logs: [],
+        staffName: s.fullName,
+        monthLabel,
+        hourlyRate: Number(s.hourlyRate) || 0,
+      };
       try {
         const res = await axios.get(`${API_BASE_URL}/api/attendance/user/${s.userID}/month/${this.monthStr}`);
         this.attModal.logs = res.data;

@@ -245,22 +245,39 @@ export default {
       }
     },
 
-    onRfidInput(e) {
-      let raw = e.target.value.trim()
+onRfidInput(e) {
+  let raw = e.target.value.trim();
+  if (!raw) return;
 
-      // Scanner outputs decimal → convert to hex
-      if (/^\d+$/.test(raw) && raw.length > 0) {
-        raw = BigInt(raw).toString(16).toUpperCase()
-      }
+  let hex = '';
 
-      const cleaned = raw
-        .replace(/[^0-9a-fA-F]/g, '')
-        .toUpperCase()
-        .slice(0, 8)
+  // 1. If the input is purely numeric and long (Decimal mode)
+  if (/^\d{5,}$/.test(raw)) {
+    try {
+      // Use BigInt to handle numbers larger than 16 digits safely
+      // and convert to Hexadecimal
+      hex = BigInt(raw).toString(16).toUpperCase();
+    } catch (err) {
+      hex = raw; 
+    }
+  } else {
+    // 2. If it contains letters, treat it as direct Hex input
+    hex = raw.toUpperCase().replace(/[^0-9A-F]/g, '');
+  }
 
-      this.form.rfidUid = cleaned
-      e.target.value = cleaned
-    },
+  // 3. Formatting to 8 characters
+  // If the result is '2B6494C', it pads to '02B6494C'
+  // If the reader sends a 10-digit hex, it takes the last 8
+  if (hex.length > 8) {
+    hex = hex.slice(-8);
+  } else {
+    hex = hex.padStart(8, '0');
+  }
+
+  // 4. Update the form and the input display
+  this.form.rfidUid = hex;
+  e.target.value = hex;
+},
 
     onRfidEnter() {
       if (this.rfidScanMode) {

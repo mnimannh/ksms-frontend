@@ -21,15 +21,29 @@
           <div v-if="!submitted">
             <div class="swap-info-box">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;color:#6366f1"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span>Your swap request will be sent to your colleague. They must accept before it goes to admin for final approval.</span>
+              <span>Your swap offer will be sent to your colleague. They must accept before it goes to admin for final approval.</span>
             </div>
 
+            <!-- Target Context Label (Read Only) -->
             <div class="swap-field" style="margin-top:16px">
-              <label class="swap-field-label">Swap with <span class="swap-req">*</span></label>
-              <select v-model.number="form.targetId" class="swap-select">
-                <option :value="null" disabled>Select a colleague…</option>
-                <option v-for="s in staffList" :key="s.id" :value="s.id">{{ s.fullName }}</option>
+              <label class="swap-field-label">Target Teammate</label>
+              <div class="swap-read-only-name">
+                {{ shift.ownerName || 'Selected Colleague' }}
+              </div>
+            </div>
+
+            <!-- Trade Shift Dropdown -->
+            <div class="swap-field" style="margin-top:16px">
+              <label class="swap-field-label">Which of your shifts will you offer? <span class="swap-req">*</span></label>
+              <select v-model="form.proposingShiftId" class="swap-select">
+                <option :value="null" disabled>Select one of your shifts…</option>
+                <option v-for="s in availableMyShifts" :key="s.id" :value="s.id">
+                  {{ s.shiftType }} Shift · {{ formatShiftOptionDate(s.startTime) }}
+                </option>
               </select>
+              <p v-if="availableMyShifts.length === 0" class="swap-warning-text">
+                You have no shifts on other days available to swap.
+              </p>
             </div>
 
             <div v-if="error" class="swap-error-box" style="margin-top:12px">
@@ -49,7 +63,7 @@
 
         <div class="swap-footer">
           <button class="swap-btn-ghost" @click="$emit('close')">{{ submitted ? 'Close' : 'Cancel' }}</button>
-          <button v-if="!submitted" class="swap-btn-submit" @click="submit" :disabled="!form.targetId || loading">
+          <button v-if="!submitted" class="swap-btn-submit" @click="submit" :disabled="!form.proposingShiftId || loading">
             <span v-if="loading" class="swap-spinner"></span>
             <span v-else>Send Request</span>
           </button>
@@ -66,13 +80,15 @@ export default {
   name: 'SwapRequestModal',
   emits: ['close', 'submitted'],
   props: {
-    shift:     { type: Object, required: true },
-    staffList: { type: Array,  default: () => [] },
+    shift:     { type: Object, required: true }, // The colleague's shift being target-clicked
+    myShifts:  { type: Array,  default: () => [] }, // Abu's own list of shifts passed down
   },
 
   data() {
     return {
-      form:      { targetId: null },
+      form: {
+        proposingShiftId: null 
+      },
       loading:   false,
       error:     '',
       submitted: false,
@@ -85,9 +101,20 @@ export default {
       const d = new Date(this.shift.startTime)
       return `${this.shift.shiftType} · ${d.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}`
     },
+    // Filter out shifts on the same day as the clicked target shift to avoid layout/system bugs
+    availableMyShifts() {
+      if (!this.shift) return []
+      const targetDayStr = new Date(this.shift.startTime).toDateString()
+      return this.myShifts.filter(s => {
+        return new Date(s.startTime).toDateString() !== targetDayStr
+      })
+    }
   },
 
   methods: {
+    formatShiftOptionDate(dt) {
+      return new Date(dt).toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short' })
+    },
     async submit() {
       this.error   = ''
       this.loading = true
@@ -96,7 +123,10 @@ export default {
         const res = await fetch(`${API_BASE_URL}/api/swaps`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body:    JSON.stringify({ targetId: this.form.targetId, shiftId: this.shift.id }),
+          body:    JSON.stringify({ 
+            targetShiftId: this.shift.id,             // Ali's shift ID
+            proposingShiftId: this.form.proposingShiftId // Abu's shift ID offered in trade
+          }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.message || 'Failed to send request')
@@ -154,14 +184,22 @@ export default {
 }
 
 .swap-field { display: flex; flex-direction: column; gap: 6px; }
-.swap-field-label { font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
+.swap-field-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; }
 .swap-req { color: #ef4444; }
+
+.swap-read-only-name {
+  padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 8px; font-size: 14px; font-weight: 600; color: #334155;
+}
+
 .swap-select {
   padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
   font-size: 14px; font-family: 'DM Sans', sans-serif; color: #1e293b;
   outline: none; transition: border-color .15s; background: #fff; width: 100%;
 }
 .swap-select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
+
+.swap-warning-text { font-size: 11px; color: #f59e0b; margin-top: 2px; }
 
 .swap-error-box {
   display: flex; align-items: flex-start; gap: 10px;

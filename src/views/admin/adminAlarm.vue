@@ -365,7 +365,7 @@
                   >
                     <div class="rs-top">
                       <span class="rs-status-dot" :class="item.stock === 0 ? 'dot--out' : item.ratio >= 0.75 ? 'dot--critical' : 'dot--high'"></span>
-                      <span class="rs-name">{{ (item.variant || item.product_name || '').slice(0, 24) }}</span>
+<span class="rs-name">{{ `${item.product_name || ''} ${item.variant || ''}`.trim().slice(0, 28) }}</span>
                       <span class="rs-label" :class="item.stock === 0 ? 'rl--out' : item.ratio >= 0.75 ? 'rl--critical' : 'rl--high'">
                         {{ item.stock === 0 ? 'OUT OF STOCK' : item.ratio >= 0.75 ? 'CRITICAL' : 'HIGH' }}
                       </span>
@@ -652,7 +652,7 @@ export default {
           const deficit = Math.max(0, a.threshold - a.stock)
           const ratio   = deficit / (a.threshold || 1)
           const color   = ratio >= 0.75 ? '#ef4444' : ratio >= 0.5 ? '#f97316' : ratio >= 0.25 ? '#f59e0b' : '#eab308'
-          const label   = (a.variant || a.product_name || '').slice(0, 20)
+          const label = `${a.product_name || ''} ${a.variant || ''}`.trim().slice(0, 28)
           return { label, deficit, color }
         })
         .filter(a => a.deficit > 0)

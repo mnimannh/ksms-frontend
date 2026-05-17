@@ -25,7 +25,7 @@
           <input
             class="search-input"
             :value="searchQuery"
-            @input="$emit('update:searchQuery', $event.target.value)"
+            @input="onSearchInput"
             placeholder="Search staff or shift…"
           />
         </div>
@@ -50,8 +50,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(row, index) in filteredRows" :key="row.id" class="table-row">
-            <td class="td-num">{{ index + 1 }}</td>
+          <tr v-for="(row, index) in paginatedRows" :key="row.id" class="table-row">
+            <td class="td-num">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>
               <div class="staff-cell">
                 {{ row.staffName }}
@@ -94,10 +94,48 @@
             </td>
           </tr>
           <tr v-if="filteredRows.length === 0">
-            <td colspan="10" class="empty-td">No shifts found.</td>
+            <td colspan="11" class="empty-td">No shifts found.</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- ── Pagination Controls ── -->
+    <div v-if="filteredRows.length > 0" class="pagination-panel">
+      <div class="pagination-info">
+        Showing <span>{{ startItemIndex }}</span> to <span>{{ endItemIndex }}</span> of <span>{{ filteredRows.length }}</span> entries
+      </div>
+      <div class="pagination-controls">
+        <button 
+          class="page-btn" 
+          :disabled="currentPage === 1" 
+          @click="changePage(currentPage - 1)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        
+        <button 
+          v-for="page in totalPages" 
+          :key="page" 
+          class="page-btn num-btn"
+          :class="{ active: page === currentPage }"
+          @click="changePage(page)"
+        >
+          {{ page }}
+        </button>
+
+        <button 
+          class="page-btn" 
+          :disabled="currentPage === totalPages" 
+          @click="changePage(currentPage + 1)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -134,7 +172,6 @@
       </div>
     </Transition>
   </Teleport>
-
 </template>
 
 <script>
@@ -149,7 +186,14 @@ export default {
     return {
       confirmDialog: { show: false, shiftId: null },
       dateFilter: '',
+      currentPage: 1,
+      itemsPerPage: 10,
     };
+  },
+  watch: {
+    dateFilter() {
+      this.currentPage = 1;
+    }
   },
   computed: {
     filteredRows() {
@@ -159,8 +203,33 @@ export default {
         return rowDate === this.dateFilter;
       });
     },
+    totalPages() {
+      return Math.ceil(this.filteredRows.length / this.itemsPerPage) || 1;
+    },
+    paginatedRows() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.filteredRows.slice(start, end);
+    },
+    startItemIndex() {
+      if (this.filteredRows.length === 0) return 0;
+      return (this.currentPage - 1) * this.itemsPerPage + 1;
+    },
+    endItemIndex() {
+      const projectedEnd = this.currentPage * this.itemsPerPage;
+      return projectedEnd > this.filteredRows.length ? this.filteredRows.length : projectedEnd;
+    }
   },
   methods: {
+    onSearchInput(event) {
+      this.currentPage = 1;
+      this.$emit('update:searchQuery', event.target.value);
+    },
+    changePage(page) {
+      if (page >= 1 && page <= this.totalPages) {
+        this.currentPage = page;
+      }
+    },
     formatTime(val) {
       if (!val) return '—';
       return new Date(val).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
@@ -414,8 +483,66 @@ export default {
   padding: 32px;
 }
 
-/* ── Delete Confirmation Modal ─────────────────────── */
+/* ── Pagination Panel ── */
+.pagination-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-top: 1px solid #f1f5f9;
+  background: #fff;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.pagination-info {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.pagination-info span {
+  font-weight: 600;
+  color: #0f172a;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.page-btn:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  color: #0f172a;
+  background: #f8fafc;
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.num-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.num-btn.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+  font-weight: 600;
+}
 
+/* ── Delete Confirmation Modal ─────────────────────── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
