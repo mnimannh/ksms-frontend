@@ -69,44 +69,9 @@
             </div>
           </div>
 
-          <!-- Skip options -->
-          <p class="ag-section-label">Day Exclusions</p>
-          <div class="ag-toggle-row">
-            <label class="ag-toggle">
-              <input type="checkbox" v-model="form.skipWeekends" />
-              <span class="ag-toggle-track"><span class="ag-toggle-thumb"></span></span>
-              <span class="ag-toggle-label">Skip Saturdays & Sundays</span>
-            </label>
-          </div>
-
-          <!-- Malaysian Public Holidays -->
-          <div class="ag-holidays">
-            <div class="ag-holidays-head">
-              <span class="ag-holidays-title">
-                Public Holidays — Malaysia / Selangor
-                <span v-if="holidaysLoading" class="ag-h-loading">Loading…</span>
-              </span>
-              <span class="ag-holidays-sub">Uncheck to include that day</span>
-            </div>
-
-            <div v-if="holidaysError" class="ag-h-error">{{ holidaysError }}</div>
-
-            <div v-else-if="holidaysLoading" class="ag-h-spinner-wrap">
-              <span class="ag-spinner" style="border-top-color:#6366f1;border-color:rgba(99,102,241,.2)"></span>
-              <span style="font-size:12px;color:#94a3b8">Fetching from Nager.Date…</span>
-            </div>
-
-            <div v-else class="ag-holidays-list">
-              <label v-for="h in fetchedHolidays" :key="h.date" class="ag-holiday-item">
-                <input type="checkbox" :value="h.date" v-model="form.blockedDates" />
-                <span class="ag-holiday-date">{{ h.label }}</span>
-                <span class="ag-holiday-name">
-                  {{ h.name }}
-                  <span v-if="h.selangor" class="ag-h-state-tag">Selangor</span>
-                </span>
-              </label>
-              <div v-if="!fetchedHolidays.length" class="ag-h-empty">No holidays found for {{ form.year }}.</div>
-            </div>
+          <!-- Background Loading Indicator for Holidays -->
+          <div v-if="holidaysLoading" class="ag-h-loading-status">
+            <span class="ag-spinner-sm"></span> Syncing Selangor public holidays...
           </div>
 
           <!-- Hours preview -->
@@ -155,7 +120,7 @@
 
         <div class="ag-footer">
           <button class="ag-btn-cancel" @click="$emit('close')">{{ result ? 'Close' : 'Cancel' }}</button>
-          <button v-if="!result" class="ag-btn-generate" @click="generate" :disabled="loading">
+          <button v-if="!result" class="ag-btn-generate" @click="generate" :disabled="loading || holidaysLoading">
             <span v-if="loading" class="ag-spinner"></span>
             <template v-else>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
@@ -190,15 +155,13 @@ export default {
         morningEnd:   '13:00',
         eveningStart: '14:00',
         eveningEnd:   '18:00',
-        skipWeekends: true,
-        blockedDates: [],
+        skipWeekends: true, // Re-added to force backend to exclude Sat/Sun
+        blockedDates: [],   // Re-added to hold Selangor holiday dates fetched from your custom API
       },
       months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
       years:   [now.getFullYear(), now.getFullYear() + 1],
       loading:         false,
       holidaysLoading: false,
-      holidaysError:   '',
-      fetchedHolidays: [],
       error:           '',
       result:          null,
     }
@@ -226,85 +189,39 @@ export default {
   },
 
   methods: {
-    selangorHolidays(year) {
-      const map = {
-        2025: [
-          { date: '2025-01-14', name: 'Israk Mikraj (Selangor)' },
-          { date: '2025-03-28', name: 'Nuzul Al-Quran (Selangor)' },
-          { date: '2025-12-13', name: "Sultan Selangor's Birthday" },
-        ],
-        2026: [
-          { date: '2026-01-03', name: 'Israk Mikraj (Selangor)' },
-          { date: '2026-03-17', name: 'Nuzul Al-Quran (Selangor)' },
-          { date: '2026-12-12', name: "Sultan Selangor's Birthday" },
-        ],
-      }
-      return map[year] || []
-    },
-
-    hardcodedNational(year) {
-      const y = year
-      return [
-        { date: `${y}-01-01`, name: "New Year's Day" },
-        { date: `${y}-05-01`, name: 'Labour Day' },
-        { date: `${y}-08-31`, name: 'National Day (Merdeka)' },
-        { date: `${y}-09-16`, name: 'Malaysia Day' },
-        { date: `${y}-12-25`, name: 'Christmas Day' },
-        ...(y === 2025 ? [
-          { date: '2025-01-29', name: 'Chinese New Year' },
-          { date: '2025-01-30', name: 'Chinese New Year (2nd day)' },
-          { date: '2025-02-11', name: 'Thaipusam' },
-          { date: '2025-03-31', name: 'Hari Raya Aidilfitri' },
-          { date: '2025-04-01', name: 'Hari Raya Aidilfitri (2nd day)' },
-          { date: '2025-05-12', name: 'Wesak Day' },
-          { date: '2025-06-07', name: 'Hari Raya Aidiladha' },
-          { date: '2025-06-27', name: 'Awal Muharram' },
-          { date: '2025-09-05', name: "Prophet Muhammad's Birthday" },
-          { date: '2025-10-20', name: 'Deepavali' },
-        ] : []),
-        ...(y === 2026 ? [
-          { date: '2026-02-17', name: 'Chinese New Year' },
-          { date: '2026-02-18', name: 'Chinese New Year (2nd day)' },
-          { date: '2026-02-03', name: 'Thaipusam' },
-          { date: '2026-03-20', name: 'Hari Raya Aidilfitri' },
-          { date: '2026-03-21', name: 'Hari Raya Aidilfitri (2nd day)' },
-          { date: '2026-05-01', name: 'Wesak Day' },
-          { date: '2026-05-27', name: 'Hari Raya Aidiladha' },
-          { date: '2026-06-16', name: 'Awal Muharram' },
-          { date: '2026-08-25', name: "Prophet Muhammad's Birthday" },
-          { date: '2026-11-08', name: 'Deepavali' },
-        ] : []),
-      ]
-    },
-
-    buildList(national, year) {
-      return [...national, ...this.selangorHolidays(year)]
-        .filter(h => h.date.startsWith(`${year}-`))
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .map(h => ({
-          ...h,
-          label:    new Date(`${h.date}T00:00:00`).toLocaleDateString('en-MY', { day: 'numeric', month: 'short' }),
-          selangor: h.name.includes('Selangor') || h.name.includes('Sultan'),
-        }))
-    },
-
-    async loadHolidays(year) {
+async loadHolidays(year) {
       this.holidaysLoading = true
-      this.holidaysError   = ''
       try {
-        const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/MY`)
-        if (!res.ok) throw new Error(`API responded ${res.status}`)
-        const data    = await res.json()
-        const national = data.map(h => ({ date: h.date, name: h.name }))
-        const all      = this.buildList(national, year)
-        this.fetchedHolidays   = all
-        this.form.blockedDates = all.map(h => h.date)
+        const res = await fetch(`https://sabah-holiday.dydxsoft.my/api/selangor/${year}.json`)
+        if (!res.ok) throw new Error(`API status ${res.status}`)
+        
+        const data = await res.json()
+        
+        if (Array.isArray(data)) {
+          // Months lookup mapping directory to translate API strings to padded indices
+          const monthMap = { 
+            Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+            Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' 
+          }
+
+          this.form.blockedDates = data.map(h => {
+            if (!h.date) return null
+            
+            // Splits "Jan 01" into ["Jan", "01"]
+            const [monthStr, dayStr] = h.date.trim().split(/\s+/)
+            const monthNum = monthMap[monthStr]
+            
+            if (!monthNum || !dayStr) return null
+            
+            // Returns formatted array string format: "2026-01-01"
+            return `${year}-${monthNum}-${dayStr.padStart(2, '0')}`
+          }).filter(Boolean) // Discards any structural anomalies safely
+          
+          console.log('[Holidays Synced!]:', this.form.blockedDates)
+        }
       } catch (err) {
-        console.warn('[Holidays] Nager.Date fetch failed:', err.message, '— falling back to built-in list')
-        const all = this.buildList(this.hardcodedNational(year), year)
-        this.fetchedHolidays   = all
-        this.form.blockedDates = all.map(h => h.date)
-        this.holidaysError     = 'Live fetch unavailable — loaded built-in holiday list instead.'
+        console.error('[Holidays API Error]:', err.message)
+        this.form.blockedDates = []
       } finally {
         this.holidaysLoading = false
       }
@@ -415,56 +332,23 @@ export default {
 .ag-dot-morning  { background: #f59e0b; }
 .ag-dot-evening  { background: #6366f1; }
 
-/* Weekend toggle */
-.ag-toggle-row { display: flex; flex-direction: column; gap: 8px; }
-.ag-toggle {
-  display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;
+/* API Status Indicator Styles */
+.ag-h-loading-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #4f46e5;
+  background: #f5f3ff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px dashed #c084fc;
 }
-.ag-toggle input { display: none; }
-.ag-toggle-track {
-  width: 36px; height: 20px; border-radius: 99px; background: #e2e8f0;
-  position: relative; flex-shrink: 0; transition: background .2s;
-}
-.ag-toggle input:checked + .ag-toggle-track { background: #6366f1; }
-.ag-toggle-thumb {
-  position: absolute; top: 2px; left: 2px;
-  width: 16px; height: 16px; border-radius: 50%; background: #fff;
-  transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2);
-}
-.ag-toggle input:checked + .ag-toggle-track .ag-toggle-thumb { left: 18px; }
-.ag-toggle-label { font-size: 13.5px; color: #1e293b; font-weight: 500; }
-
-/* Public holidays */
-.ag-holidays {
-  border: 1px solid #f1f5f9; border-radius: 10px; overflow: hidden;
-}
-.ag-holidays-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #f1f5f9;
-}
-.ag-holidays-title { font-size: 12px; font-weight: 600; color: #374151; }
-.ag-holidays-sub   { font-size: 11px; color: #94a3b8; }
-.ag-holidays-list  { display: flex; flex-direction: column; max-height: 200px; overflow-y: auto; }
-.ag-holiday-item {
-  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
-  border-bottom: 1px solid #f8fafc; cursor: pointer;
-  transition: background .1s;
-}
-.ag-holiday-item:last-child { border-bottom: none; }
-.ag-holiday-item:hover { background: #f8fafc; }
-.ag-holiday-item input { accent-color: #6366f1; width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
-.ag-holiday-date { font-size: 11.5px; font-family: 'DM Mono', monospace; color: #6366f1; min-width: 52px; }
-.ag-holiday-name { font-size: 12.5px; color: #374151; display: flex; align-items: center; gap: 6px; }
-.ag-h-state-tag {
-  font-size: 10px; font-weight: 700; background: #fef3c7; color: #92400e;
-  padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
-}
-.ag-h-loading { font-size: 11px; color: #94a3b8; font-weight: 400; margin-left: 6px; }
-.ag-h-error   { padding: 10px 14px; font-size: 12.5px; color: #b91c1c; background: #fff7f7; }
-.ag-h-empty   { padding: 12px 14px; font-size: 12.5px; color: #94a3b8; text-align: center; }
-.ag-h-spinner-wrap {
-  display: flex; align-items: center; gap: 10px;
-  padding: 14px; justify-content: center;
+.ag-spinner-sm {
+  width: 12px; height: 12px;
+  border: 2px solid rgba(99, 102, 241, .2);
+  border-top-color: #6366f1; border-radius: 50%;
+  animation: ag-spin .65s linear infinite;
 }
 
 /* Hours preview */

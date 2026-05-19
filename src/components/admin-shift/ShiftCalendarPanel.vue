@@ -3,7 +3,6 @@
     <div class="panel-head">
       <span class="panel-title">SCHEDULE OVERVIEW</span>
       <div class="head-right">
-        <!-- User filter dropdown -->
         <div class="user-filter" v-if="staffList.length">
           <button class="filter-btn" :class="{ active: selectedUserId !== null }" @click.stop="dropdownOpen = !dropdownOpen">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
@@ -62,72 +61,209 @@ export default {
   watch: {
     calendarEvents(newEvents) {
       if (!this.calendar) return;
-      this.calendar.removeAllEvents();
-      newEvents.forEach(e => this.calendar.addEvent(e));
+      
+      // Clear out existing event streams safely
+      const sources = this.calendar.getEventSources();
+      sources.forEach(source => source.remove());
+      
+      // Inject the combined shift + unclickable background source cleanly
+      this.calendar.addEventSource(newEvents);
     },
   },
 
-  methods: {
-    loadFullCalendar() {
+methods: {
+  loadFullCalendar() {
+    if (!document.querySelector('link[href*="fullcalendar"]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css';
       document.head.appendChild(link);
+    }
 
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js';
-      script.onload = () => this.initCalendar();
-      document.head.appendChild(script);
-    },
+    if (window.FullCalendar) {
+      this.initCalendar();
+      return;
+    }
 
-    initCalendar() {
-      const el = document.getElementById('admin-calendar');
-      if (!el || !window.FullCalendar) return;
-
-      this.calendar = new window.FullCalendar.Calendar(el, {
-        initialView: 'dayGridMonth',
-        headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-        height: '625px',
-        events: this.calendarEvents,
-        dayCellClassNames: (arg) => {
-          const cell = new Date(arg.date);
-          cell.setHours(0, 0, 0, 0);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          return cell < today ? ['fc-day-past-blocked'] : [];
-        },
-        eventClick: (info) => {
-          this.$emit('event-click', info.event.extendedProps);
-        },
-        dateClick: (info) => {
-          this.$emit('date-click', info.dateStr);
-        },
-        dayMaxEvents: 3,
-        eventDisplay: 'block',
-      });
-
-      this.calendar.render();
-    },
-
-    switchView(v) {
-      this.calView = v;
-      if (this.calendar) this.calendar.changeView(v);
-    },
-
-    selectUser(id) {
-      this.selectedUserId = id;
-      this.dropdownOpen = false;
-      this.$emit('filter-user', id);
-    },
-
-    closeDropdown() {
-      this.dropdownOpen = false;
-    },
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js';
+    script.onload = () => this.initCalendar();
+    document.head.appendChild(script);
   },
+
+  // ─────────────────────────────────────────────
+  // CONVERT API DATE
+  // "Dec 25" → "2026-12-25"
+  // ─────────────────────────────────────────────
+  convertHolidayDate(dateStr, year = 2026) {
+    const monthMap = {
+      Jan: '01',
+      Feb: '02',
+      Mar: '03',
+      Apr: '04',
+      May: '05',
+      Jun: '06',
+      Jul: '07',
+      Aug: '08',
+      Sep: '09',
+      Oct: '10',
+      Nov: '11',
+      Dec: '12'
+    };
+
+    const [monthText, day] = dateStr.split(' ');
+
+    return `${year}-${monthMap[monthText]}-${day.padStart(2, '0')}`;
+  },
+
+  // ─────────────────────────────────────────────
+  // BUILD HOLIDAY EVENTS
+  // ─────────────────────────────────────────────
+  buildHolidayEvents(apiData, year = 2026) {
+    return apiData.map(h => ({
+      title: h.holiday_name,
+
+      // VERY IMPORTANT
+      // Use NOON to prevent timezone rollback
+      start: `${this.convertHolidayDate(h.date, year)}T12:00:00`,
+
+      allDay: true,
+
+      display: 'block',
+
+      classNames: ['holiday-block-event'],
+
+      extendedProps: {
+        publicHoliday: true,
+        holidayName: h.holiday_name,
+        mandatory: h.is_mandatory
+      }
+    }));
+  },
+
+  initCalendar() {
+    const el = document.getElementById('admin-calendar');
+
+    if (!el || !window.FullCalendar) return;
+
+    this.calendar = new window.FullCalendar.Calendar(el, {
+
+      initialView: 'dayGridMonth',
+
+      // IMPORTANT FIX
+      timeZone: 'local',
+
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: ''
+      },
+
+      height: '625px',
+
+      events: this.calendarEvents,
+
+      dayCellClassNames: (arg) => {
+
+        const cell = new Date(arg.date);
+        cell.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const classes = [];
+
+        // Block past dates
+        if (cell < today) {
+          classes.push('fc-day-past-blocked');
+        }
+
+        // Block weekends
+        const dayOfWeek = arg.date.getDay();
+
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          classes.push('fc-weekend-blocked');
+        }
+
+        return classes;
+      },
+
+      eventClick: (info) => {
+
+        // Prevent holiday clicks
+        if (
+          info.event.extendedProps?.publicHoliday ||
+          info.event.display === 'background' ||
+          info.event.classNames?.includes('holiday-block-event')
+        ) {
+          info.jsEvent.preventDefault();
+          info.jsEvent.stopPropagation();
+          return false;
+        }
+
+        this.$emit('event-click', info.event.extendedProps);
+      },
+
+      dateClick: (info) => {
+
+        const clickedDateObj = new Date(info.dateStr);
+
+        // Block weekends
+        const dayOfWeek = clickedDateObj.getDay();
+
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          return;
+        }
+
+        // FIXED HOLIDAY CHECK
+        const isHoliday = this.calendarEvents.some(event => {
+
+          if (!event.extendedProps?.publicHoliday) {
+            return false;
+          }
+
+          // Normalize event date safely
+          const eventDate = event.start.split('T')[0];
+
+          return eventDate === info.dateStr;
+        });
+
+        if (isHoliday) {
+          return;
+        }
+
+        this.$emit('date-click', info.dateStr);
+      },
+
+      dayMaxEvents: 3,
+
+      eventDisplay: 'block',
+    });
+
+    this.calendar.render();
+  },
+
+  switchView(v) {
+    this.calView = v;
+
+    if (this.calendar) {
+      this.calendar.changeView(v);
+    }
+  },
+
+  selectUser(id) {
+    this.selectedUserId = id;
+    this.dropdownOpen = false;
+    this.$emit('filter-user', id);
+  },
+
+  closeDropdown() {
+    this.dropdownOpen = false;
+  },
+},
 };
 </script>
 
-<!-- FullCalendar global overrides -->
 <style>
 #admin-calendar .fc-day-past-blocked {
   background: repeating-linear-gradient(
@@ -141,6 +277,22 @@ export default {
 }
 #admin-calendar .fc-day-past-blocked .fc-daygrid-day-number {
   color: #cbd5e1;
+}
+
+/* ── Weekend Striped Grey Lockout Styles ── */
+#admin-calendar .fc-weekend-blocked {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(0,0,0,0.04) 4px,
+    rgba(0,0,0,0.04) 8px
+  ) !important;
+  background-color: #f1f5f9 !important; /* Clean light grey background block */
+  cursor: not-allowed !important;
+}
+#admin-calendar .fc-weekend-blocked .fc-daygrid-day-number {
+  color: #94a3b8 !important; /* Mute day numerals on weekends */
 }
 
 #admin-calendar .fc-toolbar-title {
@@ -216,6 +368,23 @@ export default {
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(139,92,246,.25);
 }
+
+/* ── Updated Public Holiday Layout & Click Immunization overrides ── */
+#admin-calendar .holiday-block-event {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 0.92rem !important;          /* Bigger, more prominent typography */
+  font-weight: 800 !important;            /* Heavy bold font weight style */
+  color: #dc2626 !important;             /* Holiday crimson red */
+  padding: 6px 10px !important;
+  
+  /* Formulates complete UI interaction lockout */
+  pointer-events: none !important; 
+  user-select: none !important;
+  cursor: default !important;
+}
 </style>
 
 <style scoped>
@@ -223,7 +392,7 @@ export default {
   background: #fff;
   border: 1px solid #f1f5f9;
   border-radius: 12px;
-  overflow: hidden;
+ overflow: visible;
 }
 .panel-head {
   display: flex;
