@@ -9,12 +9,12 @@
         </div>
 
         <div class="assign-modal-body">
-<div class="form-row">
-  <label>Staff Member</label>
-  <select v-model="localForm.userID" :disabled="isEditing">
-    <option v-for="s in staffList" :key="s.id" :value="s.id">{{ s.fullName }}</option>
-  </select>
-</div>
+          <div class="form-row">
+            <label>Staff Member</label>
+            <select v-model="localForm.userID" :disabled="isEditing">
+              <option v-for="s in staffList" :key="s.id" :value="s.id">{{ s.fullName }}</option>
+            </select>
+          </div>
 
           <div class="form-row">
             <label>Shift Type <span class="label-hint">— auto-detected from start time</span></label>
@@ -24,28 +24,48 @@
             </div>
           </div>
 
+          <!-- Single Date Selector Row -->
+          <div class="form-row">
+            <label>Shift Date</label>
+            <div class="dt-field">
+              <input 
+                type="date" 
+                class="dt-input" 
+                :class="{ 'dt-input--error': errors.start || errors.end }" 
+                :min="todayStr" 
+                :value="localForm.startTime ? localForm.startTime.slice(0,10) : ''" 
+                @change="e => handleDateChange(e.target.value)" 
+              />
+            </div>
+          </div>
+
+          <!-- Separate Start and End Times Row -->
           <div class="form-row two-col">
             <div>
               <label>Start Time</label>
-              <div class="dt-group">
-                <div class="dt-field">
-                  <input type="date" class="dt-input" :class="{ 'dt-input--error': errors.start }" :min="todayStr" :value="localForm.startTime ? localForm.startTime.slice(0,10) : ''" @change="e => setDatePart('startTime', e.target.value)" />
-                </div>
-                <div class="dt-field">
-                  <input type="time" class="dt-input" :class="{ 'dt-input--error': errors.start }" :min="minStartTime" :value="localForm.startTime ? localForm.startTime.slice(11,16) : ''" @change="e => setTimePart('startTime', e.target.value)" />
-                </div>
+              <div class="dt-field">
+                <input 
+                  type="time" 
+                  class="dt-input" 
+                  :class="{ 'dt-input--error': errors.start }" 
+                  :min="minStartTime" 
+                  :value="localForm.startTime ? localForm.startTime.slice(11,16) : ''" 
+                  @change="e => setTimePart('startTime', e.target.value)" 
+                />
               </div>
               <span v-if="errors.start" class="field-error">{{ errors.start }}</span>
             </div>
+            
             <div>
               <label>End Time</label>
-              <div class="dt-group">
-                <div class="dt-field">
-                  <input type="date" class="dt-input" :class="{ 'dt-input--error': errors.end }" :min="localForm.startTime ? localForm.startTime.slice(0,10) : todayStr" :value="localForm.endTime ? localForm.endTime.slice(0,10) : ''" @change="e => setDatePart('endTime', e.target.value)" />
-                </div>
-                <div class="dt-field">
-                  <input type="time" class="dt-input" :class="{ 'dt-input--error': errors.end }" :value="localForm.endTime ? localForm.endTime.slice(11,16) : ''" @change="e => setTimePart('endTime', e.target.value)" />
-                </div>
+              <div class="dt-field">
+                <input 
+                  type="time" 
+                  class="dt-input" 
+                  :class="{ 'dt-input--error': errors.end }" 
+                  :value="localForm.endTime ? localForm.endTime.slice(11,16) : ''" 
+                  @change="e => setTimePart('endTime', e.target.value)" 
+                />
               </div>
               <span v-if="errors.end" class="field-error">{{ errors.end }}</span>
             </div>
@@ -146,11 +166,18 @@ export default {
       }
     },
 
+    // Updates the shared date wrapper for both starting and ending thresholds
+    handleDateChange(date) {
+      this.setDatePart('startTime', date);
+      this.setDatePart('endTime', date);
+    },
+
     setDatePart(field, date) {
       const time = this.localForm[field] ? this.localForm[field].slice(11, 16) : '00:00';
       this.localForm[field] = date ? `${date}T${time}` : '';
       this.validate();
     },
+    
     setTimePart(field, time) {
       const date = this.localForm[field] ? this.localForm[field].slice(0, 10) : new Date().toISOString().slice(0, 10);
       this.localForm[field] = time ? `${date}T${time}` : '';
@@ -282,11 +309,6 @@ export default {
 }
 
 /* ── DateTime fields ── */
-.dt-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .dt-field {
   position: relative;
   display: flex;

@@ -72,25 +72,23 @@
           <h2 class="panel-title">🔄 Swap Request Hub</h2>
           <p class="panel-sub">Review incoming proposals or track your outward requests</p>
         </div>
-        
+
         <div class="progress-list">
           <div v-for="swap in swapRequests" :key="swap.id" class="progress-card">
             <div class="progress-card-main">
               <div class="swap-participants">
                 <span v-if="swap.requester_id == myId" class="participant-badge me">Me</span>
                 <span v-else class="participant-badge staff">{{ swap.requester_name || getColleagueName(swap.requester_id) }}</span>
-                
                 <span class="swap-arrow">➔</span>
-                
                 <span v-if="swap.target_id == myId" class="participant-badge me">Me</span>
                 <span v-else class="participant-badge staff">{{ swap.target_name || getColleagueName(swap.target_id) }}</span>
               </div>
               <div class="swap-details">
                 <p class="swap-info-text">
-                  Swapping 
-                  <strong>{{ swap.requester_id == myId ? 'your' : (swap.requester_name || getColleagueName(swap.requester_id)) + "'s" }}</strong> shift on 
-                  <strong>{{ formatDate(swap.shift_start) }}</strong> 
-                  for 
+                  Swapping
+                  <strong>{{ swap.requester_id == myId ? 'your' : (swap.requester_name || getColleagueName(swap.requester_id)) + "'s" }}</strong> shift on
+                  <strong>{{ formatDate(swap.shift_start) }}</strong>
+                  for
                   <strong>{{ swap.target_id == myId ? 'your' : (swap.target_name || getColleagueName(swap.target_id)) + "'s" }}</strong> shift on
                   <strong>{{ formatDate(swap.target_shift_start) }}</strong>.
                 </p>
@@ -102,7 +100,6 @@
                 <button class="btn-action-accept" @click="respondToSwapRequest(swap.id, 'accepted')">Accept</button>
                 <button class="btn-action-reject" @click="respondToSwapRequest(swap.id, 'rejected')">Reject</button>
               </div>
-
               <div v-else>
                 <span class="status-indicator" :class="getFriendlyStatusClass(swap.status)">
                   <span class="status-dot"></span> {{ getFriendlyStatusLabel(swap.status, swap.requester_id) }}
@@ -113,48 +110,27 @@
         </div>
       </div>
 
-      <div class="calendar-panel" :class="{ 'swap-mode-active': isSwapMode }">
-        <div class="card-header calendar-header-split">
-          <div>
-            <p class="card-title">
-              {{ isSwapMode ? '⚡ Select Your Shift to Swap' : 'Shift Calendar' }}
-            </p>
-            <p class="card-sub">
-              {{ isSwapMode ? 'Pick an eligible unticked shift directly on your schedule grid' : 'Select a teammate\'s shift on the calendar to issue a swap request directly' }}
-            </p>
-          </div>
-          
-          <div class="calendar-actions-right">
-            <button v-if="isSwapMode && selectedMyShiftId" class="btn-confirm-swap animate-pop" @click="executeSwapSubmission">
-              Send Swap Request ✓
-            </button>
-            <button v-if="isSwapMode" class="btn-cancel-swap" @click="cancelSwapMode">
-              Cancel Selection
-            </button>
+      <!-- ── Calendar Panel Component ── -->
+      <ShiftCalendarPanel
+        :shifts="shifts"
+        :colleague-shifts="colleagueShifts"
+        :swap-requests="swapRequests"
+        :public-holidays="publicHolidays"
+        :staff-list="staffList"
+        :my-id="myId"
+        :selected-colleague-id="selectedColleagueId"
+        :is-swap-mode="isSwapMode"
+        :target-swap-shift="targetSwapShift"
+        :selected-my-shift-id="selectedMyShiftId"
+        :loading-colleague="loadingColleague"
+        @shift-click="onShiftClick"
+        @shift-selected="onShiftSelected"
+        @colleague-change="onColleagueChange"
+        @cancel-swap="cancelSwapMode"
+        @execute-swap="executeSwapSubmission"
+      />
 
-            <div v-else class="colleague-selector-wrapper">
-              <label for="colleague-select" class="selector-label">Compare Schedule With:</label>
-              <select 
-                id="colleague-select" 
-                v-model="selectedColleagueId" 
-                @change="onColleagueChange"
-                class="colleague-dropdown"
-              >
-                <option :value="null">None (Only My Shifts)</option>
-                <option v-for="user in staffList" :key="user.id" :value="user.id">
-                  {{ user.fullName }}
-                </option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="calendar-body">
-          <div v-if="loadingColleague" class="calendar-overlay-loader">Updating view...</div>
-          <div id="calendar"></div>
-        </div>
-      </div>
-
+      <!-- ── Shift Detail Modal ── -->
       <transition name="modal-fade">
         <div v-if="selectedShift" class="modal-overlay" @click.self="selectedShift = null">
           <div class="modal-card">
@@ -215,29 +191,29 @@
 <script>
 import API_BASE_URL from "@/services/api";
 import StaffSidebar from "@/components/sidebar/staffSidebar.vue";
+import ShiftCalendarPanel from "@/components/staff-shift/ShiftCalendarPanel.vue";
 import axios from "axios";
 
 export default {
   name: "StaffShift",
-  components: { StaffSidebar },
+  components: { StaffSidebar, ShiftCalendarPanel },
 
   data() {
     return {
-      myId: null, 
-      selectedShift: null,
-      staffList:     [],
-      calendar:      null,
-      shifts:        [],
-      colleagueShifts: [],
-      swapRequests:  [], 
-      publicHolidays: [], 
+      myId:                null,
+      selectedShift:       null,
+      staffList:           [],
+      shifts:              [],
+      colleagueShifts:     [],
+      swapRequests:        [],
+      publicHolidays:      [],
       selectedColleagueId: null,
-      loading:        false,
-      loadingColleague: false,
-      
-      isSwapMode: false,
-      targetSwapShift: null,
-      selectedMyShiftId: null 
+      loading:             false,
+      loadingColleague:    false,
+
+      isSwapMode:        false,
+      targetSwapShift:   null,
+      selectedMyShiftId: null,
     };
   },
 
@@ -259,135 +235,81 @@ export default {
       }, 0);
       return {
         totalThisMonth: thisMonth.length,
-        morningCount: thisMonth.filter(s => s.shiftType === "Morning").length,
-        eveningCount: thisMonth.filter(s => s.shiftType === "Evening").length,
-        totalHours: Math.round(totalHours),
+        morningCount:   thisMonth.filter(s => s.shiftType === "Morning").length,
+        eveningCount:   thisMonth.filter(s => s.shiftType === "Evening").length,
+        totalHours:     Math.round(totalHours),
       };
     },
-    calendarEvents() {
-      const myEvents = this.shifts.map(shift => {
-        const hasPending = this.isShiftPendingSwap(shift.id);
-        return {
-          id: `my-${shift.id}`,
-          title: `Me: ${shift.shiftType}${hasPending ? ' ⏳' : ''}`,
-          start: shift.startTime,
-          end: shift.endTime,
-          classNames: [`event-${shift.shiftType.toLowerCase()}`, hasPending ? 'shift-has-pending' : ''],
-          extendedProps: { ...shift, isColleagueEvent: false },
-        };
-      });
-
-      let colleagueEvents = [];
-      if (this.selectedColleagueId && this.colleagueShifts.length) {
-        const activeColleague = this.staffList.find(u => u.id == this.selectedColleagueId);
-        const name = activeColleague ? activeColleague.fullName : "Teammate";        
-        colleagueEvents = this.colleagueShifts.map(shift => {
-          const hasPending = this.isShiftPendingSwap(shift.id);
-          return {
-            id: `colleague-${shift.id}`,
-            title: `${name}: ${shift.shiftType}${hasPending ? ' ⏳' : ''}`,
-            start: shift.startTime,
-            end: shift.endTime,
-            classNames: ['event-colleague', `event-colleague-${shift.shiftType.toLowerCase()}`, hasPending ? 'shift-has-pending' : ''],
-            extendedProps: { ...shift, isColleagueEvent: true, ownerName: name },
-          };
-        });
-      }
-
-      const holidayEvents = this.publicHolidays.map(ph => ({
-        id: `ph-${ph.id || ph.date}`,
-        title: ph.name,
-        start: ph.date,
-        display: 'block',
-        classNames: ['holiday-block-event'],
-        extendedProps: { publicHoliday: true }
-      }));
-
-      return [...myEvents, ...colleagueEvents, ...holidayEvents];
-    }
   },
 
   mounted() {
     this.fetchShifts();
   },
 
-  beforeUnmount() {
-    if (this.calendar) this.calendar.destroy();
-  },
-
   methods: {
+    // ── Calendar event handlers (emitted from ShiftCalendarPanel) ──────────
+    onShiftClick(shiftProps) {
+      this.selectedShift = shiftProps;
+    },
+
+    onShiftSelected(shiftProps) {
+      // Toggle selection: clicking the same shift again deselects it
+      this.selectedMyShiftId = this.selectedMyShiftId === shiftProps.id ? null : shiftProps.id;
+    },
+
+    // ── Swap orchestration ─────────────────────────────────────────────────
     initiateSwapMode(colleagueShift) {
-      this.targetSwapShift = colleagueShift;
-      this.isSwapMode = true;
-      this.selectedShift = null; 
-      this.selectedMyShiftId = null; 
-      this.refreshCalendarSource(); 
+      this.targetSwapShift   = colleagueShift;
+      this.isSwapMode        = true;
+      this.selectedShift     = null;
+      this.selectedMyShiftId = null;
     },
 
     cancelSwapMode() {
-      this.isSwapMode = false;
-      this.targetSwapShift = null;
+      this.isSwapMode        = false;
+      this.targetSwapShift   = null;
       this.selectedMyShiftId = null;
-      this.refreshCalendarSource();
-    },
-
-    isShiftForbidden(myShift) {
-      if (!this.targetSwapShift) return false;
-      const myShiftDate = new Date(myShift.startTime).toDateString();
-      const targetDate = new Date(this.targetSwapShift.startTime).toDateString();
-      return myShiftDate === targetDate || this.isShiftPendingSwap(myShift.id);
     },
 
     isShiftPendingSwap(shiftId) {
-      return this.swapRequests.some(req => 
-        (req.shift_id == shiftId || req.target_shift_id == shiftId) && 
-        (['pending', 'accepted'].includes(req.status?.toLowerCase()))
+      return this.swapRequests.some(
+        req =>
+          (req.shift_id == shiftId || req.target_shift_id == shiftId) &&
+          ["pending", "accepted"].includes(req.status?.toLowerCase())
       );
     },
 
     getColleagueName(id) {
       const staff = this.staffList.find(u => u.id == id);
-      return staff ? staff.fullName : 'Teammate';
+      return staff ? staff.fullName : "Teammate";
     },
 
     getFriendlyStatusClass(status) {
       const s = status?.toLowerCase();
-      if (s === 'pending') return 'pending';
-      if (s === 'accepted') return 'accepted';
-      if (s === 'approved') return 'approved';
-      return 'rejected';
+      if (s === "pending")  return "pending";
+      if (s === "accepted") return "accepted";
+      if (s === "approved") return "approved";
+      return "rejected";
     },
 
     getFriendlyStatusLabel(status, requesterId) {
       const s = status?.toLowerCase();
-      if (s === 'pending') {
-        return requesterId == this.myId ? 'Waiting for Peer' : 'Action Required';
-      }
-      if (s === 'accepted') return 'Waiting Admin Approval';
-      if (s === 'approved') return 'Approved & Changed';
-      return 'Rejected';
-    },
-
-    handleSelectShift(myShiftProps) {
-      if (this.isShiftForbidden(myShiftProps)) return;
-      this.selectedMyShiftId = this.selectedMyShiftId === myShiftProps.id ? null : myShiftProps.id;
-      this.refreshCalendarSource();
+      if (s === "pending")  return requesterId == this.myId ? "Waiting for Peer" : "Action Required";
+      if (s === "accepted") return "Waiting Admin Approval";
+      if (s === "approved") return "Approved & Changed";
+      return "Rejected";
     },
 
     async respondToSwapRequest(swapId, newStatus) {
-      const actionText = newStatus === 'accepted' ? 'accept' : 'reject';
+      const actionText = newStatus === "accepted" ? "accept" : "reject";
       if (!confirm(`Are you sure you want to ${actionText} this shift swap proposal?`)) return;
 
       try {
         this.loading = true;
-        const token = localStorage.getItem("userToken") || localStorage.getItem("token");
-        
-        await axios.patch(`${API_BASE_URL}/api/swaps/${swapId}/respond`, {
-          status: newStatus
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
+        const token  = localStorage.getItem("userToken") || localStorage.getItem("token");
+        await axios.patch(`${API_BASE_URL}/api/swaps/${swapId}/respond`, { status: newStatus }, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         alert(`You successfully ${newStatus} the trade request!`);
         await this.fetchShifts();
       } catch (err) {
@@ -400,7 +322,6 @@ export default {
 
     async executeSwapSubmission() {
       if (!this.selectedMyShiftId || !this.targetSwapShift) return;
-      
       const chosenShift = this.shifts.find(s => s.id === this.selectedMyShiftId);
       if (!chosenShift) return;
 
@@ -408,20 +329,16 @@ export default {
 
       try {
         this.loading = true;
-        const token = localStorage.getItem("token") || localStorage.getItem("userToken");
-        
+        const token  = localStorage.getItem("token") || localStorage.getItem("userToken");
         await axios.post(`${API_BASE_URL}/api/swaps`, {
-          targetId: this.selectedColleagueId,     
-          shiftId: this.selectedMyShiftId,         
-          targetShiftId: this.targetSwapShift.id   
+          targetId:     this.selectedColleagueId,
+          shiftId:      this.selectedMyShiftId,
+          targetShiftId: this.targetSwapShift.id,
         }, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         alert("Swap request successfully submitted!");
-        this.isSwapMode = false;
-        this.targetSwapShift = null;
-        this.selectedMyShiftId = null;
+        this.cancelSwapMode();
         await this.fetchShifts();
       } catch (err) {
         console.error("Failed to complete swap submission workflow:", err);
@@ -431,20 +348,18 @@ export default {
       }
     },
 
+    // ── Data fetching ──────────────────────────────────────────────────────
     async fetchSwapRequests() {
       try {
         const token = localStorage.getItem("userToken") || localStorage.getItem("token");
         if (!token) return;
         const { data } = await axios.get(`${API_BASE_URL}/api/swaps`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
         const rawSwaps = Array.isArray(data) ? data : [];
-        if (this.myId) {
-          this.swapRequests = rawSwaps.filter(req => req.requester_id == this.myId || req.target_id == this.myId);
-        } else {
-          this.swapRequests = rawSwaps;
-        }
+        this.swapRequests = this.myId
+          ? rawSwaps.filter(req => req.requester_id == this.myId || req.target_id == this.myId)
+          : rawSwaps;
       } catch (err) {
         console.error("Could not fetch progress metrics for active swaps:", err);
       }
@@ -456,40 +371,32 @@ export default {
         const token = localStorage.getItem("userToken") || localStorage.getItem("token");
         if (!token) return;
 
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        const payload = JSON.parse(atob(token.split(".")[1]));
         this.myId = payload.id;
 
         await this.fetchSwapRequests();
 
-        // Fetch Public Holidays array data source stream from your API endpoint
-       // Public Holidays (FIXED - no auth header needed)
-try {
-  const year = new Date().getFullYear();
+        // Public Holidays
+        try {
+          const year = new Date().getFullYear();
+          const [holidayRes] = await Promise.all([
+            fetch(`https://sabah-holiday.dydxsoft.my/api/selangor/${year}.json`),
+          ]);
+          if (holidayRes.ok) {
+            const raw = await holidayRes.json();
+            this.publicHolidays = Array.isArray(raw) ? raw : (raw.holidays ?? raw.data ?? []);
+          } else {
+            this.publicHolidays = [];
+          }
+        } catch (err) {
+          console.warn("Holiday API failed gracefully:", err);
+          this.publicHolidays = [];
+        }
 
-  // 1. Fire requests in parallel using native fetch
-  // (Assuming you only need to fetch the holidays here, or you can add your other APIs to this array)
-  const [holidayRes] = await Promise.all([
-    fetch(`https://sabah-holiday.dydxsoft.my/api/selangor/${year}.json`)
-  ]);
-
-  // 2. Safely isolate the holiday data parsing behind an .ok check
-  if (holidayRes.ok) {
-    const raw = await holidayRes.json();
-    this.publicHolidays = Array.isArray(raw) ? raw : (raw.holidays ?? raw.data ?? []);
-  } else {
-    this.publicHolidays = [];
-  }
-
-} catch (err) {
-
-  console.warn("Holiday API failed gracefully (likely CORS or Network error):", err);
-  this.publicHolidays = [];
-}
-        const { data: shiftsData } = await axios.get(`${API_BASE_URL}/api/shifts/staff/me`, {
-        });
+        const { data: shiftsData } = await axios.get(`${API_BASE_URL}/api/shifts/staff/me`);
 
         const shiftsWithAttendance = await Promise.all(
-          shiftsData.map(async (shift) => {
+          shiftsData.map(async shift => {
             try {
               const { data: attendanceLogs } = await axios.get(
                 `${API_BASE_URL}/api/attendance/shift/${shift.id}`,
@@ -502,17 +409,14 @@ try {
             }
           })
         );
-
         this.shifts = shiftsWithAttendance;
 
         try {
           const { data: users } = await axios.get(`${API_BASE_URL}/api/users`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          this.staffList = users.filter(u => u.role === 'staff' && u.status === 'active' && u.id !== this.myId);
-        } catch { /* Fail-safes fallback */ }
-
-        this.refreshCalendarSource();
+          this.staffList = users.filter(u => u.role === "staff" && u.status === "active" && u.id !== this.myId);
+        } catch { /* Fallback */ }
       } catch (err) {
         console.error("Error fetching shifts:", err);
       } finally {
@@ -520,141 +424,28 @@ try {
       }
     },
 
-    async onColleagueChange() {
-      if (!this.selectedColleagueId) {
+    async onColleagueChange(newId) {
+      this.selectedColleagueId = newId;
+      if (!newId) {
         this.colleagueShifts = [];
-        this.refreshCalendarSource();
         return;
       }
-
       this.loadingColleague = true;
       try {
         const token = localStorage.getItem("userToken") || localStorage.getItem("token");
-        const { data: colleagueData } = await axios.get(`${API_BASE_URL}/api/shifts/staff/${this.selectedColleagueId}`, {
+        const { data } = await axios.get(`${API_BASE_URL}/api/shifts/staff/${newId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        this.colleagueShifts = colleagueData;
+        this.colleagueShifts = data;
       } catch (err) {
         console.error("Could not fetch teammate schedules:", err);
         this.colleagueShifts = [];
       } finally {
         this.loadingColleague = false;
-        this.refreshCalendarSource();
       }
     },
 
-    refreshCalendarSource() {
-      if (this.calendar) {
-        this.calendar.removeAllEventSources();
-        this.calendar.addEventSource(this.calendarEvents);
-      } else {
-        this.loadFullCalendar();
-      }
-    },
-
-    loadFullCalendar() {
-      if (!document.getElementById("fc-min-css")) {
-        const link = document.createElement("link");
-        link.id = "fc-min-css";
-        link.rel = "stylesheet";
-        link.href = "https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css";
-        document.head.appendChild(link);
-      }
-      if (!window.FullCalendar) {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js";
-        script.onload = () => this.initCalendar();
-        document.head.appendChild(script);
-      } else {
-        this.initCalendar();
-      }
-    },
-
-    initCalendar() {
-      const el = document.getElementById("calendar");
-      if (!el || !window.FullCalendar || this.calendar) return;
-      const self = this;
-
-      this.calendar = new window.FullCalendar.Calendar(el, {
-        initialView: "dayGridMonth",
-        headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,listMonth" },
-        height: "auto",
-        events: this.calendarEvents,
-        
-        dayCellClassNames(arg) {
-          const classes = [];
-          const dayOfWeek = arg.date.getDay();
-
-          // 1. Mark and evaluate weekends (Sat = 6, Sun = 0)
-          if (dayOfWeek === 0 || dayOfWeek === 6) {
-            classes.push('fc-weekend-blocked');
-          }
-
-          // 2. Cross-compare to mark Public Holidays in the cell backgrounds
-          const cellDateStr = arg.date.toISOString().slice(0, 10);
-          const hasHolidayObj = self.publicHolidays.some(h => h.date === cellDateStr);
-          if (hasHolidayObj) {
-            classes.push('fc-day-has-holiday');
-          }
-
-          return classes;
-        },
-
-        eventClick(info) {
-          // Safeguard Interceptor: Lock clicking action workflows on holiday layout rows
-          if (
-            info.event.extendedProps?.publicHoliday || 
-            info.event.classNames?.includes('holiday-block-event')
-          ) {
-            info.jsEvent.preventDefault();
-            return false;
-          }
-
-          if (self.isSwapMode) return; 
-          self.selectedShift = { ...info.event.extendedProps };
-        },
-
-        eventContent(arg) {
-          const props = arg.event.extendedProps;
-          const mainContainer = document.createElement('div');
-          mainContainer.className = 'fc-custom-event-wrapper';
-          
-          const titleSpan = document.createElement('span');
-          titleSpan.innerText = arg.event.title;
-          mainContainer.appendChild(titleSpan);
-
-          if (self.isSwapMode && !props.isColleagueEvent && !props.publicHoliday) {
-            const actionButton = document.createElement('button');
-            const isForbidden = self.isShiftForbidden(props);
-            const isSelected = self.selectedMyShiftId === props.id;
-
-            if (isForbidden) {
-              actionButton.className = 'fc-event-tick-btn forbidden';
-              actionButton.innerHTML = '✕'; 
-              actionButton.disabled = true;
-            } else if (isSelected) {
-              actionButton.className = 'fc-event-tick-btn selected';
-              actionButton.innerHTML = '✓';
-            } else {
-              actionButton.className = 'fc-event-tick-btn unselected';
-              actionButton.innerHTML = ''; 
-            }
-            
-            actionButton.addEventListener('click', (e) => {
-              e.stopPropagation(); 
-              if (!isForbidden) self.handleSelectShift(props);
-            });
-            
-            mainContainer.appendChild(actionButton);
-          }
-          return { domNodes: [mainContainer] };
-        },
-        dayMaxEvents: 4,
-        eventDisplay: "block",
-      });
-      this.calendar.render();
-    },
-
+    // ── Formatters (shared with modal) ─────────────────────────────────────
     formatDate(dt) {
       return new Date(dt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
     },
@@ -669,7 +460,7 @@ try {
 </script>
 
 <style>
-/* ── FullCalendar Core Engine Custom Element Overrides ── */
+/* ── FullCalendar global vars (still needed here since they're global) ── */
 :root {
   --fc-border-color: #f1f5f9;
   --fc-today-bg-color: #eff6ff;
@@ -681,80 +472,6 @@ try {
   --fc-button-hover-bg-color: #1e293b;
   --fc-button-active-bg-color: #0f172a;
   --fc-button-active-border-color: #0f172a;
-}
-.fc .fc-toolbar-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 1.35rem; color: #0f172a; letter-spacing: -0.02em; }
-.fc .fc-button { font-family: 'DM Mono', 'Courier New', monospace; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 6px !important; padding: 6px 14px !important; transition: all 0.15s ease; }
-.fc .fc-col-header-cell-cushion { font-family: 'DM Mono', monospace; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #94a3b8; padding: 10px 0 8px; }
-.fc .fc-daygrid-day-number { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: #64748b; padding: 8px 10px 4px; }
-.fc .fc-day-today .fc-daygrid-day-number { background: #0f172a; color: #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; padding: 0; margin: 6px 8px 4px auto; }
-
-.fc .event-morning { background: linear-gradient(135deg, #f59e0b, #fbbf24) !important; color: #854d0e !important; border-left: 3px solid #d97706 !important; font-family: 'DM Mono', monospace; font-size: 0.72rem; font-weight: 600; border-radius: 5px !important; padding: 2px 6px !important; cursor: pointer; box-shadow: 0 1px 4px rgba(245,158,11,.25); margin-bottom: 2px; }
-.fc .event-evening { background: linear-gradient(135deg, #5b21b6, #8b5cf6) !important; color: #ede9fe !important; border-left: 3px solid #4c1d95 !important; font-family: 'DM Mono', monospace; font-size: 0.72rem; font-weight: 600; border-radius: 5px !important; padding: 2px 6px !important; cursor: pointer; box-shadow: 0 1px 4px rgba(139,92,246,.25); margin-bottom: 2px; }
-
-.fc .event-colleague { font-family: 'DM Mono', monospace; font-size: 0.72rem; font-weight: 600; border-radius: 5px !important; padding: 2px 6px !important; cursor: pointer; border: 1px dashed #64748b !important; margin-bottom: 2px; opacity: 0.95; }
-.fc .event-colleague, .fc .event-colleague * { color: #0f172a !important; }
-.fc .event-colleague-morning { background: #fef3c7 !important; border-left: 3px solid #d97706 !important; }
-.fc .event-colleague-evening { background: #f3e8ff !important; border-left: 3px solid #7c3aed !important; }
-
-.fc .shift-has-pending { position: relative; background: #e2e8f0 !important; color: #94a3b8 !important; border-left: 3px solid #cbd5e1 !important; text-decoration: line-through; opacity: 0.6; }
-.fc .fc-list-event-dot { display: none; }
-.fc .fc-list-event td { font-family: 'DM Mono', monospace; font-size: 0.78rem; }
-.fc .fc-timegrid-event { border-radius: 6px !important; }
-.fc .fc-scroller { overflow: hidden !important; }
-
-.fc-custom-event-wrapper { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-.fc-event-tick-btn { border-radius: 50% !important; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; cursor: pointer; margin-left: 4px; transition: all 0.15s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.12); flex-shrink: 0; }
-.fc-event-tick-btn.unselected { background: transparent !important; border: 1.5px solid rgba(255, 255, 255, 0.85) !important; color: transparent !important; }
-.fc-event-tick-btn.unselected:hover { background: rgba(255, 255, 255, 0.3) !important; transform: scale(1.15); }
-.fc-event-tick-btn.selected { background: #10b981 !important; border: 1.5px solid #10b981 !important; color: #ffffff !important; transform: scale(1.15); }
-.fc-event-tick-btn.forbidden { background: #cbd5e1 !important; border: 1.5px solid #94a3b8 !important; color: #64748b !important; cursor: not-allowed !important; opacity: 0.55; box-shadow: none !important; }
-
-.swap-mode-active .fc .event-colleague { opacity: 0.2 !important; pointer-events: none !important; }
-
-/* ── Weekend Striped Grey Lockout Engine Styles ── */
-.fc .fc-weekend-blocked {
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 4px,
-    rgba(0, 0, 0, 0.04) 4px,
-    rgba(0, 0, 0, 0.04) 8px
-  ) !important;
-  background-color: #f1f5f9 !important;
-  pointer-events: none !important;
-}
-.fc .fc-weekend-blocked .fc-daygrid-day-number {
-  color: #94a3b8 !important;
-}
-
-/* ── Public Holiday Striped Crimson Red Overrides ── */
-.fc .fc-day-has-holiday {
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 4px,
-    rgba(220, 38, 38, 0.04) 4px,
-    rgba(220, 38, 38, 0.04) 8px
-  ) !important;
-  background-color: #fef2f2 !important;
-}
-.fc .fc-day-has-holiday .fc-daygrid-day-number {
-  color: #dc2626 !important;
-  font-weight: 700;
-}
-
-/* ── Banner Event Overrides for PH rows ── */
-.fc .holiday-block-event {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  font-family: 'DM Sans', sans-serif !important;
-  font-size: 0.75rem !important;
-  font-weight: 700 !important;
-  color: #dc2626 !important;
-  padding: 3px 6px !important;
-  pointer-events: none !important;
-  user-select: none !important;
 }
 </style>
 
@@ -788,14 +505,12 @@ try {
 .summary-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.04); animation: fadeUp .35s ease both; transition: all .15s; }
 .summary-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); transform: translateY(-1px); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
 .summary-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .summary-val { font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -.03em; line-height: 1; margin-bottom: 3px; }
 .summary-unit { font-size: 14px; font-weight: 500; color: #94a3b8; margin-left: 2px; }
 .summary-label { font-size: 11px; color: #94a3b8; }
 
-/* ── HUB PANEL & ACTION BUTTONS ── */
-.progress-panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02); }
+.progress-panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.02); }
 .panel-header { display: flex; flex-direction: column; }
 .panel-title { font-size: 14px; font-weight: 600; color: #0f172a; }
 .panel-sub { font-size: 12px; color: #94a3b8; }
@@ -804,11 +519,10 @@ try {
 .progress-card-main { display: flex; align-items: center; gap: 14px; flex: 1; }
 .swap-participants { display: flex; align-items: center; gap: 6px; }
 .participant-badge { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-.participant-badge.me { background: #eef2ff; color: #6366f1; }
+.participant-badge.me    { background: #eef2ff; color: #6366f1; }
 .participant-badge.staff { background: #f1f5f9; color: #475569; }
 .swap-arrow { font-size: 11px; color: #94a3b8; }
 .swap-info-text { font-size: 12px; color: #334155; line-height: 1.4; }
-
 .peer-action-buttons { display: flex; gap: 6px; }
 .btn-action-accept { background: #10b981; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
 .btn-action-accept:hover { background: #059669; }
@@ -816,8 +530,8 @@ try {
 .btn-action-reject:hover { background: #dc2626; }
 
 .status-indicator { display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
-.status-indicator.pending { background: #fff7ed; color: #c2410c; }
-.status-indicator.pending .status-dot { background: #c2410c; }
+.status-indicator.pending  { background: #fff7ed; color: #c2410c; }
+.status-indicator.pending .status-dot  { background: #c2410c; }
 .status-indicator.accepted { background: #f0fdf4; color: #16a34a; }
 .status-indicator.accepted .status-dot { background: #16a34a; }
 .status-indicator.approved { background: #eff6ff; color: #2563eb; }
@@ -826,35 +540,17 @@ try {
 .status-indicator.rejected .status-dot { background: #dc2626; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; }
 
-.calendar-panel { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); overflow: hidden; position: relative; }
-.calendar-header-split { display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 12px; border-bottom: 1px solid #f8fafc; }
-.card-title { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
-.card-sub   { font-size: 12px; color: #94a3b8; }
-.calendar-body { padding: 12px; position: relative; }
-
-.calendar-actions-right { display: flex; align-items: center; gap: 8px; }
-.btn-cancel-swap { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; background: #ef4444; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
-.btn-confirm-swap { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; background: #10b981; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
-
 .animate-pop { animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-.swap-mode-active { border: 2px solid #6366f1 !important; animation: panel-shake 0.5s both; }
-.swap-mode-active .calendar-header-split { background: #f5f3ff; border-bottom: 1px solid #ddd6fe; }
-@keyframes panel-shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-3px, 0, 0); } 40%, 60% { transform: translate3d(3px, 0, 0); } }
-
-.colleague-selector-wrapper { display: flex; flex-direction: column; gap: 4px; }
-.selector-label { font-family: 'DM Mono', monospace; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; }
-.colleague-dropdown { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; color: #334155; outline: none; width: 100%; max-width: 240px; }
-
-.calendar-overlay-loader { position: absolute; top: 12px; right: 12px; background: rgba(15, 23, 42, 0.8); color: #fff; padding: 4px 10px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 11px; z-index: 5; }
 
 .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.45); backdrop-filter: blur(4px); display: flex; align-items: flex-end; justify-content: center; z-index: 1000; }
 .modal-card { background: #fff; border-radius: 16px 16px 0 0; width: 100%; overflow: hidden; box-shadow: 0 -8px 40px rgba(0,0,0,.2); }
 .modal-header { padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; }
-.modal-header.morning { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #854d0e; }
-.modal-header.evening { background: linear-gradient(135deg, #5b21b6, #8b5cf6); color: #ede9fe; }
+.modal-header.morning          { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #854d0e; }
+.modal-header.evening          { background: linear-gradient(135deg, #5b21b6, #8b5cf6); color: #ede9fe; }
 .modal-header.colleague-header { background: linear-gradient(135deg, #475569, #64748b); color: #f8fafc; }
+.modal-shift-type { font-weight: 600; font-size: 15px; }
+.modal-close { background: none; border: none; font-size: 18px; cursor: pointer; opacity: 0.7; line-height: 1; }
 .modal-body { padding: 16px 20px 28px; display: flex; flex-direction: column; }
 .modal-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
 .modal-row:last-child { border-bottom: none; }
@@ -879,9 +575,6 @@ try {
   .summary-card { padding: 16px 18px; }
   .summary-icon { width: 42px; height: 42px; border-radius: 11px; }
   .summary-val { font-size: 24px; }
-  .calendar-header-split { flex-direction: row; align-items: center; justify-content: space-between; padding: 18px 20px 14px; }
-  .colleague-selector-wrapper { align-items: flex-end; }
-  .calendar-body { padding: 16px; }
   .modal-overlay { align-items: center; padding: 20px; }
   .modal-card { border-radius: 16px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
   .modal-fade-enter-from .modal-card, .modal-fade-leave-to .modal-card { transform: scale(.95) translateY(8px); }
@@ -893,7 +586,5 @@ try {
   .summary-card { padding: 18px 20px; gap: 14px; }
   .summary-val { font-size: 26px; }
   .summary-unit { font-size: 16px; }
-  .calendar-header-split { padding: 20px 24px 16px; }
-  .calendar-body { padding: 24px; }
 }
 </style>
