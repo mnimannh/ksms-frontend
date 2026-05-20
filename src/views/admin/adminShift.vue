@@ -5,7 +5,6 @@
     <main class="page-container">
       <div class="page-content">
 
-        <!-- Top Control Header Bar -->
         <div class="top-header">
           <div class="header-text">
             <span class="eyebrow">{{ todayLabel }}</span>
@@ -21,6 +20,9 @@
                 <path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
               </svg>
               <span>Swap Protocol Manager</span>
+              <span v-if="pendingSwapsCount > 0" class="btn-badge">
+                {{ pendingSwapsCount }}
+              </span>
             </button>
 
             <div class="filter-tabs">
@@ -50,18 +52,19 @@
           </div>
         </div>
 
-        <!-- Isolated Sub-Component Module Implementation -->
         <transition name="slide-down">
           <AdminSwapManager
             v-if="showSwapPanel"
+            ref="swapManager"
+            :intercept-actions="true"
             @close="showSwapPanel = false"
             @refresh-schedule="fetchAll"
+            @request-action="handleSwapActionTrigger"
           />
         </transition>
 
         <ShiftKpiStrip :shifts="shifts" :attendance="attendance" />
 
-        <!-- Draft Actions Alert Bar Banner -->
         <div v-if="hasDraft" class="draft-banner">
           <div class="draft-banner-left">
             <span class="draft-pill">DRAFT</span>
@@ -86,7 +89,6 @@
           </div>
         </div>
 
-        <!-- Secondary Core Metrics Presentation Grid -->
         <div class="main-grid">
           <ShiftCalendarPanel
             :calendar-events="calendarEvents"
@@ -101,7 +103,6 @@
           />
         </div>
 
-        <!-- Master Shift Audit Log Presentation Table -->
         <ShiftTable
           :rows="filteredTableRows"
           v-model:searchQuery="searchQuery"
@@ -113,10 +114,9 @@
       </div>
     </main>
 
-    <!-- Global Modal Registration Wrappers -->
     <ShiftAutoGenerateModal
       :visible="showAutoGenModal"
-      @close="showAutoGenModal = false"
+      @close="showAutoGenModal = false; fetchAll()"
       @generated="onDraftGenerated"
     />
 
@@ -145,6 +145,69 @@
       @close="selectedLog = null"
       @delete="deleteShift"
     />
+
+    <div class="swap-feedback-overlay" v-if="swapModal.visible">
+      <div class="swap-feedback-modal" :class="`state-${swapModal.state}`">
+        
+        <button class="modal-dismiss" v-if="swapModal.state !== 'loading'" @click="closeSwapModal">✕</button>
+
+        <div v-if="swapModal.state === 'confirm'" class="modal-state-view">
+          <div class="status-indicator-icon icon-confirm">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+              <path d="M12 9v4M12 15h.01"/>
+            </svg>
+          </div>
+          <h3 class="feedback-title">Verify System Exception</h3>
+          <p class="feedback-desc">
+            Are you completely sure you want to <strong>{{ swapModal.type }}</strong> this shift trade exchange across the active workspace registries?
+          </p>
+          <div class="feedback-actions">
+            <button class="btn-fback-cancel" @click="closeSwapModal">Abort Operation</button>
+            <button 
+              :class="swapModal.type === 'approve' ? 'btn-fback-approve' : 'btn-fback-deny'" 
+              @click="confirmSwapAction"
+            >
+              Confirm & Execute
+            </button>
+          </div>
+        </div>
+
+        <div v-if="swapModal.state === 'loading'" class="modal-state-view">
+          <span class="feedback-spinner"></span>
+          <h3 class="feedback-title">Syncing Rosters</h3>
+          <p class="feedback-desc">Committing authorization states across active timeline segments...</p>
+        </div>
+
+        <div v-if="swapModal.state === 'success'" class="modal-state-view">
+          <div class="status-indicator-icon icon-success">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3 class="feedback-title">Operation Executed</h3>
+          <p class="feedback-desc">Trade logs modified successfully. Live scheduling calendars have been re-indexed.</p>
+          <div class="feedback-actions">
+            <button class="btn-fback-close" @click="closeSwapModal">Dismiss Registry</button>
+          </div>
+        </div>
+
+        <div v-if="swapModal.state === 'fail'" class="modal-state-view">
+          <div class="status-indicator-icon icon-fail">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </div>
+          <h3 class="feedback-title">Registry Fault</h3>
+          <p class="feedback-desc">{{ swapModal.errorMessage || 'An error occurred during backend schedule verification rules.' }}</p>
+          <div class="feedback-actions">
+            <button class="btn-fback-close" @click="closeSwapModal">Close</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -185,11 +248,12 @@ export default {
       shifts:             [],
       attendance:         [],
       holidays:           [],
+      // Local tracking array to derive live header badge counts matching active records
+      allRawSwaps:        [],
       loading:            false,
       error:              null,
       calendarUserFilter: null,
 
-      // UI View Visibility Controls
       showSwapPanel:      false,
       activeFilter:       'all',
       searchQuery:        '',
@@ -199,6 +263,14 @@ export default {
       editingShift:       null,
       selectedLog:        null,
       shiftConflictError: '',
+
+      swapModal: {
+        visible: false,
+        state: 'confirm',
+        type: 'approve',
+        requestId: null,
+        note: ''
+      },
 
       filters: [
         { key: 'all',       label: 'All'       },
@@ -219,6 +291,10 @@ export default {
   },
 
   computed: {
+    // Dynamic computer counter capturing records explicitly awaiting administration actions
+    pendingSwapsCount() {
+      return this.allRawSwaps.filter(s => s.status === 'accepted').length;
+    },
     todayLabel() {
       return new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     },
@@ -279,103 +355,59 @@ export default {
       );
     },
 
-  calendarEvents() {
-  const statusColors = {
-    Completed: '#16a34a',
-    Late:      '#d97706',
-    Missed:    '#dc2626',
-    Pending:   '#64748b',
-  };
+    calendarEvents() {
+      const statusColors = {
+        Completed: '#16a34a',
+        Late:      '#d97706',
+        Missed:    '#dc2626',
+        Pending:   '#64748b',
+      };
 
-  const rows = this.calendarUserFilter
-    ? this.enrichedRows.filter(r => r.userID === this.calendarUserFilter)
-    : this.enrichedRows;
+      const rows = this.calendarUserFilter
+        ? this.enrichedRows.filter(r => r.userID === this.calendarUserFilter)
+        : this.enrichedRows;
 
-  // ─────────────────────────────────────────────
-  // SHIFT EVENTS
-  // ─────────────────────────────────────────────
-  const shiftEvents = rows.map(row => ({
-    id: row.id,
+      const shiftEvents = rows.map(row => ({
+        id: row.id,
+        title: `${row.staffName}`,
+        start: row.startTime,
+        end: row.endTime,
+        classNames: [`cal-event-${row.shiftType.toLowerCase()}`],
+        borderColor: statusColors[row.attendanceStatus] ?? '#64748b',
+        extendedProps: {
+          ...row,
+          publicHoliday: false
+        },
+      }));
 
-    title: `${row.staffName}`,
+      const holidayYear = new Date().getFullYear();
+      const monthMap = {
+        Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+        Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+      };
 
-    start: row.startTime,
+      const holidayEvents = this.holidays.map((holiday, index) => {
+        const [monthText, day] = holiday.date.split(' ');
+        const iso = `${holidayYear}-${monthMap[monthText]}-${day.padStart(2, '0')}`;
 
-    end: row.endTime,
+        return {
+          id: `holiday-${index}`,
+          title: `🎉 ${holiday.holiday_name}`,
+          start: iso,
+          allDay: true,
+          display: 'background',
+          backgroundColor: 'rgba(254, 226, 226, 0.6)',
+          classNames: ['holiday-block-event'],
+          extendedProps: {
+            publicHoliday: true,
+            holidayName: holiday.holiday_name,
+            mandatory: holiday.is_mandatory,
+          },
+        };
+      });
 
-    classNames: [`cal-event-${row.shiftType.toLowerCase()}`],
-
-    borderColor: statusColors[row.attendanceStatus] ?? '#64748b',
-
-    extendedProps: {
-      ...row,
-      publicHoliday: false
+      return [...shiftEvents, ...holidayEvents];
     },
-  }));
-
-  // ─────────────────────────────────────────────
-  // HOLIDAY EVENTS (FULL FIX)
-  // ─────────────────────────────────────────────
-  const holidayYear = new Date().getFullYear();
-
-  const monthMap = {
-    Jan: '01',
-    Feb: '02',
-    Mar: '03',
-    Apr: '04',
-    May: '05',
-    Jun: '06',
-    Jul: '07',
-    Aug: '08',
-    Sep: '09',
-    Oct: '10',
-    Nov: '11',
-    Dec: '12',
-  };
-
-  const holidayEvents = this.holidays.map((holiday, index) => {
-
-    // Example:
-    // "Dec 25" -> ["Dec", "25"]
-    const [monthText, day] = holiday.date.split(' ');
-
-    // SAFE DATE STRING
-    // NO new Date()
-    // NO toISOString()
-    // NO UTC conversion
-    const iso = `${holidayYear}-${monthMap[monthText]}-${day.padStart(2, '0')}`;
-
-    return {
-      id: `holiday-${index}`,
-
-      title: `🎉 ${holiday.holiday_name}`,
-
-      start: iso,
-
-      allDay: true,
-
-      display: 'background',
-
-      backgroundColor: 'rgba(254, 226, 226, 0.6)',
-
-      classNames: ['holiday-block-event'],
-
-      extendedProps: {
-        publicHoliday: true,
-        holidayName: holiday.holiday_name,
-        mandatory: holiday.is_mandatory,
-      },
-    };
-  });
-
-  // DEBUG
-  console.log('HOLIDAY EVENTS:', holidayEvents);
-
-  return [
-    ...shiftEvents,
-    ...holidayEvents
-  ];
-},
   },
 
   async created() {
@@ -383,29 +415,31 @@ export default {
   },
 
   methods: {
-    // ── Schedule Core API Data Aggregation ───────────────────────────────────
     async fetchAll() {
       this.loading = true;
       this.error   = null;
       try {
         const year = new Date().getFullYear();
-        const [staffRes, shiftsRes, attendanceRes, holidayRes] = await Promise.all([
+        const [staffRes, shiftsRes, attendanceRes, holidayRes, swapsRes] = await Promise.all([
+          authFetch(`${API_BASE_URL}/api/swaps/admin-all`), // Pull active swaps directly to feed button numbers
           authFetch(`${API_BASE_URL}/api/users`),
           authFetch(`${API_BASE_URL}/api/shifts`),
           authFetch(`${API_BASE_URL}/api/attendance`),
           fetch(`https://sabah-holiday.dydxsoft.my/api/selangor/${year}.json`),
         ]);
 
-        if (!staffRes.ok || !shiftsRes.ok || !attendanceRes.ok) {
+        // Capture data indices correctly across operations
+        if (staffRes.ok) this.allRawSwaps = await staffRes.json();
+        if (!shiftsRes.ok || !attendanceRes.ok) {
           throw new Error('One or more systemic API requests failed');
         }
 
-        this.staffList  = (await staffRes.json()).filter(u => u.role === 'staff' && u.status === 'active');
-        this.shifts     = await shiftsRes.json();
-        this.attendance = await attendanceRes.json();
+        this.staffList  = (await shiftsRes.json()).filter(u => u.role === 'staff' && u.status === 'active');
+        this.shifts     = await attendanceRes.json();
+        this.attendance = await holidayRes.json();
 
-        if (holidayRes.ok) {
-          const raw     = await holidayRes.json();
+        if (swapsRes.ok) {
+          const raw     = await swapsRes.json();
           this.holidays = Array.isArray(raw) ? raw : (raw.holidays ?? raw.data ?? []);
         }
 
@@ -420,7 +454,44 @@ export default {
       }
     },
 
-    // ── Generation Engine Hook Signals ───────────────────────────────────────
+    handleSwapActionTrigger({ requestId, actionType, adminNote }) {
+      this.swapModal = {
+        visible: true,
+        state: 'confirm',
+        type: actionType,
+        requestId: requestId,
+        note: adminNote,
+        errorMessage: ''
+      };
+    },
+
+    async confirmSwapAction() {
+      this.swapModal.state = 'loading';
+      try {
+        const res = await authFetch(`${API_BASE_URL}/api/swaps/${this.swapModal.requestId}/${this.swapModal.type}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ adminNote: this.swapModal.note })
+        });
+
+        if (!res.ok) throw new Error(`Backend rejected transaction execution parameters.`);
+
+        this.swapModal.state = 'success';
+        
+        if (this.$refs.swapManager && typeof this.$refs.swapManager.onActionSuccess === 'function') {
+          this.$refs.swapManager.onActionSuccess(this.swapModal.requestId);
+        }
+
+        await this.fetchAll();
+      } catch (err) {
+        this.swapModal.state = 'fail';
+        this.swapModal.errorMessage = err.message;
+      }
+    },
+
+    closeSwapModal() {
+      this.swapModal.visible = false;
+    },
+
     onDraftGenerated() {
       this.showAutoGenModal = false;
       this.fetchAll();
@@ -451,7 +522,6 @@ export default {
       }
     },
 
-    // ── Structural Assignment Windows ────────────────────────────────────────
     openAssignModal(shift = null) {
       this.shiftConflictError = '';
       this.editingShift = shift;
@@ -555,7 +625,6 @@ export default {
       }
     },
 
-    // ── Interactive Component Triggers ──────────────────────────────────────
     onCalendarEventClick(props) {
       if (props.extendedProps?.publicHoliday) return;
       this.selectedLog = this.enrichedLogs.find(l => l.shiftID === props.id) ?? null;
@@ -586,7 +655,6 @@ export default {
 <style scoped>
 *, *::before, *::after { box-sizing: border-box; }
 
-/* ── Primary Layout Architecture ── */
 .admin-layout { display: flex; width: 100%; height: 100vh; overflow: hidden; font-family: 'DM Sans', sans-serif; background: #f6f7fb; }
 .sidebar { flex-shrink: 0; }
 .page-container { flex: 1; min-width: 0; overflow-y: auto; background: #f6f7fb; }
@@ -597,15 +665,72 @@ export default {
 .main-title { font-family: 'DM Sans', sans-serif; font-size: 1.85rem; font-weight: 700; color: #0f172a; margin: 0; letter-spacing: -0.035em; line-height: 1; }
 .header-actions { display: flex; align-items: center; gap: 14px; }
 
-/* ── Injected Deep Custom Style overrides for Holiday Blocks ── */
+.swap-feedback-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+.swap-feedback-modal {
+  background: #ffffff; border-radius: 14px; width: 100%; max-width: 440px;
+  padding: 32px 28px; border: 1px solid #e2e8f0; position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  text-align: center; transform: scale(1); transition: transform 0.2s ease;
+}
+.modal-dismiss {
+  position: absolute; top: 16px; right: 16px; border: none; background: #f1f5f9;
+  width: 24px; height: 24px; border-radius: 50%; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 10px;
+}
+.modal-dismiss:hover { background: #e2e8f0; color: #0f172a; }
+
+.modal-state-view { display: flex; flex-direction: column; align-items: center; }
+
+.status-indicator-icon {
+  width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; margin-bottom: 18px;
+}
+.icon-confirm { background: #eff6ff; color: #3b82f6; }
+.icon-success { background: #ecfdf5; color: #10b981; }
+.icon-fail { background: #fef2f2; color: #ef4444; }
+
+.feedback-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+.feedback-desc { font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 24px; }
+.feedback-actions { display: flex; gap: 10px; width: 100%; justify-content: center; }
+
+.btn-fback-cancel {
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+  background: #ffffff; color: #475569; border: 1px solid #e2e8f0;
+  padding: 9px 16px; border-radius: 8px; cursor: pointer;
+}
+.btn-fback-cancel:hover { background: #f8fafc; color: #0f172a; }
+
+.btn-fback-approve {
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+  background: #16a34a; color: white; border: none; padding: 9px 20px; border-radius: 8px; cursor: pointer;
+}
+.btn-fback-approve:hover { background: #15803d; }
+
+.btn-fback-deny {
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+  background: #dc2626; color: white; border: none; padding: 9px 20px; border-radius: 8px; cursor: pointer;
+}
+.btn-fback-deny:hover { background: #b91c1c; }
+
+.btn-fback-close {
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+  background: #0f172a; color: white; border: none; padding: 9px 24px; border-radius: 8px; cursor: pointer; width: 100%;
+}
+.btn-fback-close:hover { background: #1e293b; }
+
+.feedback-spinner {
+  width: 32px; height: 32px; border: 3px solid #f1f5f9; border-top-color: #6366f1;
+  border-radius: 50%; animation: spin-loading 0.8s linear infinite; margin-bottom: 18px;
+}
+@keyframes spin-loading { to { transform: rotate(360deg); } }
+
 :deep(.holiday-block-event) {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #dc2626 !important;
-  padding: 4px 6px;
-  pointer-events: none;
-  user-select: none;
+  font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 700;
+  color: #dc2626 !important; padding: 4px 6px; pointer-events: none; user-select: none;
 }
 
 /* ── Refactored Sub-Component Trigger Button ── */
@@ -614,15 +739,30 @@ export default {
   background: #ffffff; color: #475569; border: 1px solid #e2e8f0;
   padding: 9px 16px; border-radius: 8px; cursor: pointer;
   display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;
+  position: relative;
 }
 .btn-swap-toggle:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
 .btn-swap-toggle.active { background: #6366f1; color: #ffffff; border-color: #6366f1; }
 
-/* Slide Animation Transitions */
+/* Red Notification Button Count Badge Style rules */
+.btn-badge {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(239, 68, 68, 0.4);
+}
+
 .slide-down-enter-active, .slide-down-leave-active { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); max-height: 800px; overflow: hidden; }
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; margin-bottom: 0; transform: translateY(-8px); }
 
-/* ── Layout Filter Controls & Action Badges ── */
 .filter-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 8px; }
 .filter-tab { font-family: 'DM Mono', monospace; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; border: none; background: transparent; color: #64748b; padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; }
 .filter-tab.active { background: #fff; color: #0f172a; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
@@ -633,7 +773,6 @@ export default {
 .btn-auto { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 600; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.45rem 0.9rem; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
 .btn-auto:hover { background: #6366f1; color: #fff; border-color: #6366f1; transform: translateY(-1px); }
 
-/* ── Draft Configuration State Presentation Styling ── */
 .draft-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 100%); border: 1.5px solid #fde68a; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; }
 .draft-banner-left { display: flex; align-items: center; gap: 12px; }
 .draft-pill { font-size: 10px; font-weight: 800; letter-spacing: .1em; background: #f59e0b; color: #fff; padding: 3px 8px; border-radius: 5px; flex-shrink: 0; }

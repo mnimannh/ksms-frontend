@@ -68,13 +68,23 @@
       </div>
 
       <div v-if="swapRequests.length" class="progress-panel animate-pop">
-        <div class="panel-header">
-          <h2 class="panel-title">🔄 Swap Request Hub</h2>
-          <p class="panel-sub">Review incoming proposals or track your outward requests</p>
+        <div class="panel-header-row">
+          <div class="panel-header">
+            <h2 class="panel-title">🔄 Swap Request Hub</h2>
+            <p class="panel-sub">Review incoming proposals, manage your requests, or view past logs</p>
+          </div>
+          <div class="hub-tabs">
+            <button class="tab-btn" :class="{ active: activeHubTab === 'current' }" @click="setHubTab('current')">
+              Active Hub ({{ categorizedSwaps.current.length }})
+            </button>
+            <button class="tab-btn" :class="{ active: activeHubTab === 'archive' }" @click="setHubTab('archive')">
+              Archive History ({{ categorizedSwaps.archive.length }})
+            </button>
+          </div>
         </div>
 
         <div class="progress-list">
-          <div v-for="swap in swapRequests" :key="swap.id" class="progress-card">
+          <div v-for="swap in paginatedSwaps" :key="swap.id" class="progress-card">
             <div class="progress-card-main">
               <div class="swap-participants">
                 <span v-if="swap.requester_id == myId" class="participant-badge me">Me</span>
@@ -97,9 +107,14 @@
 
             <div class="progress-card-status">
               <div v-if="swap.target_id == myId && swap.status?.toLowerCase() === 'pending'" class="peer-action-buttons">
-                <button class="btn-action-accept" @click="respondToSwapRequest(swap.id, 'accepted')">Accept</button>
-                <button class="btn-action-reject" @click="respondToSwapRequest(swap.id, 'rejected')">Reject</button>
+                <button class="btn-action-accept" @click="triggerResponseConfirm(swap.id, 'accepted')">Accept</button>
+                <button class="btn-action-reject" @click="triggerResponseConfirm(swap.id, 'rejected')">Reject</button>
               </div>
+              
+              <div v-else-if="swap.requester_id == myId && swap.status?.toLowerCase() === 'pending'" class="peer-action-buttons">
+                <button class="btn-action-cancel" @click="triggerCancelConfirm(swap.id)">Cancel Request</button>
+              </div>
+
               <div v-else>
                 <span class="status-indicator" :class="getFriendlyStatusClass(swap.status)">
                   <span class="status-dot"></span> {{ getFriendlyStatusLabel(swap.status, swap.requester_id) }}
@@ -107,10 +122,19 @@
               </div>
             </div>
           </div>
+
+          <div v-if="paginatedSwaps.length === 0" class="empty-hub-state">
+            No entries found inside this sector.
+          </div>
+        </div>
+
+        <div v-if="totalPages > 1" class="hub-pagination-footer">
+          <button class="btn-page-nav" :disabled="currentPage === 1" @click="currentPage--">◀ Previous</button>
+          <span class="page-counter">Page {{ currentPage }} of {{ totalPages }}</span>
+          <button class="btn-page-nav" :disabled="currentPage === totalPages" @click="currentPage++">Next ▶</button>
         </div>
       </div>
 
-      <!-- ── Calendar Panel Component ── -->
       <ShiftCalendarPanel
         :shifts="shifts"
         :colleague-shifts="colleagueShifts"
@@ -127,13 +151,12 @@
         @shift-selected="onShiftSelected"
         @colleague-change="onColleagueChange"
         @cancel-swap="cancelSwapMode"
-        @execute-swap="executeSwapSubmission"
+        @execute-swap="triggerSubmissionConfirm"
       />
 
-      <!-- ── Shift Detail Modal ── -->
       <transition name="modal-fade">
         <div v-if="selectedShift" class="modal-overlay" @click.self="selectedShift = null">
-          <div class="modal-card">
+          <div class="modal-card main-shift-modal animate-pop">
             <div class="modal-header" :class="selectedShift.isColleagueEvent ? 'colleague-header' : selectedShift.shiftType.toLowerCase()">
               <div class="modal-shift-type">
                 <span>{{ selectedShift.isColleagueEvent ? `${selectedShift.ownerName}'s` : 'My' }} {{ selectedShift.shiftType }} Shift</span>
@@ -184,6 +207,37 @@
         </div>
       </transition>
 
+      <transition name="modal-fade">
+        <div v-if="statusModal.show" class="modal-overlay" @click.self="closeStatusModal">
+          <div class="modal-card status-modal-card animate-pop">
+            <div class="status-modal-body">
+              <div class="status-icon-wrapper" :class="statusModal.type">
+                <span v-if="statusModal.type === 'confirm'">❓</span>
+                <span v-if="statusModal.type === 'success'">✅</span>
+                <span v-if="statusModal.type === 'fail'">❌</span>
+              </div>
+
+              <h3 class="status-title">{{ statusModal.title }}</h3>
+              <p class="status-message">{{ statusModal.message }}</p>
+
+              <div class="status-actions">
+                <template v-if="statusModal.type === 'confirm'">
+                  <button class="btn-status-cancel" @click="closeStatusModal" :disabled="loading">Cancel</button>
+                  <button class="btn-status-confirm" :class="statusModal.actionClass" @click="handleStatusConfirm" :disabled="loading">
+                    <span v-if="loading" class="spinner"></span>
+                    {{ loading ? 'Processing...' : 'Confirm' }}
+                  </button>
+                </template>
+
+                <template v-else>
+                  <button class="btn-status-close" @click="closeStatusModal">Dismiss</button>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
     </main>
   </div>
 </template>
@@ -214,6 +268,19 @@ export default {
       isSwapMode:        false,
       targetSwapShift:   null,
       selectedMyShiftId: null,
+
+      activeHubTab: "current", 
+      currentPage: 1,
+      itemsPerPage: 3,
+
+      statusModal: {
+        show: false,
+        type: "confirm", 
+        title: "",
+        message: "",
+        actionClass: "",
+        onConfirm: null
+      }
     };
   },
 
@@ -237,9 +304,40 @@ export default {
         totalThisMonth: thisMonth.length,
         morningCount:   thisMonth.filter(s => s.shiftType === "Morning").length,
         eveningCount:   thisMonth.filter(s => s.shiftType === "Evening").length,
-        totalHours:     Math.round(totalHours),
+        totalHours:      Math.round(totalHours),
       };
     },
+
+    categorizedSwaps() {
+      const current = [];
+      const archive = [];
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      this.swapRequests.forEach(req => {
+        const reqDate = new Date(req.shift_start);
+        const isPastMonth = reqDate < currentMonthStart;
+        
+        if (isPastMonth || ["approved", "rejected", "cancelled"].includes(req.status?.toLowerCase())) {
+          archive.push(req);
+        } else {
+          current.push(req);
+        }
+      });
+
+      return { current, archive };
+    },
+
+    paginatedSwaps() {
+      const activeList = this.categorizedSwaps[this.activeHubTab] || [];
+      const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+      return activeList.slice(startIndex, startIndex + this.itemsPerPage);
+    },
+
+    totalPages() {
+      const activeList = this.categorizedSwaps[this.activeHubTab] || [];
+      return Math.ceil(activeList.length / this.itemsPerPage) || 1;
+    }
   },
 
   mounted() {
@@ -247,17 +345,40 @@ export default {
   },
 
   methods: {
-    // ── Calendar event handlers (emitted from ShiftCalendarPanel) ──────────
+    setHubTab(tabName) {
+      this.activeHubTab = tabName;
+      this.currentPage = 1; 
+    },
+
+    showStatus(type, title, message, onConfirm = null, actionClass = "") {
+      this.statusModal = {
+        show: true,
+        type,
+        title,
+        message,
+        actionClass,
+        onConfirm
+      };
+    },
+
+    closeStatusModal() {
+      this.statusModal.show = false;
+    },
+
+    async handleStatusConfirm() {
+      if (typeof this.statusModal.onConfirm === "function") {
+        await this.statusModal.onConfirm();
+      }
+    },
+
     onShiftClick(shiftProps) {
       this.selectedShift = shiftProps;
     },
 
     onShiftSelected(shiftProps) {
-      // Toggle selection: clicking the same shift again deselects it
       this.selectedMyShiftId = this.selectedMyShiftId === shiftProps.id ? null : shiftProps.id;
     },
 
-    // ── Swap orchestration ─────────────────────────────────────────────────
     initiateSwapMode(colleagueShift) {
       this.targetSwapShift   = colleagueShift;
       this.isSwapMode        = true;
@@ -286,50 +407,107 @@ export default {
 
     getFriendlyStatusClass(status) {
       const s = status?.toLowerCase();
-      if (s === "pending")  return "pending";
-      if (s === "accepted") return "accepted";
-      if (s === "approved") return "approved";
+      if (s === "pending")   return "pending";
+      if (s === "accepted")  return "accepted";
+      if (s === "approved")  return "approved";
+      if (s === "cancelled") return "cancelled";
       return "rejected";
     },
 
     getFriendlyStatusLabel(status, requesterId) {
       const s = status?.toLowerCase();
-      if (s === "pending")  return requesterId == this.myId ? "Waiting for Peer" : "Action Required";
-      if (s === "accepted") return "Waiting Admin Approval";
-      if (s === "approved") return "Approved & Changed";
+      if (s === "pending")   return requesterId == this.myId ? "Waiting for Peer" : "Action Required";
+      if (s === "accepted")  return "Waiting Admin Approval";
+      if (s === "approved")  return "Approved & Changed";
+      if (s === "cancelled") return "Cancelled";
       return "Rejected";
     },
 
-    async respondToSwapRequest(swapId, newStatus) {
+    triggerResponseConfirm(swapId, newStatus) {
       const actionText = newStatus === "accepted" ? "accept" : "reject";
-      if (!confirm(`Are you sure you want to ${actionText} this shift swap proposal?`)) return;
+      const actionClass = newStatus === "accepted" ? "confirm-accept" : "confirm-reject";
+      
+      this.showStatus(
+        "confirm",
+        "Respond to Proposal",
+        `Are you sure you want to ${actionText} this shift swap proposal?`,
+        () => this.respondToSwapRequest(swapId, newStatus),
+        actionClass
+      );
+    },
 
+    async respondToSwapRequest(swapId, newStatus) {
       try {
         this.loading = true;
-        const token  = localStorage.getItem("userToken") || localStorage.getItem("token");
-        await axios.patch(`${API_BASE_URL}/api/swaps/${swapId}/respond`, { status: newStatus }, {
+        const token = localStorage.getItem("userToken") || localStorage.getItem("token");
+        
+        await axios.patch(`${API_BASE_URL}/api/swaps/${swapId}/respond`, { status: newStatus.toLowerCase() }, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        alert(`You successfully ${newStatus} the trade request!`);
+
+        this.showStatus(
+          "success",
+          "Response Saved",
+          `You successfully ${newStatus} the trade request!`
+        );
         await this.fetchShifts();
       } catch (err) {
         console.error("Failed to post response update:", err);
-        alert(err.response?.data?.message || "Error processing swap choice.");
+        const errMsg = err.response?.data?.message || "Error processing swap choice.";
+        this.showStatus("fail", "Action Failed", errMsg);
       } finally {
         this.loading = false;
       }
     },
 
-    async executeSwapSubmission() {
+    triggerCancelConfirm(swapId) {
+      this.showStatus(
+        "confirm",
+        "Cancel Swap Request",
+        "Are you sure you want to retract and cancel this outward swap proposal?",
+        () => this.executeSwapCancellation(swapId),
+        "confirm-reject"
+      );
+    },
+
+    async executeSwapCancellation(swapId) {
+      try {
+        this.loading = true;
+        const token = localStorage.getItem("userToken") || localStorage.getItem("token");
+        
+        await axios.delete(`${API_BASE_URL}/api/swaps/${swapId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        this.showStatus("success", "Request Cancelled", "Your swap request has been cancelled successfully.");
+        await this.fetchShifts();
+      } catch (err) {
+        console.error("Failed to cancel trade offer request:", err);
+        const errMsg = err.response?.data?.message || "Error retracting request.";
+        this.showStatus("fail", "Cancellation Failed", errMsg);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    triggerSubmissionConfirm() {
       if (!this.selectedMyShiftId || !this.targetSwapShift) return;
       const chosenShift = this.shifts.find(s => s.id === this.selectedMyShiftId);
       if (!chosenShift) return;
 
-      if (!confirm(`Confirm swap proposal: Exchange your "${chosenShift.shiftType}" shift for ${this.targetSwapShift.ownerName}'s shift?`)) return;
+      this.showStatus(
+        "confirm",
+        "Submit Swap Request",
+        `Confirm swap proposal: Exchange your "${chosenShift.shiftType}" shift for ${this.targetSwapShift.ownerName}'s shift?`,
+        () => this.executeSwapSubmission(),
+        "confirm-accept"
+      );
+    },
 
+    async executeSwapSubmission() {
       try {
         this.loading = true;
-        const token  = localStorage.getItem("token") || localStorage.getItem("userToken");
+        const token = localStorage.getItem("token") || localStorage.getItem("userToken");
         await axios.post(`${API_BASE_URL}/api/swaps`, {
           targetId:     this.selectedColleagueId,
           shiftId:      this.selectedMyShiftId,
@@ -337,18 +515,19 @@ export default {
         }, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        alert("Swap request successfully submitted!");
+
+        this.showStatus("success", "Submitted Successfully", "Swap request successfully submitted to your teammate!");
         this.cancelSwapMode();
         await this.fetchShifts();
       } catch (err) {
         console.error("Failed to complete swap submission workflow:", err);
-        alert(err.response?.data?.message || "Error submitting request.");
+        const errMsg = err.response?.data?.message || "Error submitting request.";
+        this.showStatus("fail", "Submission Failed", errMsg);
       } finally {
         this.loading = false;
       }
     },
 
-    // ── Data fetching ──────────────────────────────────────────────────────
     async fetchSwapRequests() {
       try {
         const token = localStorage.getItem("userToken") || localStorage.getItem("token");
@@ -376,7 +555,6 @@ export default {
 
         await this.fetchSwapRequests();
 
-        // Public Holidays
         try {
           const year = new Date().getFullYear();
           const [holidayRes] = await Promise.all([
@@ -445,7 +623,6 @@ export default {
       }
     },
 
-    // ── Formatters (shared with modal) ─────────────────────────────────────
     formatDate(dt) {
       return new Date(dt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
     },
@@ -459,28 +636,12 @@ export default {
 };
 </script>
 
-<style>
-/* ── FullCalendar global vars (still needed here since they're global) ── */
-:root {
-  --fc-border-color: #f1f5f9;
-  --fc-today-bg-color: #eff6ff;
-  --fc-page-bg-color: transparent;
-  --fc-neutral-bg-color: #f8fafc;
-  --fc-event-border-color: transparent;
-  --fc-button-bg-color: #0f172a;
-  --fc-button-border-color: #0f172a;
-  --fc-button-hover-bg-color: #1e293b;
-  --fc-button-active-bg-color: #0f172a;
-  --fc-button-active-border-color: #0f172a;
-}
-</style>
-
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500;600&family=DM+Sans:opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 .app-layout { display: flex; min-height: 100vh; background: #f6f7fb; font-family: 'DM Sans', sans-serif; color: #1e293b; }
-.page { flex: 1; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 16px; overflow-x: hidden; }
+.page { flex: 1; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 16px; overflow-x: hidden; position: relative; }
 
 .topbar { display: flex; flex-direction: column; gap: 10px; }
 .topbar-date  { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
@@ -501,20 +662,47 @@ export default {
 .pulse { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: block; animation: pulse 1.8s ease infinite; }
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,.5); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
 
-.summary-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.summary-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.04); animation: fadeUp .35s ease both; transition: all .15s; }
-.summary-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); transform: translateY(-1px); }
+/* ── UPDATED RESPONSIVE 1X4 COLUMN LAYOUT ── */
+/* ── FORCE 1X4 HORIZONTAL FLEXBOX ROW LAYOUT ── */
+.summary-row { 
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important; /* Prevents elements from breaking into a second line */
+  gap: 14px !important; 
+  width: 100% !important;
+}
+
+.summary-card { 
+  flex: 1 1 0% !important; /* Forces all 4 cards to take exactly 25% equal space width */
+  min-width: 0 !important; /* Fixes text clipping calculations inside flexbox items */
+  background: #fff; 
+  border: 1px solid #f1f5f9; 
+  border-radius: 14px; 
+  padding: 14px 16px; 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  box-shadow: 0 1px 3px rgba(0,0,0,.04); 
+  animation: fadeUp .35s ease both; 
+  transition: all .15s; 
+}
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .summary-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .summary-val { font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -.03em; line-height: 1; margin-bottom: 3px; }
 .summary-unit { font-size: 14px; font-weight: 500; color: #94a3b8; margin-left: 2px; }
-.summary-label { font-size: 11px; color: #94a3b8; }
+.summary-label { font-size: 11px; color: #94a3b8; white-space: nowrap; }
 
 .progress-panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.02); }
+.panel-header-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
 .panel-header { display: flex; flex-direction: column; }
 .panel-title { font-size: 14px; font-weight: 600; color: #0f172a; }
 .panel-sub { font-size: 12px; color: #94a3b8; }
-.progress-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; }
+
+.hub-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
+.tab-btn { background: transparent; border: none; font-size: 11px; font-weight: 600; color: #64748b; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s ease; }
+.tab-btn.active { background: #ffffff; color: #0f172a; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+.progress-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
 .progress-card { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 12px 14px; gap: 12px; }
 .progress-card-main { display: flex; align-items: center; gap: 14px; flex: 1; }
 .swap-participants { display: flex; align-items: center; gap: 6px; }
@@ -524,10 +712,21 @@ export default {
 .swap-arrow { font-size: 11px; color: #94a3b8; }
 .swap-info-text { font-size: 12px; color: #334155; line-height: 1.4; }
 .peer-action-buttons { display: flex; gap: 6px; }
+
 .btn-action-accept { background: #10b981; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
 .btn-action-accept:hover { background: #059669; }
 .btn-action-reject { background: #ef4444; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
 .btn-action-reject:hover { background: #dc2626; }
+.btn-action-cancel { background: #64748b; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btn-action-cancel:hover { background: #475569; }
+
+.empty-hub-state { text-align: center; font-size: 12px; color: #94a3b8; padding: 24px; font-style: italic; }
+
+.hub-pagination-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid #f1f5f9; margin-top: 4px; }
+.btn-page-nav { background: #ffffff; border: 1px solid #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.btn-page-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-page-nav:not(:disabled):hover { background: #f8fafc; border-color: #cbd5e1; }
+.page-counter { font-size: 11px; font-weight: 600; color: #64748b; font-family: 'DM Mono', monospace; }
 
 .status-indicator { display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
 .status-indicator.pending  { background: #fff7ed; color: #c2410c; }
@@ -536,15 +735,19 @@ export default {
 .status-indicator.accepted .status-dot { background: #16a34a; }
 .status-indicator.approved { background: #eff6ff; color: #2563eb; }
 .status-indicator.approved .status-dot { background: #2563eb; }
+.status-indicator.cancelled { background: #f1f5f9; color: #64748b; }
+.status-indicator.cancelled .status-dot { background: #64748b; }
 .status-indicator.rejected { background: #fef2f2; color: #dc2626; }
 .status-indicator.rejected .status-dot { background: #dc2626; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; }
 
 .animate-pop { animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.45); backdrop-filter: blur(4px); display: flex; align-items: flex-end; justify-content: center; z-index: 1000; }
-.modal-card { background: #fff; border-radius: 16px 16px 0 0; width: 100%; overflow: hidden; box-shadow: 0 -8px 40px rgba(0,0,0,.2); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+.modal-card { background: #fff; width: 100%; overflow: hidden; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15); }
+.main-shift-modal { max-width: 520px; border-radius: 12px; }
+
 .modal-header { padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; }
 .modal-header.morning          { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #854d0e; }
 .modal-header.evening          { background: linear-gradient(135deg, #5b21b6, #8b5cf6); color: #ede9fe; }
@@ -552,39 +755,42 @@ export default {
 .modal-shift-type { font-weight: 600; font-size: 15px; }
 .modal-close { background: none; border: none; font-size: 18px; cursor: pointer; opacity: 0.7; line-height: 1; }
 .modal-body { padding: 16px 20px 28px; display: flex; flex-direction: column; }
-.modal-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+.modal-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
 .modal-row:last-child { border-bottom: none; }
-.modal-field { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; }
-.modal-value { font-family: 'DM Sans', sans-serif; font-size: 0.875rem; color: #0f172a; font-weight: 500; }
-.modal-footer-actions { padding: 12px 20px 16px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; }
+.modal-field { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.modal-value { font-family: 'DM Sans', sans-serif; font-size: 0.875rem; color: #0f172a; font-weight: 500; text-align: right; }
+.modal-footer-actions { padding: 14px 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; background-color: #f8fafc; }
 
 .swap-pending-alert { font-size: 13px; font-weight: 500; color: #d97706; background-color: #fffbeb; border: 1px solid #fde68a; padding: 8px 14px; border-radius: 8px; width: 100%; text-align: center; }
 .btn-swap { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
 .btn-swap:hover { background: #6366f1; border-color: #6366f1; color: #fff; }
 
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity .2s ease; }
-.modal-fade-enter-from,  .modal-fade-leave-to      { opacity: 0; }
-.modal-fade-enter-active .modal-card, .modal-fade-leave-active .modal-card { transition: transform .25s ease; }
-.modal-fade-enter-from   .modal-card, .modal-fade-leave-to    .modal-card  { transform: translateY(100%); }
+.status-modal-card { max-width: 400px !important; border-radius: 16px !important; margin: auto; }
+.status-modal-body { padding: 32px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.status-icon-wrapper { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; }
+.status-icon-wrapper.confirm { background-color: #eff6ff; }
+.status-icon-wrapper.success { background-color: #f0fdf4; }
+.status-icon-wrapper.fail    { background-color: #fef2f2; }
 
-@media (min-width: 600px) {
-  .page { padding: 24px 24px 44px; gap: 18px; }
-  .topbar { flex-direction: row; align-items: flex-end; justify-content: space-between; }
-  .topbar-title { font-size: 24px; }
-  .summary-row { gap: 12px; }
-  .summary-card { padding: 16px 18px; }
-  .summary-icon { width: 42px; height: 42px; border-radius: 11px; }
-  .summary-val { font-size: 24px; }
-  .modal-overlay { align-items: center; padding: 20px; }
-  .modal-card { border-radius: 16px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
-  .modal-fade-enter-from .modal-card, .modal-fade-leave-to .modal-card { transform: scale(.95) translateY(8px); }
+.status-title { font-size: 18px; font-weight: 600; color: #0f172a; margin-bottom: 8px; }
+.status-message { font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 24px; }
+.status-actions { display: flex; gap: 12px; width: 100%; justify-content: center; }
+.btn-status-close, .btn-status-confirm, .btn-status-cancel { flex: 1; padding: 10px 16px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.15s ease; font-family: 'DM Sans', sans-serif; }
+.btn-status-close { background: #0f172a; color: #fff; border: none; max-width: 160px; }
+.btn-status-close:hover { background: #1e293b; }
+.btn-status-cancel { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.btn-status-cancel:hover { background: #e2e8f0; }
+.btn-status-confirm { color: #fff; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-status-confirm.confirm-accept { background: #6366f1; }
+.btn-status-confirm.confirm-reject { background: #ef4444; }
+
+/* Responsive Media Query for smaller desktop viewports and mobile screens */
+@media (max-width: 1024px) {
+  .summary-row { grid-template-columns: repeat(2, 1fr); }
 }
-@media (min-width: 900px) {
-  .page { padding: 32px 36px 48px; gap: 20px; }
-  .topbar-title { font-size: 26px; }
-  .summary-row { grid-template-columns: repeat(4, 1fr); gap: 14px; }
-  .summary-card { padding: 18px 20px; gap: 14px; }
-  .summary-val { font-size: 26px; }
-  .summary-unit { font-size: 16px; }
+@media (max-width: 576px) {
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .main-shift-modal { max-width: 100%; border-radius: 16px 16px 0 0; }
+  .summary-row { grid-template-columns: 1fr; }
 }
 </style>

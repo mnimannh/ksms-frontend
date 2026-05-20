@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- Mobile overlay backdrop -->
     <transition name="fade">
       <div
         v-if="isMobile && isOpen"
@@ -9,7 +8,6 @@
       />
     </transition>
 
-    <!-- Sidebar -->
     <div
       class="admin-sidebar"
       :class="{
@@ -18,7 +16,6 @@
         'is-mobile': isMobile
       }"
     >
-      <!-- HEADER -->
       <div class="sidebar-header">
         <router-link to="" class="logo-wrap">
           <div class="logo-icon">
@@ -31,7 +28,6 @@
           <span class="logo-text">KSMS</span>
         </router-link>
 
-        <!-- Collapse toggle (desktop/tablet) -->
         <button
           v-if="!isMobile"
           class="collapse-btn"
@@ -49,7 +45,6 @@
           </svg>
         </button>
 
-        <!-- Close button (mobile) -->
         <button v-if="isMobile" class="collapse-btn" @click="closeSidebar">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
             <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -57,7 +52,6 @@
         </button>
       </div>
 
-      <!-- NAV -->
       <nav class="nav-container">
         <p class="nav-section-label">Menu</p>
         <ul class="sidebar-nav">
@@ -78,7 +72,6 @@
         </ul>
       </nav>
 
-      <!-- FOOTER -->
       <div class="sidebar-footer">
         <div class="user-card">
           <img v-if="user.profilePicture" :src="picUrl(user.profilePicture)" class="user-avatar user-avatar-img" alt="avatar" />
@@ -100,7 +93,6 @@
       </div>
     </div>
 
-    <!-- Mobile hamburger trigger (rendered outside sidebar) -->
     <button v-if="isMobile && !isOpen" class="mobile-toggle" @click="openSidebar">
       <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
         <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -123,43 +115,53 @@ export default {
       menu: [
         {
           name: "Dashboard", path: "/admin/dashboard",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>`,
+          badge: null
         },
         {
           name: "Inventory", path: "/admin/inventory",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 4V3a3 3 0 016 0v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M1 8h14" stroke="currentColor" stroke-width="1.5"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 4V3a3 3 0 016 0v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M1 8h14" stroke="currentColor" stroke-width="1.5"/></svg>`,
+          badge: null
         },
         {
           name: "Payroll", path: "/admin/payroll",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 6v4M6 7.5c0-.83.67-1.5 1.5-1.5h1a1.5 1.5 0 010 3h-1A1.5 1.5 0 006 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 6v4M6 7.5c0-.83.67-1.5 1.5-1.5h1a1.5 1.5 0 010 3h-1A1.5 1.5 0 006 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+          badge: null
         },
         {
           name: "Shift", path: "/admin/shift",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+          badge: null
         },
         {
           name: "Alarm", path: "/admin/alarm",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 015 5v3l1 2H2l1-2v-3a5 5 0 015-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a5 5 0 015 5v3l1 2H2l1-2v-3a5 5 0 015-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+          badge: null
         },
         {
           name: "Inventory Report", path: "/admin/inventoryreport",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+          badge: null
         },
         {
           name: "Shift & Payroll Report", path: "/admin/shiftpayrollreport",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+          badge: null
         },
         {
           name: "User", path: "/admin/user",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="5.5" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 14c0-2.76 2.02-4.5 4.5-4.5S10 11.24 10 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="11.5" cy="5" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 9.6c.32-.07.66-.1 1-.1 2.21 0 4 1.57 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="5.5" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 14c0-2.76 2.02-4.5 4.5-4.5S10 11.24 10 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="11.5" cy="5" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 9.6c.32-.07.66-.1 1-.1 2.21 0 4 1.57 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+          badge: null
         },
         {
           name: "Profile", path: "/admin/profile",
-          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 10l1.5 1.5L15 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 10l1.5 1.5L15 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+          badge: null
         }
       ],
       user: { fullName: "", role: "", profilePicture: null },
       apiBase: API_BASE_URL,
+      pollInterval: null
     };
   },
   mounted() {
@@ -176,10 +178,17 @@ export default {
 
     this.fetchUserInfo();
     this.fetchAlarmUnread();
-    setInterval(() => this.fetchAlarmUnread(), 5000);
+    this.fetchSwapNotifications();
+
+    // Consolidated sync intervals inside a single thread loop
+    this.pollInterval = setInterval(() => {
+      this.fetchAlarmUnread();
+      this.fetchSwapNotifications();
+    }, 5000);
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.checkMobile);
+    if (this.pollInterval) clearInterval(this.pollInterval);
   },
   methods: {
     picUrl(url) {
@@ -241,6 +250,31 @@ export default {
         console.error("Error fetching alarms:", err);
       }
     },
+
+   async fetchSwapNotifications() {
+  try {
+    const token = localStorage.getItem("userToken");
+    if (!token) return;
+
+    const res = await axios.get(`${API_BASE_URL}/api/swaps`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const swapRequests = res.data || [];
+    
+    // CHANGE THIS: Filter for 'accepted' instead of 'pending'
+    const pendingCount = swapRequests.filter(req => req.status === 'accepted').length;
+    
+    // Map the menu array to force Vue to dynamically re-render the template badge
+    this.menu = this.menu.map(item => {
+      if (item.name === "Shift") {
+        return { ...item, badge: pendingCount || null };
+      }
+      return item;
+    });
+  } catch (err) {
+    console.error("Error fetching admin swap actions:", err);
+  }
+},
 
     handleLogout() {
       localStorage.removeItem("userToken");

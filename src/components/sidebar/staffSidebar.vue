@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- Mobile overlay backdrop -->
     <transition name="fade">
       <div
         v-if="isMobile && isOpen"
@@ -9,7 +8,6 @@
       />
     </transition>
 
-    <!-- Sidebar -->
     <div
       class="admin-sidebar"
       :class="{
@@ -18,7 +16,6 @@
         'is-mobile': isMobile
       }"
     >
-      <!-- HEADER -->
       <div class="sidebar-header">
         <router-link to="" class="logo-wrap">
           <div class="logo-icon">
@@ -31,7 +28,6 @@
           <span class="logo-text">KSMS</span>
         </router-link>
 
-        <!-- Collapse toggle (desktop/tablet) -->
         <button
           v-if="!isMobile"
           class="collapse-btn"
@@ -47,7 +43,6 @@
           </svg>
         </button>
 
-        <!-- Close button (mobile) -->
         <button v-if="isMobile" class="collapse-btn" @click="closeSidebar">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
             <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -55,7 +50,6 @@
         </button>
       </div>
 
-      <!-- NAV -->
       <nav class="nav-container">
         <p class="nav-section-label">Menu</p>
         <ul class="sidebar-nav">
@@ -72,13 +66,13 @@
                 <span v-if="item.path === '/staff/profile' && isTempPassword" class="temp-badge"></span>
               </span>
               <span class="nav-label">{{ item.name }}</span>
-              <span v-if="$route.path.startsWith(item.path)" class="active-dot"></span>
+              <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
+              <span v-else-if="$route.path.startsWith(item.path)" class="active-dot"></span>
             </router-link>
           </li>
         </ul>
       </nav>
 
-      <!-- FOOTER -->
       <div class="sidebar-footer">
         <div class="user-card">
           <img v-if="user.profilePicture" :src="picUrl(user.profilePicture)" class="user-avatar user-avatar-img" alt="avatar" />
@@ -100,7 +94,6 @@
       </div>
     </div>
 
-    <!-- Mobile hamburger trigger -->
     <button v-if="isMobile && !isOpen" class="mobile-toggle" @click="openSidebar">
       <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
         <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -113,6 +106,22 @@
 import API_BASE_URL from '@/services/api';
 import axios from 'axios';
 
+// Extracts the logged-in User ID smoothly out of your JWT structure
+function getUserIdFromToken(token) {
+  try {
+    if (!token) return null;
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    const decoded = JSON.parse(jsonPayload);
+    return decoded.id || decoded.userId || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export default {
   name: "StaffSidebar",
   data() {
@@ -121,15 +130,16 @@ export default {
       isOpen: false,
       isMobile: false,
       menu: [
-        { name: "Dashboard", path: "/staff/dashboard", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>` },
-        { name: "POS", path: "/staff/pos", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h2m2 0h2M5 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 9v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
-        { name: "Shift", path: "/staff/shifts", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
-        { name: "Payroll", path: "/staff/payroll", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 6v4M6 7.5c0-.83.67-1.5 1.5-1.5h1a1.5 1.5 0 010 3h-1A1.5 1.5 0 006 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
-        { name: "Profile", path: "/staff/profile", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` },
+        { name: "Dashboard", path: "/staff/dashboard", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>`, badge: null },
+        { name: "POS", path: "/staff/pos", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h2m2 0h2M5 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 9v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`, badge: null },
+        { name: "Shift", path: "/staff/shifts", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`, badge: null },
+        { name: "Payroll", path: "/staff/payroll", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 6v4M6 7.5c0-.83.67-1.5 1.5-1.5h1a1.5 1.5 0 010 3h-1A1.5 1.5 0 006 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`, badge: null },
+        { name: "Profile", path: "/staff/profile", icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`, badge: null },
       ],
       user: { fullName: "", role: "", profilePicture: null },
       isTempPassword: false,
       apiBase: API_BASE_URL,
+      pollInterval: null
     };
   },
   mounted() {
@@ -139,15 +149,17 @@ export default {
     if (savedRole) this.user.role = savedRole;
 
     this.checkMobile();
-    // Restore persisted collapsed state — survives navigation and refresh
     const saved = localStorage.getItem('staffSidebarCollapsed');
     if (saved !== null) this.isCollapsed = saved === '1';
     window.addEventListener('resize', this.checkMobile);
 
     this.fetchUserInfo();
+    this.fetchSwapNotifications();
+    this.pollInterval = setInterval(() => this.fetchSwapNotifications(), 5000);
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.checkMobile);
+    if (this.pollInterval) clearInterval(this.pollInterval);
   },
   methods: {
     picUrl(url) {
@@ -170,7 +182,6 @@ export default {
     closeSidebar() {
       this.isOpen = false;
     },
-    // Nav clicks: only close drawer on mobile — NEVER touch isCollapsed
     handleNavClick() {
       if (this.isMobile) this.closeSidebar();
     },
@@ -190,6 +201,33 @@ export default {
         localStorage.setItem("userRole", this.user.role);
       } catch (err) {
         console.error("Error fetching user info:", err);
+      }
+    },
+
+    async fetchSwapNotifications() {
+      try {
+        const token = localStorage.getItem("userToken");
+        if (!token) return;
+
+        const currentUserId = getUserIdFromToken(token);
+        if (!currentUserId) return;
+
+        const res = await axios.get(`${API_BASE_URL}/api/swaps`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const swapRequests = res.data || [];
+        
+        const shiftMenu = this.menu.find(m => m.name === "Shift");
+        if (shiftMenu) {
+          // Filters objects where status is 'pending' and the user is targeted (target_id)
+          const pendingCount = swapRequests.filter(req => {
+            return req.status === 'pending' && Number(req.target_id) === Number(currentUserId);
+          }).length;
+          
+          shiftMenu.badge = pendingCount || null;
+        }
+      } catch (err) {
+        console.error("Error fetching swap notifications:", err);
       }
     },
 
@@ -341,6 +379,17 @@ export default {
   pointer-events: none;
 }
 
+/* Badge rules when collapsed */
+.is-collapsed .nav-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 15px;
+  height: 15px;
+  font-size: 9px;
+  padding: 0 3px;
+}
+
 /* Collapse toggle button */
 .collapse-btn {
   width: 26px;
@@ -456,6 +505,30 @@ export default {
   border-radius: 50%;
   background: #3b82f6;
   flex-shrink: 0;
+}
+
+/* ── Notification Badge ── */
+.nav-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+  animation: badgePulse 2s ease infinite;
+  transition: all 0.2s ease;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }
+  50%       { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
 }
 
 /* ── Footer ── */

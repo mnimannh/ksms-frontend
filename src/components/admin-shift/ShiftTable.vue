@@ -3,7 +3,6 @@
     <div class="panel-head">
       <span class="panel-title">ALL ASSIGNED SHIFTS</span>
       <div class="head-controls">
-        <!-- Date filter pill -->
         <label class="date-pill" :class="{ active: dateFilter }">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -17,7 +16,45 @@
           </button>
         </label>
 
-        <!-- Search -->
+        <div class="dropdown-wrapper" ref="dropdownRef">
+          <div 
+            class="date-pill" 
+            :class="{ active: userFilter || isDropdownOpen }" 
+            @click="isDropdownOpen = !isDropdownOpen"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="date-pill-text">{{ userFilter ? userFilter : 'Filter by staff' }}</span>
+            <button v-if="userFilter" class="date-clear" @click.prevent.stop="userFilter = ''">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <transition name="dropdown-fade">
+            <div class="custom-dropdown-panel" v-if="isDropdownOpen">
+              <div 
+                class="dropdown-item" 
+                :class="{ selected: userFilter === '' }"
+                @click="selectUser('')"
+              >
+                All Staff
+              </div>
+              <div 
+                v-for="user in uniqueStaff" 
+                :key="user" 
+                class="dropdown-item"
+                :class="{ selected: userFilter === user }"
+                @click="selectUser(user)"
+              >
+                {{ user }}
+              </div>
+            </div>
+          </transition>
+        </div>
+
         <div class="search-wrap">
           <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -100,7 +137,6 @@
       </table>
     </div>
 
-    <!-- ── Pagination Controls ── -->
     <div v-if="filteredRows.length > 0" class="pagination-panel">
       <div class="pagination-info">
         Showing <span>{{ startItemIndex }}</span> to <span>{{ endItemIndex }}</span> of <span>{{ filteredRows.length }}</span> entries
@@ -139,7 +175,6 @@
     </div>
   </div>
 
-  <!-- ── Delete Confirmation Modal ── -->
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="confirmDialog.show" class="modal-backdrop" @click.self="cancelConfirm">
@@ -186,6 +221,8 @@ export default {
     return {
       confirmDialog: { show: false, shiftId: null },
       dateFilter: '',
+      userFilter: '',
+      isDropdownOpen: false,
       currentPage: 1,
       itemsPerPage: 10,
     };
@@ -193,14 +230,30 @@ export default {
   watch: {
     dateFilter() {
       this.currentPage = 1;
+    },
+    userFilter() {
+      this.currentPage = 1;
     }
   },
   computed: {
+    uniqueStaff() {
+      const staffSet = new Set(this.rows.map(row => row.staffName).filter(Boolean));
+      return Array.from(staffSet).sort();
+    },
     filteredRows() {
-      if (!this.dateFilter) return this.rows;
       return this.rows.filter(row => {
-        const rowDate = row.startTime ? row.startTime.slice(0, 10) : '';
-        return rowDate === this.dateFilter;
+        let matchesDate = true;
+        if (this.dateFilter) {
+          const rowDate = row.startTime ? row.startTime.slice(0, 10) : '';
+          matchesDate = rowDate === this.dateFilter;
+        }
+
+        let matchesUser = true;
+        if (this.userFilter) {
+          matchesUser = row.staffName === this.userFilter;
+        }
+
+        return matchesDate && matchesUser;
       });
     },
     totalPages() {
@@ -220,7 +273,22 @@ export default {
       return projectedEnd > this.filteredRows.length ? this.filteredRows.length : projectedEnd;
     }
   },
+  mounted() {
+    document.addEventListener('click', this.handleClickOutside);
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutside);
+  },
   methods: {
+    selectUser(user) {
+      this.userFilter = user;
+      this.isDropdownOpen = false;
+    },
+    handleClickOutside(event) {
+      if (this.$refs.dropdownRef && !this.$refs.dropdownRef.contains(event.target)) {
+        this.isDropdownOpen = false;
+      }
+    },
     onSearchInput(event) {
       this.currentPage = 1;
       this.$emit('update:searchQuery', event.target.value);
@@ -283,7 +351,7 @@ export default {
   gap: 8px;
 }
 
-/* ── Date pill ── */
+/* ── Date and Dropdown pill styles ── */
 .date-pill {
   position: relative;
   display: inline-flex;
@@ -323,6 +391,7 @@ export default {
   width: 100%;
   cursor: pointer;
   border: none;
+  background: transparent;
 }
 .date-hidden::-webkit-calendar-picker-indicator {
   position: absolute;
@@ -335,7 +404,7 @@ export default {
 
 .date-clear {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -351,6 +420,72 @@ export default {
   transition: background 0.12s;
 }
 .date-clear:hover { background: #a5b4fc; }
+
+/* ── NEW CUSTOM DROPDOWN UI STYLES ── */
+.dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.custom-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 210px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+  padding: 6px;
+  z-index: 100;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar styling for the drop panel */
+.custom-dropdown-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-dropdown-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-dropdown-panel::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  color: #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.dropdown-item.selected {
+  background: #eef2ff;
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+/* Dropdown Animation Transitions */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
 
 /* ── Search ── */
 .search-wrap {
@@ -412,20 +547,6 @@ export default {
   gap: 8px;
   font-weight: 600;
   color: #0f172a;
-}
-.mini-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #6366f1;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.55rem;
-  font-weight: 700;
-  flex-shrink: 0;
 }
 
 .type-pill {
