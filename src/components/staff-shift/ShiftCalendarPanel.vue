@@ -41,6 +41,64 @@
       </div>
     </div>
 
+    <!-- ── Stats Bar ── -->
+    <div class="stats-bar" v-if="!isSwapMode">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--total">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <span class="stat-val">{{ totalShifts }}</span>
+          <span class="stat-label">Total Shifts</span>
+        </div>
+      </div>
+
+      <div class="stat-divider"></div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--morning">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <span class="stat-val">{{ morningShifts }}</span>
+          <span class="stat-label">Morning</span>
+        </div>
+      </div>
+
+      <div class="stat-divider"></div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--evening">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <span class="stat-val">{{ eveningShifts }}</span>
+          <span class="stat-label">Evening</span>
+        </div>
+      </div>
+
+      <div class="stat-divider"></div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--hours">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <span class="stat-val">{{ totalHours }}<span class="stat-unit">h</span></span>
+          <span class="stat-label">Total Hours</span>
+        </div>
+      </div>
+    </div>
+
     <div class="calendar-body">
       <div v-if="loadingColleague" class="calendar-overlay-loader">Updating view...</div>
       <div id="calendar" class="staff-calendar-render"></div>
@@ -67,20 +125,56 @@ export default {
   },
 
   emits: [
-    "shift-click",      
-    "shift-selected",   
-    "colleague-change", 
+    "shift-click",
+    "shift-selected",
+    "colleague-change",
     "cancel-swap",
     "execute-swap",
   ],
 
   data() {
     return {
-      calendar: null,
+      calendar:     null,
+      currentMonth: new Date().getMonth(),   // 0-indexed
+      currentYear:  new Date().getFullYear(),
     };
   },
 
   computed: {
+    // ── Stats: own shifts only, filtered to visible month ──
+    monthlyShifts() {
+      return this.shifts.filter(s => {
+        if (!s.startTime) return false;
+        const d = new Date(s.startTime);
+        return d.getMonth() === this.currentMonth && d.getFullYear() === this.currentYear;
+      });
+    },
+
+    totalShifts()   { return this.monthlyShifts.length; },
+
+    morningShifts() {
+      return this.monthlyShifts.filter(s =>
+        (s.shiftType || '').toLowerCase() === 'morning'
+      ).length;
+    },
+
+    eveningShifts() {
+      return this.monthlyShifts.filter(s =>
+        (s.shiftType || '').toLowerCase() === 'evening'
+      ).length;
+    },
+
+    totalHours() {
+      const raw = this.monthlyShifts.reduce((acc, s) => {
+        if (s.startTime && s.endTime) {
+          return acc + (new Date(s.endTime) - new Date(s.startTime)) / 3_600_000;
+        }
+        return acc;
+      }, 0);
+      return raw % 1 === 0 ? raw : parseFloat(raw.toFixed(1));
+    },
+
+    // ── Calendar events (unchanged) ──
     calendarEvents() {
       const myEvents = this.shifts.map(shift => {
         const hasPending = this.isShiftPendingSwap(shift.id);
@@ -111,13 +205,12 @@ export default {
         });
       }
 
-      // Public Holiday handling
       const holidayEvents = this.publicHolidays.map(ph => {
         const isoDate = this.convertHolidayDate(ph.date, 2026);
         return {
           id: `ph-${isoDate}`,
           title: ph.holiday_name,
-          start: isoDate,  
+          start: isoDate,
           allDay: true,
           display: "block",
           classNames: ["holiday-block-event"],
@@ -168,33 +261,26 @@ export default {
       );
     },
 
-isShiftForbidden(myShift) {
-  if (!this.targetSwapShift) return false;
+    isShiftForbidden(myShift) {
+      if (!this.targetSwapShift) return false;
+      if (myShift.id === this.targetSwapShift.id) return true;
+      if (this.isShiftPendingSwap(myShift.id)) return true;
 
-  // same shift cannot swap
-  if (myShift.id === this.targetSwapShift.id) return true;
+      const myDate     = new Date(myShift.startTime).toDateString();
+      const targetDate = new Date(this.targetSwapShift.startTime).toDateString();
 
-  // pending swap block
-  if (this.isShiftPendingSwap(myShift.id)) return true;
+      const myConflict = this.colleagueShifts.some(s =>
+        new Date(s.startTime).toDateString() === myDate &&
+        s.id !== this.targetSwapShift.id
+      );
+      const targetConflict = this.shifts.some(s =>
+        new Date(s.startTime).toDateString() === targetDate &&
+        s.id !== myShift.id
+      );
 
-  const myDate = new Date(myShift.startTime).toDateString();
-  const targetDate = new Date(this.targetSwapShift.startTime).toDateString();
+      return myConflict || targetConflict;
+    },
 
-  // prevent double shift on SAME DAY ONLY
-  const myConflict = this.colleagueShifts.some(s =>
-    new Date(s.startTime).toDateString() === myDate &&
-    s.id !== this.targetSwapShift.id
-  );
-
-  const targetConflict = this.shifts.some(s =>
-    new Date(s.startTime).toDateString() === targetDate &&
-    s.id !== myShift.id
-  );
-
-  if (myConflict || targetConflict) return true;
-
-  return false;
-},
     refreshCalendarSource() {
       if (this.calendar) {
         this.calendar.removeAllEventSources();
@@ -238,18 +324,25 @@ isShiftForbidden(myShift) {
         height: "auto",
         events: this.calendarEvents,
 
+        // ── Update stat month whenever user navigates ──
+        datesSet: (info) => {
+          const d = info.view.currentStart;
+          self.currentMonth = d.getMonth();
+          self.currentYear  = d.getFullYear();
+        },
+
         dayCellClassNames(arg) {
           const classes   = [];
           const dayOfWeek = arg.date.getDay();
           if (dayOfWeek === 0 || dayOfWeek === 6) classes.push("fc-weekend-blocked");
 
-          const tzOffset = arg.date.getTimezoneOffset() * 60000;
+          const tzOffset  = arg.date.getTimezoneOffset() * 60000;
           const localDate = new Date(arg.date.getTime() - tzOffset);
           const cellDateStr = localDate.toISOString().slice(0, 10);
 
-          const isHoliday = self.publicHolidays.some(h => {
-            return self.convertHolidayDate(h.date, 2026) === cellDateStr;
-          });
+          const isHoliday = self.publicHolidays.some(h =>
+            self.convertHolidayDate(h.date, 2026) === cellDateStr
+          );
           if (isHoliday) classes.push("fc-day-has-holiday");
 
           return classes;
@@ -395,8 +488,8 @@ isShiftForbidden(myShift) {
   border: none !important;
   box-shadow: none !important;
   font-family: 'DM Sans', sans-serif !important;
-  font-size: 0.85rem !important;        
-  font-weight: 700 !important;            
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
   padding: 2px 6px !important;
   pointer-events: none !important;
   user-select: none !important;
@@ -406,8 +499,6 @@ isShiftForbidden(myShift) {
   text-overflow: ellipsis !important;
   width: 100% !important;
 }
-
-/* FIXED STRONGER OVERRIDE: Targets internal elements injected by FullCalendar to force the black color */
 .staff-calendar-render .holiday-block-event,
 .staff-calendar-render .holiday-block-event *,
 .staff-calendar-render .holiday-block-event .fc-event-main,
@@ -417,11 +508,66 @@ isShiftForbidden(myShift) {
 </style>
 
 <style scoped>
-.calendar-panel { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); overflow: hidden; position: relative; }
-.calendar-header-split { display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 12px; border-bottom: 1px solid #f8fafc; }
+.calendar-panel {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
+  position: relative;
+}
+.calendar-header-split {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 16px 12px; border-bottom: 1px solid #f8fafc;
+}
 .card-title { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
 .card-sub   { font-size: 12px; color: #94a3b8; }
 .calendar-body { padding: 12px; position: relative; }
+
+/* ── Stats Bar ── */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbff;
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  padding: 4px 8px;
+}
+.stat-divider {
+  width: 1px;
+  height: 28px;
+  background: #e2e8f0;
+  flex-shrink: 0;
+}
+.stat-icon {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.stat-icon--total   { background: #eef2ff; color: #6366f1; }
+.stat-icon--morning { background: #fffbeb; color: #d97706; }
+.stat-icon--evening { background: #f5f3ff; color: #7c3aed; }
+.stat-icon--hours   { background: #f0fdf4; color: #16a34a; }
+.stat-body { display: flex; flex-direction: column; gap: 1px; }
+.stat-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 1rem; font-weight: 700; color: #0f172a; line-height: 1;
+}
+.stat-unit {
+  font-size: 0.65rem; font-weight: 600; color: #94a3b8; margin-left: 1px;
+}
+.stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.56rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8;
+}
 
 .calendar-actions-right { display: flex; align-items: center; gap: 8px; }
 .btn-cancel-swap  { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; background: #ef4444; color: #ffffff; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
