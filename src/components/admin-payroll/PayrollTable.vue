@@ -19,7 +19,6 @@
           class="table-row"
           :style="`animation-delay:${idx * 45}ms`"
         >
-          <!-- Staff -->
           <td>
             <div class="staff-cell">
               <div class="avatar" :style="`background:${staff.avatarColor}`">{{ staff.initials }}</div>
@@ -30,16 +29,13 @@
             </div>
           </td>
 
-          <!-- Dept -->
           <td><span class="dept-badge">{{ staff.department }}</span></td>
 
-          <!-- Shifts -->
           <td>
             <span class="shift-num">{{ staff.completedShifts }}/{{ staff.totalShifts }}</span>
             <span class="shift-sub">completed</span>
           </td>
 
-          <!-- Hours -->
           <td>
             <div class="hours-cell">
               <span class="hours-val">{{ staff.hoursWorked }}h</span>
@@ -49,7 +45,6 @@
             </div>
           </td>
 
-          <!-- Attendance pills -->
           <td>
             <div class="pills">
               <span class="pill completed">{{ staff.attendance.completed }} ✓</span>
@@ -58,14 +53,12 @@
             </div>
           </td>
 
-          <!-- Status -->
           <td>
             <span class="status-badge" :class="staff.payrollStatus">
               <span class="dot" /><span>{{ labelMap[staff.payrollStatus] }}</span>
             </span>
           </td>
 
-          <!-- Actions -->
           <td>
             <div class="actions">
               <button
@@ -73,7 +66,11 @@
                 class="btn primary"
                 @click="$emit('generate', staff)"
               >Generate</button>
-              <button v-else class="btn ghost" @click="$emit('view', staff)">View</button>
+              
+              <button v-else class="btn ghost" @click="$emit('view', staff)">
+                View Payslip
+              </button>
+              
               <button class="btn icon" @click="$emit('view-log', staff)" title="Attendance Log">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -88,7 +85,6 @@
       </tbody>
     </table>
 
-    <!-- Empty -->
     <div v-if="staffList.length === 0" class="empty">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>

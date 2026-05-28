@@ -114,11 +114,12 @@
       </div>
     </main>
 
-    <ShiftAutoGenerateModal
-      :visible="showAutoGenModal"
-      @close="showAutoGenModal = false; fetchAll()"
-      @generated="onDraftGenerated"
-    />
+<ShiftAutoGenerateModal
+  :visible="showAutoGenModal"
+  :totalStaff="staffList.length"
+  @close="showAutoGenModal = false; fetchAll()"
+  @generated="onDraftGenerated"
+/>
 
     <ShiftDraftActionModal
       :visible="draftActionModal.visible"

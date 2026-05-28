@@ -2,18 +2,31 @@
   <div class="attendance-panel">
     <div class="panel-head">
       <span class="panel-title">ATTENDANCE LOG</span>
-      <span class="panel-date">{{ todayFormatted }}</span>
+      
+      <!-- Date Navigator with Left and Right Arrows -->
+      <div class="date-navigator">
+        <button class="nav-btn" @click="changeDate(-1)" title="Previous Day">←</button>
+        <span class="panel-date">{{ displayDateFormatted }}</span>
+        
+        <!-- Disabled attribute binds to the isToday computed check -->
+        <button 
+          class="nav-btn" 
+          @click="changeDate(1)" 
+          :disabled="isToday" 
+          title="Next Day"
+        >→</button>
+      </div>
     </div>
 
     <div class="attendance-list">
       <div
-        v-for="log in logs"
+        v-for="(log, index) in filteredLogs"
         :key="log.id"
         class="attendance-row"
         :class="'status-' + log.status.toLowerCase()"
         @click="$emit('select-log', log)"
       >
-        <span class="att-num">{{ logs.indexOf(log) + 1 }}</span>
+        <span class="att-num">{{ index + 1 }}</span>
         <div class="att-info">
           <span class="att-name">{{ log.staffName }}</span>
           <span class="att-shift">{{ log.shiftType }} — {{ formatShortDate(log.checkIn || log.shiftStart) }}</span>
@@ -25,14 +38,15 @@
         </div>
         <span class="att-badge" :class="'badge-' + log.status.toLowerCase()">{{ log.status }}</span>
       </div>
-      <div v-if="logs.length === 0" class="empty-state">
-        No logs match this filter.
+      
+      <div v-if="filteredLogs.length === 0" class="empty-state">
+        No logs for this date.
       </div>
     </div>
   </div>
 </template>
 
-<<script>
+<script>
 export default {
   name: 'ShiftAttendancePanel',
   props: {
@@ -40,13 +54,49 @@ export default {
   },
   emits: ['select-log'],
 
+  data() {
+    return {
+      currentDate: new Date(),
+    };
+  },
+
   computed: {
-    todayFormatted() {
-      return new Date().toLocaleDateString('en-MY', { weekday: 'long', month: 'long', day: 'numeric' });
+    displayDateFormatted() {
+      return this.currentDate.toLocaleDateString('en-MY', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric',
+        year: 'numeric'
+      });
     },
+
+    // Checks if the active navigated date is equal to or greater than today's physical date
+    isToday() {
+      const today = new Date();
+      return this.currentDate.toDateString() === today.toDateString();
+    },
+
+    filteredLogs() {
+      const selectedDateString = this.currentDate.toDateString();
+      
+      return this.logs.filter(log => {
+        const targetDateSource = log.checkIn || log.shiftStart || log.date;
+        if (!targetDateSource) return false;
+        
+        return new Date(targetDateSource).toDateString() === selectedDateString;
+      });
+    }
   },
 
   methods: {
+    changeDate(days) {
+      // Direct guard fallback just in case the button bypasses UI blocks
+      if (days > 0 && this.isToday) return;
+
+      const newDate = new Date(this.currentDate);
+      newDate.setDate(newDate.getDate() + days);
+      this.currentDate = newDate;
+    },
     formatTime(val) {
       if (!val) return '—';
       return new Date(val).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
@@ -80,12 +130,45 @@ export default {
   color: #94a3b8;
   font-weight: 600;
 }
+
+.date-navigator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-btn {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  transition: all 0.15s ease;
+}
+.nav-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* Style treatment for locked / disabled buttons */
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
 .panel-date {
   font-family: 'DM Sans', sans-serif;
   font-size: 0.75rem;
   color: #64748b;
   font-weight: 500;
+  min-width: 140px; 
+  text-align: center;
 }
+
 .attendance-list {
   max-height: 635px;
   overflow-y: auto;

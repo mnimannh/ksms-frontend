@@ -4,7 +4,6 @@
 
     <main class="dashboard">
 
-      <!-- Top bar -->
       <div class="topbar">
         <div>
           <span class="eyebrow">ADMINISTRATION</span>
@@ -36,7 +35,6 @@
         </div>
       </div>
 
-      <!-- Summary strip -->
       <div class="kpi-strip">
         <div class="kpi-card">
           <span class="kpi-label">Total Staff</span>
@@ -60,7 +58,6 @@
         </div>
       </div>
 
-      <!-- Early-generation warning -->
       <div v-if="!canGenerate" class="early-warning">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <div>
@@ -70,7 +67,6 @@
         </div>
       </div>
 
-      <!-- Search -->
       <div class="search-row">
         <div class="search-wrap">
           <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -87,7 +83,6 @@
         </div>
       </div>
 
-      <!-- Table -->
       <div class="table-card">
         <div v-if="loading" class="loading-state">
           <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5">
@@ -141,6 +136,7 @@
                       </svg>
                       Attendance
                     </button>
+                    
                     <button
                       v-if="!s.isCreated && s.hourlyRate"
                       class="btn-gen"
@@ -152,11 +148,13 @@
                       </svg>
                       {{ generatingId === s.userID ? 'Generating…' : 'Generate' }}
                     </button>
+                    
                     <span v-else-if="!s.hourlyRate" class="no-rate-hint">Set rate first</span>
-                    <span v-else class="done-mark">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      Done
-                    </span>
+                    
+                    <button v-else class="btn-att" @click="viewPayslip(s)">
+                      View Payslip
+                    </button>
+                    
                   </div>
                 </td>
               </tr>
@@ -168,7 +166,6 @@
         </template>
       </div>
 
-      <!-- Attendance modal -->
       <AttendanceLogModal
         :show="attModal.show"
         :logs="attModal.logs"
@@ -179,7 +176,12 @@
         @close="attModal.show = false"
       />
 
-      <!-- Toast -->
+      <PayslipModal
+        :show="payslipModal.show"
+        :payslip="payslipModal.data"
+        @close="payslipModal.show = false"
+      />
+
       <Transition name="toast-fade">
         <div v-if="toast.show" class="toast" :class="toast.type">
           <svg v-if="toast.type === 'success'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -196,6 +198,7 @@
 import axios from 'axios';
 import AdminSidebar from '@/components/sidebar/AdminSidebar.vue';
 import AttendanceLogModal from '@/components/staff-payroll/AttendanceLogModal.vue';
+import PayslipModal from '@/components/admin-payroll/PayslipModal.vue'; // IMPORT ADDED
 import API_BASE_URL from '@/services/api';
 
 const AVATAR_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6'];
@@ -218,7 +221,7 @@ const FILTERS = [
 
 export default {
   name: 'AdminPayroll',
-  components: { AdminSidebar, AttendanceLogModal },
+  components: { AdminSidebar, AttendanceLogModal, PayslipModal },
 
   data() {
     const now = new Date();
@@ -244,6 +247,7 @@ export default {
 
       toast: { show: false, message: '', type: 'success' },
       attModal: { show: false, logs: [], staffName: '', monthLabel: '', hourlyRate: 0 },
+      payslipModal: { show: false, data: {} }, // STATE ADDED
     };
   },
 
@@ -370,7 +374,6 @@ export default {
 
     async openAttendance(s) {
       const monthLabel = (this.MONTHS.find(m => m.value === this.selectedMonth)?.label || '') + ' ' + this.selectedYear;
-      // ✅ FIX: include hourlyRate so the modal can calculate per-row pay
       this.attModal = {
         show: true,
         logs: [],
@@ -384,6 +387,34 @@ export default {
       } catch (err) {
         this.showToast('Failed to load attendance.', 'error');
       }
+    },
+
+    // NEW METHOD FOR PAYSLIP
+    viewPayslip(staff) {
+      const now = new Date();
+      this.payslipModal.data = {
+        payslipNo: `PS-${this.selectedYear}-${this.selectedMonth}-${staff.userID}`,
+        monthLabel: this.selectedMonthLabel + ' ' + this.selectedYear,
+        generatedDate: now.toLocaleDateString('en-MY'),
+        paymentDate: staff.isReceived ? now.toLocaleDateString('en-MY') : 'Pending',
+        
+        staffName: staff.fullName,
+        studentID: staff.userID,
+        role: 'Coop Assistant',
+        className: staff.department || 'N/A',
+        
+        hourlyRate: staff.hourlyRate,
+        hoursWorked: staff.hoursWorked,
+        completedShifts: staff.completedShifts || 0,
+        
+        allowance: 0,
+        deductions: 0,
+        
+        status: staff.isReceived ? 'Paid' : 'Pending',
+        paymentMethod: 'Cash'
+      };
+      
+      this.payslipModal.show = true;
     },
 
     showToast(message, type = 'success') {
@@ -550,10 +581,6 @@ export default {
 .btn-gen:hover:not(:disabled) { background: #6366f1; color: #fff; border-color: #6366f1; }
 .btn-gen:disabled { opacity: .5; cursor: not-allowed; }
 
-.done-mark {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12.5px; font-weight: 600; color: #15803d;
-}
 .no-rate { color: #cbd5e1; font-size: 12.5px; }
 .no-rate-hint { font-size: 11.5px; color: #94a3b8; font-style: italic; }
 

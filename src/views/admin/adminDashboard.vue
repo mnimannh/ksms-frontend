@@ -198,7 +198,7 @@
 </template>
 
 <script>
-import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
+import AdminSidebar from '@/components/sidebar/adminSidebar.vue'
 import {
   Chart, LineController, LineElement, PointElement, LinearScale,
   CategoryScale, Filler, Tooltip, DoughnutController, ArcElement, Legend,

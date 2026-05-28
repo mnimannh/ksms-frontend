@@ -3,6 +3,22 @@
     <div class="panel-head">
       <span class="panel-title">ALL ASSIGNED SHIFTS</span>
       <div class="head-controls">
+
+        <!-- NEW: Month Navigation -->
+        <div class="month-nav">
+          <button class="month-btn" @click="prevMonth" title="Previous Month">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <span class="month-label">{{ displayMonthYear }}</span>
+          <button class="month-btn" @click="nextMonth" title="Next Month">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+
         <label class="date-pill" :class="{ active: dateFilter }">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -131,7 +147,7 @@
             </td>
           </tr>
           <tr v-if="filteredRows.length === 0">
-            <td colspan="11" class="empty-td">No shifts found.</td>
+            <td colspan="11" class="empty-td">No shifts found for this month/filter.</td>
           </tr>
         </tbody>
       </table>
@@ -218,6 +234,7 @@ export default {
   },
   emits: ['update:searchQuery', 'edit-shift', 'view-log', 'delete-shift'],
   data() {
+    const today = new Date();
     return {
       confirmDialog: { show: false, shiftId: null },
       dateFilter: '',
@@ -225,35 +242,59 @@ export default {
       isDropdownOpen: false,
       currentPage: 1,
       itemsPerPage: 10,
+      
+      // Initialize with current month and year
+      selectedMonth: today.getMonth(),
+      selectedYear: today.getFullYear(),
     };
   },
   watch: {
-    dateFilter() {
+    dateFilter(newVal) {
       this.currentPage = 1;
+      // Automatically jump to the month of the selected date
+      if (newVal) {
+        const d = new Date(newVal);
+        this.selectedMonth = d.getMonth();
+        this.selectedYear = d.getFullYear();
+      }
     },
     userFilter() {
       this.currentPage = 1;
     }
   },
   computed: {
+    displayMonthYear() {
+      const d = new Date(this.selectedYear, this.selectedMonth, 1);
+      return d.toLocaleDateString('en-MY', { month: 'short', year: 'numeric' });
+    },
     uniqueStaff() {
       const staffSet = new Set(this.rows.map(row => row.staffName).filter(Boolean));
       return Array.from(staffSet).sort();
     },
     filteredRows() {
       return this.rows.filter(row => {
-        let matchesDate = true;
-        if (this.dateFilter) {
-          const rowDate = row.startTime ? row.startTime.slice(0, 10) : '';
-          matchesDate = rowDate === this.dateFilter;
+        // 1. Month and Year check
+        let matchesMonth = true;
+        if (row.startTime) {
+          const rowDate = new Date(row.startTime);
+          matchesMonth = rowDate.getMonth() === this.selectedMonth && 
+                         rowDate.getFullYear() === this.selectedYear;
         }
 
+        // 2. Specific Date Filter
+        let matchesDate = true;
+        if (this.dateFilter) {
+          const rowDateStr = row.startTime ? row.startTime.slice(0, 10) : '';
+          matchesDate = rowDateStr === this.dateFilter;
+        }
+
+        // 3. User Filter
         let matchesUser = true;
         if (this.userFilter) {
           matchesUser = row.staffName === this.userFilter;
         }
 
-        return matchesDate && matchesUser;
+        return matchesMonth && matchesDate && matchesUser;
       });
     },
     totalPages() {
@@ -280,6 +321,24 @@ export default {
     document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
+    prevMonth() {
+      if (this.selectedMonth === 0) {
+        this.selectedMonth = 11;
+        this.selectedYear--;
+      } else {
+        this.selectedMonth--;
+      }
+      this.currentPage = 1;
+    },
+    nextMonth() {
+      if (this.selectedMonth === 11) {
+        this.selectedMonth = 0;
+        this.selectedYear++;
+      } else {
+        this.selectedMonth++;
+      }
+      this.currentPage = 1;
+    },
     selectUser(user) {
       this.userFilter = user;
       this.isDropdownOpen = false;
@@ -349,6 +408,43 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* ── NEW: Month Navigation Styles ── */
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.month-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.month-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.month-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  min-width: 76px;
+  text-align: center;
+  user-select: none;
 }
 
 /* ── Date and Dropdown pill styles ── */
@@ -421,7 +517,7 @@ export default {
 }
 .date-clear:hover { background: #a5b4fc; }
 
-/* ── NEW CUSTOM DROPDOWN UI STYLES ── */
+/* ── CUSTOM DROPDOWN UI STYLES ── */
 .dropdown-wrapper {
   position: relative;
   display: inline-block;
