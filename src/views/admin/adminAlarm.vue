@@ -266,7 +266,7 @@
 
 <script>
 import API_BASE_URL from "@/services/api";
-import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
+import AdminSidebar       from '@/components/sidebar/adminSidebar.vue'
 import axios from 'axios'
 import { Doughnut, Bar } from 'vue-chartjs'
 import {
