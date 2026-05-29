@@ -148,12 +148,15 @@
 <script>
 import axios from 'axios'
 
+const API_BASE_URL = import.meta.env.VITE_API_URL
+
 export default {
   name: 'UserModal',
   props: {
     visible: { type: Boolean, default: false },
-    user:    { type: Object,  default: null  }
+    user: { type: Object, default: null }
   },
+
   data() {
     return {
       form: {
@@ -163,8 +166,10 @@ export default {
         status: 'active',
         rfidUid: '',
       },
+
       loading: false,
       rfidScanMode: false,
+
       confirmDialog: {
         show: false,
         message: '',
@@ -172,9 +177,11 @@ export default {
       },
     }
   },
+
   watch: {
     user: {
       immediate: true,
+
       handler(val) {
         if (val) {
           this.form = {
@@ -193,9 +200,11 @@ export default {
             rfidUid: '',
           }
         }
+
         this.rfidScanMode = false
       }
     },
+
     'form.role'(val) {
       if (val !== 'staff') {
         this.form.rfidUid = ''
@@ -203,12 +212,16 @@ export default {
       }
     }
   },
+
   methods: {
-    // ── Confirm dialog ──────────────────────────────────────────────────
+    // ─────────────────────────────────────────────
+    // Confirm dialog
+    // ─────────────────────────────────────────────
     showConfirm(message, onConfirm) {
       this.confirmDialog = {
         show: true,
         message,
+
         onConfirm: () => {
           this.confirmDialog.show = false
           onConfirm()
@@ -218,11 +231,17 @@ export default {
 
     requestStatusChange(newStatus) {
       if (newStatus === this.form.status) return
+
       if (this.user) {
-        const label = newStatus === 'active' ? 'activate' : 'deactivate'
+        const label = newStatus === 'active'
+          ? 'activate'
+          : 'deactivate'
+
         this.showConfirm(
           `Are you sure you want to ${label} ${this.user.fullName}?`,
-          () => { this.form.status = newStatus }
+          () => {
+            this.form.status = newStatus
+          }
         )
       } else {
         this.form.status = newStatus
@@ -233,51 +252,56 @@ export default {
       const msg = this.form.rfidUid
         ? 'An RFID UID already exists. Are you sure you want to overwrite it by scanning?'
         : 'Are you sure you want to scan an RFID card?'
+
       this.showConfirm(msg, () => this.toggleRfidScan())
     },
 
-    // ── RFID scan ───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────
+    // RFID
+    // ─────────────────────────────────────────────
     toggleRfidScan() {
       this.rfidScanMode = !this.rfidScanMode
+
       if (this.rfidScanMode) {
         this.form.rfidUid = ''
-        this.$nextTick(() => this.$refs.rfidInput?.focus())
+
+        this.$nextTick(() => {
+          this.$refs.rfidInput?.focus()
+        })
       }
     },
 
-onRfidInput(e) {
-  let raw = e.target.value.trim();
-  if (!raw) return;
+    onRfidInput(e) {
+      let raw = e.target.value.trim()
 
-  let hex = '';
+      if (!raw) return
 
-  // 1. If the input is purely numeric and long (Decimal mode)
-  if (/^\d{5,}$/.test(raw)) {
-    try {
-      // Use BigInt to handle numbers larger than 16 digits safely
-      // and convert to Hexadecimal
-      hex = BigInt(raw).toString(16).toUpperCase();
-    } catch (err) {
-      hex = raw; 
-    }
-  } else {
-    // 2. If it contains letters, treat it as direct Hex input
-    hex = raw.toUpperCase().replace(/[^0-9A-F]/g, '');
-  }
+      let hex = ''
 
-  // 3. Formatting to 8 characters
-  // If the result is '2B6494C', it pads to '02B6494C'
-  // If the reader sends a 10-digit hex, it takes the last 8
-  if (hex.length > 8) {
-    hex = hex.slice(-8);
-  } else {
-    hex = hex.padStart(8, '0');
-  }
+      // Decimal → Hex
+      if (/^\d{5,}$/.test(raw)) {
+        try {
+          hex = BigInt(raw).toString(16).toUpperCase()
+        } catch (err) {
+          hex = raw
+        }
+      } else {
+        // Already hex
+        hex = raw
+          .toUpperCase()
+          .replace(/[^0-9A-F]/g, '')
+      }
 
-  // 4. Update the form and the input display
-  this.form.rfidUid = hex;
-  e.target.value = hex;
-},
+      // Format to 8 chars
+      if (hex.length > 8) {
+        hex = hex.slice(-8)
+      } else {
+        hex = hex.padStart(8, '0')
+      }
+
+      this.form.rfidUid = hex
+      e.target.value = hex
+    },
 
     onRfidEnter() {
       if (this.rfidScanMode) {
@@ -285,32 +309,69 @@ onRfidInput(e) {
       }
     },
 
-    // ── Form submit ─────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────
+    // Modal
+    // ─────────────────────────────────────────────
     closeModal() {
       this.rfidScanMode = false
       this.$emit('close')
     },
 
+    // ─────────────────────────────────────────────
+    // Submit Form
+    // ─────────────────────────────────────────────
     async submitForm() {
       this.loading = true
+
       try {
         const payload = { ...this.form }
-        if (payload.role !== 'staff') delete payload.rfidUid
 
+        if (payload.role !== 'staff') {
+          delete payload.rfidUid
+        }
+
+        // UPDATE USER
         if (this.user) {
-          await axios.put(`http://localhost:3000/api/users/${this.user.id}`, payload)
-          this.$emit('save', { isEdit: true, message: `${this.form.fullName} updated successfully.` })
+
+          await axios.put(
+            `${API_BASE_URL}/api/users/${this.user.id}`,
+            payload
+          )
+
+          this.$emit('save', {
+            isEdit: true,
+            message: `${this.form.fullName} updated successfully.`
+          })
+
         } else {
-          await axios.post('http://localhost:3000/api/users', payload)
-          this.$emit('save', { isEdit: false, message: `${this.form.fullName} created. Temporary password sent to ${this.form.email}.` })
+
+          // CREATE USER
+          await axios.post(
+            `${API_BASE_URL}/api/users`,
+            payload
+          )
+
+          this.$emit('save', {
+            isEdit: false,
+            message: `${this.form.fullName} created. Temporary password sent to ${this.form.email}.`
+          })
         }
 
         this.closeModal()
+
       } catch (err) {
         console.error('Error saving user:', err)
-        const msg = err.response?.data?.message || 'Failed to save user. Please try again.'
-        this.$emit('error', { message: msg })
+
+        const msg =
+          err.response?.data?.message ||
+          'Failed to save user. Please try again.'
+
+        this.$emit('error', {
+          message: msg
+        })
+
         this.closeModal()
+
       } finally {
         this.loading = false
       }
