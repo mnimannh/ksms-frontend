@@ -145,7 +145,7 @@
 import axios from "axios";
 import API_BASE_URL from "@/services/api";
 
-import AdminSidebar       from '@/components/sidebar/AdminSidebar.vue'
+import AdminSidebar       from '@/components/sidebar/adminSidebar.vue'
 import CategoryPanel      from '@/components/admin-inventory/CategoryPanel.vue'
 import InventoryPanel     from '@/components/admin-inventory/InventoryPanel.vue'
 import VariantTable       from '@/components/admin-inventory/VariantTable.vue'
