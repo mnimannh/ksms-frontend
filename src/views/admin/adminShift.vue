@@ -214,7 +214,7 @@
 
 <script>
 import AdminSidebar       from '@/components/sidebar/adminSidebar.vue'
-import ShiftKpiStrip             from '@/components/admin-shift/ShiftKpiStrip.vue';
+import ShiftKpiStrip             from '@/components/admin-shift/ShiftKPIStrip.vue';
 import ShiftCalendarPanel        from '@/components/admin-shift/ShiftCalendarPanel.vue';
 import ShiftAttendancePanel      from '@/components/admin-shift/ShiftAttendancePanel.vue';
 import ShiftTable                from '@/components/admin-shift/ShiftTable.vue';
