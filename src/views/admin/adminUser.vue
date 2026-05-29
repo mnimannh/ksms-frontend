@@ -226,7 +226,7 @@
 
 <script>
 import API_BASE_URL from "@/services/api";
-import AdminSidebar from '@/components/sidebar/AdminSidebar.vue'
+import AdminSidebar       from '@/components/sidebar/adminSidebar.vue'
 import UserModal from '@/components/admin-user/UserModal.vue'
 import RateModal from '@/components/admin-user/RateModal.vue'
 import BulkRateModal from '@/components/admin-user/BulkRateModal.vue'

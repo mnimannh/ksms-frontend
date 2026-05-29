@@ -213,7 +213,7 @@
 </template>
 
 <script>
-import AdminSidebar              from '@/components/sidebar/AdminSidebar.vue';
+import AdminSidebar       from '@/components/sidebar/adminSidebar.vue'
 import ShiftKpiStrip             from '@/components/admin-shift/ShiftKpiStrip.vue';
 import ShiftCalendarPanel        from '@/components/admin-shift/ShiftCalendarPanel.vue';
 import ShiftAttendancePanel      from '@/components/admin-shift/ShiftAttendancePanel.vue';

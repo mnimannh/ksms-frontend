@@ -196,7 +196,7 @@
 
 <script>
 import axios from 'axios';
-import AdminSidebar from '@/components/sidebar/AdminSidebar.vue';
+import AdminSidebar       from '@/components/sidebar/adminSidebar.vue'
 import AttendanceLogModal from '@/components/staff-payroll/AttendanceLogModal.vue';
 import PayslipModal from '@/components/admin-payroll/PayslipModal.vue'; // IMPORT ADDED
 import API_BASE_URL from '@/services/api';

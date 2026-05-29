@@ -111,7 +111,7 @@
 <script>
 import axios from 'axios'
 import API_BASE_URL from '@/services/api'
-import AdminSidebar           from '@/components/sidebar/AdminSidebar.vue'
+import AdminSidebar       from '@/components/sidebar/adminSidebar.vue'
 import ShiftReportToolbar     from '@/components/admin-shiftpayrollreport/ShiftReportToolbar.vue'
 import ShiftReportSummary     from '@/components/admin-shiftpayrollreport/ShiftReportSummary.vue'
 import ReportStaffTable       from '@/components/admin-shiftpayrollreport/ReportStaffTable.vue'

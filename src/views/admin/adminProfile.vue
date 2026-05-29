@@ -228,7 +228,7 @@
 </template>
 
 <script>
-import AdminSidebar from '@/components/sidebar/AdminSidebar.vue';
+import AdminSidebar       from '@/components/sidebar/adminSidebar.vue'
 import axios from 'axios';
 import API_BASE_URL from '@/services/api';
 
