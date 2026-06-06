@@ -258,7 +258,7 @@ export default {
         localStorage.setItem('userName', data.fullName || '')
         localStorage.setItem('userRole', data.role || '')
         const role = (data.role || '').toLowerCase()
-        this.$router.push(role === 'admin' ? '/admin/dashboard' : '/staff/dashboard')
+        this.$router.push(role === 'admin' ? '/admin/inventory' : '/staff/pos')
       } catch (err) {
         this.loginError = err.message || 'Something went wrong. Please try again.'
       } finally {
