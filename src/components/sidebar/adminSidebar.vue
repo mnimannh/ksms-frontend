@@ -139,6 +139,11 @@ export default {
           badge: null
         },
         {
+          name: "Load Cells", path: "/admin/load-cells",
+          icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="5" width="14" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="5" x2="8" y2="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="5" x2="5" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="5" x2="11" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+          badge: null
+        },
+        {
           name: "Inventory Report", path: "/admin/inventoryreport",
           icon: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
           badge: null

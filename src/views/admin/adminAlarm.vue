@@ -28,7 +28,7 @@
           </div>
         </div>
         <div class="summary-card">
-          <div class="summary-icon" style="background:#eef2ff; color:#6366f1">
+          <div class="summary-icon" style="background:#eef2ff; color:#0f172a">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
           <div>
@@ -77,7 +77,7 @@
               </div>
               <div class="an-stat-sep"></div>
               <div class="an-stat">
-                <p class="an-stat-val" style="color:#6366f1">{{ stockStats.avgDeficit }}</p>
+                <p class="an-stat-val" style="color:#0f172a">{{ stockStats.avgDeficit }}</p>
                 <p class="an-stat-lbl">Avg unit deficit</p>
               </div>
               <div class="an-stat-sep"></div>
@@ -159,7 +159,7 @@
 
           <div class="an-section">
             <div class="an-section-head">
-              <span class="an-section-pip" style="background:#6366f1"></span>
+              <span class="an-section-pip" style="background:#0f172a"></span>
               <p class="an-section-title">Operational Insights Engine</p>
             </div>
 
@@ -239,7 +239,7 @@
                           <span class="cat-rank-count">{{ cat.count }} insight{{ cat.count !== 1 ? 's' : '' }}</span>
                         </div>
                         <div class="cat-track">
-                          <div class="cat-fill" :style="`width:${cat.pct}%; background:${idx === 0 ? '#6366f1' : idx === 1 ? '#8b5cf6' : '#a78bfa'}`"></div>
+                          <div class="cat-fill" :style="`width:${cat.pct}%; background:${idx === 0 ? '#0f172a' : idx === 1 ? '#8b5cf6' : '#a78bfa'}`"></div>
                         </div>
                       </div>
                     </div>
@@ -391,7 +391,7 @@ export default {
           id, count,
           label: RULE_META[id]?.label ?? id,
           icon:  RULE_META[id]?.icon  ?? '•',
-          color: COLORS[id] ?? '#6366f1',
+          color: COLORS[id] ?? '#0f172a',
           pct:   Math.round((count / max) * 100),
         }))
     },
@@ -485,7 +485,7 @@ export default {
 .topbar { display: flex; flex-direction: column; gap: 10px; }
 .topbar-date  { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
 .topbar-title { font-size: 22px; font-weight: 600; letter-spacing: -.025em; color: #0f172a; }
-.topbar-title .accent { color: #6366f1; }
+.topbar-title .accent { color: #0f172a; }
 .topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
 .live-dot {
@@ -646,10 +646,10 @@ export default {
 .rs-units { font-size: 11.5px; color: #64748b; font-family: 'DM Mono', monospace; }
 .rs-view-btn {
   font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 600;
-  color: #6366f1; background: none; border: none; cursor: pointer;
+  color: #0f172a; background: none; border: none; cursor: pointer;
   padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0; transition: background .15s;
 }
-.rs-view-btn:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+.rs-view-btn:hover { background: #0f172a; color: #fff; border-color: #0f172a; }
 .done-check-small { font-size: 11px; font-weight: 600; color: #16a34a; background: #f0fdf4; padding: 2px 6px; border-radius: 4px; }
 
 /* ── Critical Unread Insight Callout ── */

@@ -77,46 +77,45 @@ export default {
 </script>
 
 <style scoped>
-
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 0;
+  padding: 16px 20px 0;
 }
-.modal-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+.modal-title { font-size: 15px; font-weight: 600; color: #0f172a; }
 .modal-close {
-  width: 30px; height: 30px; border-radius: 7px; border: none;
+  width: 28px; height: 28px; border-radius: 6px; border: none;
   background: #f1f5f9; color: #64748b; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: background .15s;
+  transition: all .12s;
 }
-.modal-close:hover { background: #e2e8f0; }
-.modal-body   { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal-close:hover { background: #e2e8f0; color: #0f172a; }
+.modal-body   { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .modal-footer {
-  padding: 16px 24px; border-top: 1px solid #f1f5f9;
+  padding: 14px 20px; border-top: 1px solid #f1f5f9;
   display: flex; justify-content: flex-end; gap: 8px;
 }
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field-label { font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
-.req { color: #ef4444; }
+.field-label { font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
+.req { color: #dc2626; }
 .field-input {
-  padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
-  font-size: 14px; font-family: 'DM Sans', sans-serif; color: #1e293b;
-  outline: none; transition: border-color .15s; background: #fff;
+  padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;
+  font-size: 13px; font-family: 'Inter', sans-serif; color: #334155;
+  outline: none; transition: border-color .12s; background: #ffffff;
 }
-.field-input:focus { border-color: #6366f1; }
+.field-input:focus { border-color: #0f172a; }
 .field-textarea { resize: vertical; min-height: 80px; }
-.field-error { font-size: 12px; color: #ef4444; }
+.field-error { font-size: 11.5px; color: #dc2626; }
 .btn-ghost {
-  padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 8px;
-  background: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif;
-  font-weight: 500; color: #64748b; cursor: pointer; transition: all .15s;
+  padding: 8px 16px; border: 1px solid #fecaca; border-radius: 6px;
+  background: #ffffff; font-size: 13px; font-family: 'Inter', sans-serif;
+  font-weight: 500; color: #dc2626; cursor: pointer; transition: all .12s;
 }
-.btn-ghost:hover { background: #f8fafc; }
+.btn-ghost:hover { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
 .btn-primary {
-  padding: 8px 18px; border: none; border-radius: 8px;
-  background: #6366f1; color: #fff;
-  font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600;
-  cursor: pointer; transition: background .15s;
+  padding: 8px 18px; border: none; border-radius: 6px;
+  background: #16a34a; color: #ffffff;
+  font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
+  cursor: pointer; transition: background .12s;
 }
-.btn-primary:hover { background: #4f46e5; }
+.btn-primary:hover { background: #15803d; }
 </style>

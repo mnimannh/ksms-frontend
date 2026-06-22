@@ -85,7 +85,7 @@
 
       <div class="table-card">
         <div v-if="loading" class="loading-state">
-          <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5">
+          <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
           </svg>
           <span>Loading payroll data…</span>
@@ -201,7 +201,7 @@ import AttendanceLogModal from '@/components/staff-payroll/AttendanceLogModal.vu
 import PayslipModal from '@/components/admin-payroll/PayslipModal.vue'; // IMPORT ADDED
 import API_BASE_URL from '@/services/api';
 
-const AVATAR_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6'];
+const AVATAR_COLORS = ['#0f172a','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6'];
 
 const MONTHS = [
   { value: '01', label: 'January' }, { value: '02', label: 'February' },
@@ -457,7 +457,7 @@ export default {
   font-size: 22px; font-weight: 700;
   color: #0f172a; letter-spacing: -.025em; margin-bottom: 4px;
 }
-.accent { color: #6366f1; }
+.accent { color: #0f172a; }
 .page-sub { font-size: 13px; color: #64748b; }
 
 .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -468,11 +468,11 @@ export default {
   font-family: 'DM Sans', sans-serif; font-size: 13px; color: #374151;
   cursor: pointer; outline: none; transition: border-color .15s;
 }
-.sel:focus { border-color: #6366f1; }
+.sel:focus { border-color: #0f172a; }
 
 .btn-generate-all {
   display: flex; align-items: center; gap: 7px;
-  background: #6366f1; color: #fff; border: none;
+  background: #0f172a; color: #fff; border: none;
   border-radius: 9px; padding: 9px 14px;
   font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: background .15s, transform .1s;
@@ -494,7 +494,7 @@ export default {
 .kpi-label { font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; }
 .kpi-val { font-size: 20px; font-weight: 700; color: #0f172a; font-family: 'DM Mono', monospace; }
 .kpi-val.amber  { color: #b45309; }
-.kpi-val.indigo { color: #6366f1; }
+.kpi-val.indigo { color: #0f172a; }
 .kpi-val.green  { color: #15803d; }
 
 /* Search / filter — stacked on mobile */
@@ -507,7 +507,7 @@ export default {
   font-family: 'DM Sans', sans-serif; font-size: 13px; color: #0f172a;
   background: #fff; outline: none; transition: border-color .15s;
 }
-.search-input:focus { border-color: #6366f1; }
+.search-input:focus { border-color: #0f172a; }
 .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .filter-tab {
   padding: 7px 12px; border-radius: 8px;
@@ -515,7 +515,7 @@ export default {
   font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500;
   color: #64748b; cursor: pointer; transition: all .15s;
 }
-.filter-tab.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+.filter-tab.active { background: #0f172a; border-color: #0f172a; color: #fff; }
 
 /* Early warning banner */
 .early-warning {
@@ -578,7 +578,7 @@ export default {
   font-size: 12px; font-weight: 600; cursor: pointer;
   transition: all .15s;
 }
-.btn-gen:hover:not(:disabled) { background: #6366f1; color: #fff; border-color: #6366f1; }
+.btn-gen:hover:not(:disabled) { background: #0f172a; color: #fff; border-color: #0f172a; }
 .btn-gen:disabled { opacity: .5; cursor: not-allowed; }
 
 .no-rate { color: #cbd5e1; font-size: 12.5px; }

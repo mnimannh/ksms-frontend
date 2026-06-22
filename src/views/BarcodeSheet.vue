@@ -210,7 +210,7 @@ export default {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 </style>
 
 <style scoped>
@@ -218,8 +218,8 @@ export default {
 
 .barcode-page {
   min-height: 100vh;
-  background: #eef0f5;
-  font-family: 'DM Sans', sans-serif;
+  background: #f8fafc;
+  font-family: 'Inter', sans-serif;
 }
 
 /* ── Loading / Error ── */
@@ -228,10 +228,10 @@ export default {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; color: #64748b; font-size: 14px;
 }
-.state-screen.error { color: #ef4444; }
+.state-screen.error { color: #dc2626; }
 .spinner {
   width: 32px; height: 32px; border-radius: 50%;
-  border: 3px solid #e2e8f0; border-top-color: #6366f1;
+  border: 3px solid #e2e8f0; border-top-color: #0f172a;
   animation: spin .7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -240,61 +240,63 @@ export default {
 .toolbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 32px;
-  background: #fff; border-bottom: 1px solid #f1f5f9;
+  background: #ffffff; border-bottom: 1px solid #e2e8f0;
   flex-wrap: wrap; gap: 12px;
   position: sticky; top: 0; z-index: 10;
-  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  box-shadow: 0 1px 2px rgba(0,0,0,.02);
 }
 .toolbar-left  { display: flex; align-items: center; gap: 16px; }
 .toolbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
 .btn-back {
   display: flex; align-items: center; gap: 5px;
-  padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
-  background: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif;
-  font-weight: 500; color: #475569; cursor: pointer; transition: all .15s;
+  padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 6px;
+  background: #ffffff; font-size: 13px; font-family: 'Inter', sans-serif;
+  font-weight: 500; color: #475569; cursor: pointer; transition: all .12s;
 }
-.btn-back:hover { border-color: #6366f1; color: #6366f1; }
+.btn-back:hover { border-color: #0f172a; color: #0f172a; background: #f8fafc; }
 
-.tb-title { font-size: 15px; font-weight: 700; color: #0f172a; }
-.tb-sub   { font-size: 12px; color: #94a3b8; margin-top: 1px; }
+.tb-title { font-size: 15px; font-weight: 600; color: #0f172a; }
+.tb-sub   { font-size: 12px; color: #64748b; margin-top: 1px; }
 
 .size-tabs {
-  display: flex; background: #f8fafc;
-  border: 1px solid #e2e8f0; border-radius: 10px;
-  padding: 3px; gap: 2px;
+  display: flex; background: #f1f5f9;
+  border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 2px; gap: 2px;
 }
 .size-btn {
   display: flex; flex-direction: column; align-items: center;
-  padding: 7px 16px; border: none; border-radius: 7px;
-  background: transparent; font-family: 'DM Sans', sans-serif;
-  font-size: 13px; font-weight: 500; color: #64748b;
-  cursor: pointer; transition: all .15s; line-height: 1.3;
+  padding: 6px 14px; border: none; border-radius: 4px;
+  background: transparent; font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 500; color: #64748b;
+  cursor: pointer; transition: all .12s; line-height: 1.3;
 }
 .size-btn.active {
-  background: #fff; color: #6366f1; font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  background: #ffffff; color: #0f172a; font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
 }
-.size-btn:not(.active):hover { color: #334155; }
-.size-dim   { font-size: 10px; font-weight: 500; color: #a5b4fc; margin-top: 1px; }
-.size-count { font-size: 10.5px; font-weight: 500; color: #94a3b8; }
-.size-btn.active .size-count { color: #6366f1; }
+.size-btn:not(.active):hover { color: #0f172a; }
+.size-dim   { font-size: 9.5px; font-weight: 500; color: #94a3b8; margin-top: 1px; }
+.size-count { font-size: 10px; font-weight: 500; color: #94a3b8; }
+.size-btn.active .size-count { color: #0f172a; }
+.size-btn.active .size-dim { color: #475569; }
 
 .btn-print {
   display: flex; align-items: center; gap: 7px;
-  padding: 9px 18px; border: none; border-radius: 8px;
-  background: #6366f1; color: #fff;
-  font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600;
-  cursor: pointer; transition: background .15s;
+  padding: 8px 16px; border: none; border-radius: 6px;
+  background: #0f172a; color: #ffffff;
+  font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
+  cursor: pointer; transition: background .12s;
 }
-.btn-print:hover { background: #4f46e5; }
+.btn-print:hover { background: #1e293b; }
 
 /* ── Barcode Grid ── */
 .barcode-grid {
   width: 794px; min-height: 1123px;
-  margin: 24px auto; background: #fff;
-  box-shadow: 0 2px 16px rgba(0,0,0,.10);
-  padding: 30px; display: grid; align-content: start;
+  margin: 24px auto; background: #ffffff;
+  box-shadow: 0 4px 20px rgba(0,0,0,.05);
+  padding: 30px; border: 1px solid #e2e8f0;
+  display: grid; align-content: start;
 }
 .barcode-grid.size-lg {
   height: 1063px; min-height: unset; align-content: stretch;
@@ -313,7 +315,7 @@ export default {
 
 /* ── Label ── */
 .barcode-label {
-  background: #fff; border: 1px solid #cbd5e1; border-radius: 4px;
+  background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;
   padding: 5px 4px 3px;
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 1px; text-align: center; overflow: hidden;
@@ -325,14 +327,14 @@ export default {
   width: 100%; text-align: center; line-height: 1;
 }
 .size-sm .lbl-product { display: none; }
-.lbl-variant { font-size: 9px; font-weight: 700; color: #0f172a; line-height: 1; white-space: nowrap; }
+.lbl-variant { font-size: 9px; font-weight: 600; color: #0f172a; line-height: 1; white-space: nowrap; }
 .size-lg .lbl-variant { font-size: 13px; }
 .size-sm .lbl-variant { font-size: 7.5px; }
 .lbl-svg { width: 100%; height: auto; display: block; }
-.lbl-code { font-family: 'DM Mono', monospace; font-size: 7px; color: #475569; letter-spacing: .02em; line-height: 1; }
+.lbl-code { font-family: 'JetBrains Mono', monospace; font-size: 7px; color: #475569; letter-spacing: .02em; line-height: 1; }
 .size-lg .lbl-code { font-size: 8.5px; }
 .size-sm .lbl-code { font-size: 6px; }
-.lbl-price { font-size: 8.5px; font-weight: 700; color: #6366f1; font-family: 'DM Mono', monospace; line-height: 1; }
+.lbl-price { font-size: 8.5px; font-weight: 600; color: #0f172a; font-family: 'JetBrains Mono', monospace; line-height: 1; }
 .size-lg .lbl-price { font-size: 11px; }
 .size-sm .lbl-price { font-size: 7px; }
 
@@ -340,10 +342,10 @@ export default {
 @media print {
   @page { size: A4 portrait; margin: 8mm; }
   .no-print { display: none !important; }
-  .barcode-page { background: #fff; padding: 0; }
+  .barcode-page { background: #ffffff; padding: 0; }
   .barcode-grid {
     width: 100% !important; height: auto !important; min-height: unset !important;
-    margin: 0 !important; padding: 0 !important;
+    margin: 0 !important; padding: 0 !important; border: none !important;
     background: transparent !important; box-shadow: none !important;
     align-content: start !important;
   }

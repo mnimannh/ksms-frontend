@@ -93,12 +93,33 @@
         <div class="field-row">
           <div class="field">
             <label class="field-label">Quantity</label>
-            <input v-model.number="form.quantity" type="number" min="0" class="field-input" placeholder="0" />
+            <input
+              v-model.number="form.quantity"
+              type="number" min="0"
+              class="field-input"
+              placeholder="0"
+              :readonly="isLoadCellTracked"
+              :class="{ 'input-readonly': isLoadCellTracked }"
+            />
+            <p v-if="isLoadCellTracked" class="field-hint lc-hint">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><line x1="12" y1="7" x2="12" y2="3"/></svg>
+              Managed by load cell sensor
+            </p>
           </div>
           <div class="field">
             <label class="field-label">Low Stock Threshold</label>
             <input v-model.number="form.threshold" type="number" min="0" class="field-input" placeholder="10" />
           </div>
+        </div>
+
+        <!-- Unit Weight (optional — for load cell) -->
+        <div class="field">
+          <label class="field-label">Unit Weight (g) <span class="opt">(optional)</span></label>
+          <div class="input-prefix-wrap">
+            <span class="input-prefix">g</span>
+            <input v-model.number="form.unit_weight" type="number" min="0" step="0.01" class="field-input prefix-input" placeholder="0.00" />
+          </div>
+          <p class="field-hint">Weight per item in grams — used by load cell sensors to calculate stock quantity</p>
         </div>
 
         <!-- Barcode -->
@@ -149,7 +170,7 @@
             <p v-if="barcodeError" class="field-error barcode-err">{{ barcodeError }}</p>
           </div>
 
-          <p class="field-hint" v-if="scanMode">
+          <p class="field-hint scan-hint" v-if="scanMode">
             <span class="scan-dot" /> Awaiting scan — focus is on the barcode field. Scan now.
           </p>
           <p v-if="errors.barcode" class="field-error">{{ errors.barcode }}</p>
@@ -205,6 +226,7 @@ export default {
         quantity:     this.initial?.quantity      ?? 0,
         threshold:    this.initial?.threshold     ?? 10,
         barcode:      this.initial?.barcode       || '',
+        unit_weight:  this.initial?.unit_weight   ?? '',
       },
       costMode: 'direct',
       bulk: { costPerCarton: '', unitsPerCarton: '' },
@@ -221,6 +243,9 @@ export default {
   },
 
   computed: {
+    isLoadCellTracked() {
+      return this.mode === 'edit' && this.initial?.stock_tracking_type === 'load_cell'
+    },
     bulkUnitCost() {
       const cost  = parseFloat(this.bulk.costPerCarton)  || 0
       const units = parseFloat(this.bulk.unitsPerCarton) || 0
@@ -376,47 +401,50 @@ export default {
 <style scoped>
 /* ── Modal shell ─────────────────────────────────────────────────────── */
 .inv-modal-backdrop {
-  position: fixed; inset: 0; background: rgba(15,23,42,.4);
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.3);
   display: flex; align-items: center; justify-content: center; z-index: 1000;
+  backdrop-filter: blur(1px);
 }
 .inv-modal {
-  background: #fff; border-radius: 16px; width: 520px; max-width: 95vw;
+  background: #ffffff; border-radius: 12px; width: 520px; max-width: 95vw;
   max-height: 90vh; overflow-y: auto; position: relative;
-  box-shadow: 0 24px 80px rgba(0,0,0,.2);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
 }
 
 /* ── Header / Footer ─────────────────────────────────────────────────── */
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 16px; border-bottom: 1px solid #f1f5f9;
-  position: sticky; top: 0; background: #fff; z-index: 1;
+  padding: 16px 20px; border-bottom: 1px solid #f1f5f9;
+  position: sticky; top: 0; background: #ffffff; z-index: 1;
 }
-.modal-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+.modal-title { font-size: 15px; font-weight: 600; color: #0f172a; }
 .modal-close {
-  width: 30px; height: 30px; border-radius: 7px; border: none;
+  width: 28px; height: 28px; border-radius: 6px; border: none;
   background: #f1f5f9; color: #64748b; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
 }
-.modal-close:hover { background: #e2e8f0; }
-.modal-body  { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal-close:hover { background: #e2e8f0; color: #0f172a; }
+.modal-body  { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .modal-footer {
-  padding: 16px 24px; border-top: 1px solid #f1f5f9;
+  padding: 14px 20px; border-top: 1px solid #f1f5f9;
   display: flex; justify-content: flex-end; gap: 8px;
-  position: sticky; bottom: 0; background: #fff;
+  position: sticky; bottom: 0; background: #ffffff;
 }
 
 /* ── Fields ──────────────────────────────────────────────────────────── */
 .field       { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .field-row   { display: flex; gap: 12px; }
-.field-label { font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
-.req         { color: #ef4444; }
+.field-label { font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
+.req         { color: #dc2626; }
 .field-input {
-  padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
-  font-size: 14px; font-family: 'DM Sans', sans-serif; color: #1e293b;
-  outline: none; transition: border-color .15s; background: #fff; width: 100%;
+  padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;
+  font-size: 13px; font-family: 'Inter', sans-serif; color: #334155;
+  outline: none; transition: border-color 0.12s; background: #ffffff; width: 100%;
   box-sizing: border-box;
 }
-.field-input:focus { border-color: #6366f1; }
+.field-input:focus { border-color: #0f172a; }
 .field-input[readonly]:not(.scanning) { background: #f8fafc; cursor: default; color: #64748b; }
 .field-input.scanning {
   border-color: #10b981;
@@ -429,7 +457,7 @@ export default {
 }
 
 .input-prefix-wrap { position: relative; display: flex; align-items: center; }
-.input-prefix      { position: absolute; left: 10px; font-size: 13px; font-weight: 600; color: #94a3b8; pointer-events: none; }
+.input-prefix      { position: absolute; left: 10px; font-size: 12px; font-weight: 600; color: #94a3b8; pointer-events: none; }
 .prefix-input      { padding-left: 30px !important; }
 
 /* ── Cost section ────────────────────────────────────────────────────── */
@@ -437,42 +465,42 @@ export default {
 .cost-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 
 .cost-toggle {
-  display: flex; background: #f1f5f9; border-radius: 7px; padding: 2px; gap: 2px;
+  display: flex; background: #f1f5f9; border-radius: 6px; padding: 2px; gap: 2px;
 }
 .cost-tab {
-  font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500;
   color: #64748b; background: transparent; border: none;
-  padding: 4px 12px; border-radius: 5px; cursor: pointer; transition: all .15s;
+  padding: 4px 10px; border-radius: 4px; cursor: pointer; transition: all .12s;
 }
-.cost-tab.active { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.cost-tab.active { background: #ffffff; color: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
 
 /* Bulk calculator */
 .bulk-calc { display: flex; flex-direction: column; gap: 6px; }
 .bulk-fields { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
 .bulk-divider {
-  font-size: 18px; font-weight: 300; color: #94a3b8;
+  font-size: 16px; font-weight: 300; color: #94a3b8;
   padding-bottom: 8px; flex-shrink: 0;
 }
 .field--result { min-width: 90px; }
 .result-box {
   display: flex; align-items: center; gap: 4px;
-  height: 38px; border-radius: 8px; padding: 0 10px;
+  height: 36px; border-radius: 6px; padding: 0 10px;
   background: #f8fafc; border: 1px solid #e2e8f0;
 }
 .result-box--active { background: #f0fdf4; border-color: #bbf7d0; }
-.result-rm  { font-size: 12px; font-weight: 600; color: #94a3b8; }
-.result-val { font-size: 14px; font-weight: 700; color: #15803d; letter-spacing: -.01em; }
+.result-rm  { font-size: 11.5px; font-weight: 600; color: #94a3b8; }
+.result-val { font-size: 13px; font-weight: 600; color: #15803d; letter-spacing: -.01em; font-family: 'JetBrains Mono', monospace; }
 .result-box:not(.result-box--active) .result-val { color: #94a3b8; font-weight: 400; }
 
 /* ── Margin display ──────────────────────────────────────────────────── */
 .field--margin { max-width: 100px; flex: none; }
 .margin-display {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  height: 38px; border-radius: 8px; padding: 0 10px; gap: 1px;
+  height: 36px; border-radius: 6px; padding: 0 10px; gap: 1px;
   border: 1px solid #e2e8f0;
 }
-.margin-pct  { font-size: 14px; font-weight: 700; line-height: 1; }
-.margin-rm   { font-size: 10px; opacity: .7; }
+.margin-pct  { font-size: 13px; font-weight: 600; line-height: 1; }
+.margin-rm   { font-size: 9px; opacity: .8; }
 .margin--neutral { background: #f8fafc; color: #94a3b8; }
 .margin--loss { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
 .margin--low  { background: #fffbeb; border-color: #fde68a; color: #b45309; }
@@ -481,11 +509,11 @@ export default {
 
 /* ── Barcode row & preview ───────────────────────────────────────────── */
 .barcode-row   { display: flex; gap: 8px; }
-.barcode-field { flex: 1; font-family: 'DM Mono', monospace; letter-spacing: .04em; }
+.barcode-field { flex: 1; font-family: 'JetBrains Mono', monospace; letter-spacing: .02em; }
 
 .barcode-preview {
   margin-top: 6px; padding: 12px;
-  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
   display: flex; flex-direction: column; align-items: center;
 }
 .barcode-preview svg { max-width: 100%; }
@@ -494,60 +522,65 @@ export default {
 /* ── Action buttons ──────────────────────────────────────────────────── */
 .btn-icon-action {
   display: flex; align-items: center; gap: 6px;
-  padding: 9px 12px; border-radius: 8px;
-  border: 1px solid #e2e8f0; background: #f8fafc;
-  font-size: 12.5px; font-family: 'DM Sans', sans-serif; font-weight: 600;
-  color: #475569; cursor: pointer; white-space: nowrap; transition: all .15s;
+  padding: 8px 12px; border-radius: 6px;
+  border: 1px solid #e2e8f0; background: #ffffff;
+  font-size: 12px; font-family: 'Inter', sans-serif; font-weight: 500;
+  color: #475569; cursor: pointer; white-space: nowrap; transition: all .12s;
 }
-.btn-icon-action:hover          { border-color: #6366f1; color: #6366f1; }
+.btn-icon-action:hover          { border-color: #0f172a; color: #0f172a; }
 .btn-icon-action.active         { background: #f0fdf4; border-color: #10b981; color: #10b981; }
-.btn-icon-action.generate:hover { border-color: #f59e0b; color: #f59e0b; }
+.btn-icon-action.generate:hover { border-color: #b45309; color: #b45309; }
 .btn-icon-action:disabled       { opacity: .45; cursor: not-allowed; pointer-events: none; }
 
 /* ── Hints & errors ──────────────────────────────────────────────────── */
-.field-hint { font-size: 12px; color: #10b981; display: flex; align-items: center; gap: 6px; }
+.field-hint { font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+.lc-hint  { color: #6366f1; font-weight: 500; }
+.scan-hint { color: #10b981; }
+.opt      { font-weight: 400; color: #94a3b8; text-transform: none; letter-spacing: 0; }
+.input-readonly { background: #f8fafc; cursor: default; color: #64748b; }
 .scan-dot   {
-  width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+  width: 6px; height: 6px; border-radius: 50%; background: #10b981;
   display: inline-block; animation: blink 1s ease infinite;
 }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-.field-error { font-size: 12px; color: #ef4444; }
+.field-error { font-size: 11.5px; color: #dc2626; }
 
 /* ── Confirm dialog ──────────────────────────────────────────────────── */
 .confirm-overlay {
-  position: absolute; inset: 0; background: rgba(15,23,42,.35);
+  position: absolute; inset: 0; background: rgba(15, 23, 42, 0.25);
   display: flex; align-items: center; justify-content: center;
-  border-radius: inherit; z-index: 10; backdrop-filter: blur(2px);
+  border-radius: inherit; z-index: 10; backdrop-filter: blur(1px);
 }
 .confirm-box {
-  background: #fff; border-radius: 14px; padding: 28px 24px 20px;
+  background: #ffffff; border-radius: 8px; padding: 24px 20px;
   width: 300px; display: flex; flex-direction: column; align-items: center;
-  gap: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.18);
+  gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,.08);
+  border: 1px solid #e2e8f0;
 }
-.confirm-icon    { width: 44px; height: 44px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; }
-.confirm-msg     { font-size: 13.5px; color: #334155; text-align: center; line-height: 1.55; }
+.confirm-icon    { width: 40px; height: 40px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; }
+.confirm-msg     { font-size: 13px; color: #334155; text-align: center; line-height: 1.5; }
 .confirm-actions { display: flex; gap: 8px; width: 100%; margin-top: 4px; }
 .confirm-actions .btn-ghost { flex: 1; justify-content: center; }
 .btn-confirm {
-  flex: 1; padding: 8px 16px; border: none; border-radius: 8px;
-  background: #6366f1; color: #fff;
-  font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600;
-  cursor: pointer; transition: background .15s;
+  flex: 1; padding: 8px 16px; border: none; border-radius: 6px;
+  background: #16a34a; color: #ffffff;
+  font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
+  cursor: pointer; transition: background .12s;
 }
-.btn-confirm:hover { background: #4f46e5; }
+.btn-confirm:hover { background: #15803d; }
 
 /* ── Footer buttons ──────────────────────────────────────────────────── */
 .btn-ghost {
-  padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 8px;
-  background: #fff; font-size: 13px; font-family: 'DM Sans', sans-serif;
-  font-weight: 500; color: #64748b; cursor: pointer;
+  padding: 8px 16px; border: 1px solid #fecaca; border-radius: 6px;
+  background: #ffffff; font-size: 13px; font-family: 'Inter', sans-serif;
+  font-weight: 500; color: #dc2626; cursor: pointer; transition: all .12s;
 }
-.btn-ghost:hover { background: #f8fafc; }
+.btn-ghost:hover { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
 .btn-primary {
-  padding: 8px 18px; border: none; border-radius: 8px;
-  background: #6366f1; color: #fff;
-  font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 600;
-  cursor: pointer; transition: background .15s;
+  padding: 8px 18px; border: none; border-radius: 6px;
+  background: #16a34a; color: #ffffff;
+  font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
+  cursor: pointer; transition: background .12s;
 }
-.btn-primary:hover { background: #4f46e5; }
+.btn-primary:hover { background: #15803d; }
 </style>

@@ -724,7 +724,7 @@ export default {
 .btn-fback-close:hover { background: #1e293b; }
 
 .feedback-spinner {
-  width: 32px; height: 32px; border: 3px solid #f1f5f9; border-top-color: #6366f1;
+  width: 32px; height: 32px; border: 3px solid #f1f5f9; border-top-color: #0f172a;
   border-radius: 50%; animation: spin-loading 0.8s linear infinite; margin-bottom: 18px;
 }
 @keyframes spin-loading { to { transform: rotate(360deg); } }
@@ -743,7 +743,7 @@ export default {
   position: relative;
 }
 .btn-swap-toggle:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
-.btn-swap-toggle.active { background: #6366f1; color: #ffffff; border-color: #6366f1; }
+.btn-swap-toggle.active { background: #0f172a; color: #ffffff; border-color: #0f172a; }
 
 /* Red Notification Button Count Badge Style rules */
 .btn-badge {
@@ -772,7 +772,7 @@ export default {
 .btn-assign:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,.3); }
 
 .btn-auto { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 600; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 0.45rem 0.9rem; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
-.btn-auto:hover { background: #6366f1; color: #fff; border-color: #6366f1; transform: translateY(-1px); }
+.btn-auto:hover { background: #0f172a; color: #fff; border-color: #0f172a; transform: translateY(-1px); }
 
 .draft-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 100%); border: 1.5px solid #fde68a; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; }
 .draft-banner-left { display: flex; align-items: center; gap: 12px; }
@@ -786,7 +786,7 @@ export default {
 .btn-publish { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 8px; border: none; background: #16a34a; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; }
 .btn-publish:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,.3); }
 
-.accent { color: #6366f1; }
+.accent { color: #0f172a; }
 .live-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; flex-shrink: 0; animation: live-pulse 2s ease infinite; }
 @keyframes live-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,.4); } 50% { box-shadow: 0 0 0 5px rgba(34,197,94,0); } }
 

@@ -430,10 +430,10 @@ export default {
 .page-header { display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 12px; flex-shrink: 0; }
 .page-date   { font-size: 11px; color: #94a3b8; letter-spacing: .03em; margin-bottom: 2px; }
 .page-title  { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -.02em; }
-.accent      { color: #6366f1; }
+.accent      { color: #0f172a; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .btn-edit   { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px; border: 1px solid #e2e8f0; background: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: #475569; cursor: pointer; transition: all .15s; }
-.btn-edit:hover { border-color: #6366f1; color: #6366f1; }
+.btn-edit:hover { border-color: #0f172a; color: #0f172a; }
 .btn-cancel { padding: 8px 14px; border-radius: 9px; border: 1px solid #e2e8f0; background: #f8fafc; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; }
 .btn-save   { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px; border: none; background: #16a34a; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
 .btn-save:hover:not(:disabled) { background: #15803d; }
@@ -448,13 +448,13 @@ export default {
 
 /* Hero card */
 .hero-card   { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; position: relative; }
-.hero-stripe { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #6366f1, #8b5cf6, #3b82f6); }
+.hero-stripe { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #0f172a, #8b5cf6, #3b82f6); }
 .hero-inner  { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 24px 20px 20px; text-align: center; }
 
 .avatar-wrap     { position: relative; flex-shrink: 0; }
 .avatar-img      { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #e2e8f0; display: block; }
-.avatar-initials { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #818cf8); color: #fff; font-size: 28px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-.avatar-cam { position: absolute; bottom: 2px; right: 2px; width: 24px; height: 24px; border-radius: 50%; background: #6366f1; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; transition: background .15s; }
+.avatar-initials { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #0f172a, #818cf8); color: #fff; font-size: 28px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.avatar-cam { position: absolute; bottom: 2px; right: 2px; width: 24px; height: 24px; border-radius: 50%; background: #0f172a; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; transition: background .15s; }
 .avatar-cam:hover { background: #4f46e5; }
 .avatar-cam.uploading { background: #94a3b8; cursor: not-allowed; }
 .hidden-input { display: none; }
@@ -465,7 +465,7 @@ export default {
 .hero-top  { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 10px; }
 .hero-name { font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -.01em; }
 .hero-pills { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.pill-role   { background: #eef2ff; color: #6366f1; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; text-transform: capitalize; }
+.pill-role   { background: #eef2ff; color: #0f172a; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; text-transform: capitalize; }
 .pill-active { display: flex; align-items: center; gap: 5px; background: #f0fdf4; color: #15803d; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
 .active-dot  { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block; }
 .hero-meta  { display: flex; flex-direction: column; gap: 6px; align-items: center; }
@@ -504,15 +504,15 @@ export default {
 .field-value.muted { color: #64748b; font-weight: 400; }
 
 .field-input { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #0f172a; background: #f8fafc; outline: none; transition: border-color .15s; width: 100%; }
-.field-input:focus { border-color: #6366f1; background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,.08); }
+.field-input:focus { border-color: #0f172a; background: #fff; box-shadow: 0 0 0 3px rgba(99,102,241,.08); }
 .field-textarea { resize: vertical; line-height: 1.5; }
 
-.role-pill      { display: inline-block; background: #eef2ff; color: #6366f1; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; text-transform: capitalize; }
+.role-pill      { display: inline-block; background: #eef2ff; color: #0f172a; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; text-transform: capitalize; }
 .status-pill-sm { display: inline-flex; align-items: center; gap: 5px; background: #f0fdf4; color: #15803d; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
 .status-dot-sm  { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; }
 
 .pw-actions { margin-top: 14px; padding-left: 8px; }
-.btn-pw { display: inline-flex; align-items: center; padding: 9px 20px; border-radius: 9px; border: none; background: #6366f1; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.btn-pw { display: inline-flex; align-items: center; padding: 9px 20px; border-radius: 9px; border: none; background: #0f172a; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
 .btn-pw:hover:not(:disabled) { background: #4f46e5; }
 .btn-pw:disabled { opacity: .6; cursor: not-allowed; }
 .pw-error   { margin-top: 10px; padding-left: 8px; font-size: 12.5px; color: #dc2626; }

@@ -25,7 +25,7 @@
       <!-- ── SUMMARY CARDS ── -->
       <div class="summary-row">
         <div class="summary-card" style="animation-delay:0ms">
-          <div class="summary-icon" style="background:#eef2ff; color:#6366f1">
+          <div class="summary-icon" style="background:#eef2ff; color:#0f172a">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           </div>
           <div>
@@ -232,7 +232,7 @@ import RateModal from '@/components/admin-user/RateModal.vue'
 import BulkRateModal from '@/components/admin-user/BulkRateModal.vue'
 import axios from 'axios'
 
-const AVATAR_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6']
+const AVATAR_COLORS = ['#0f172a','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6']
 
 export default {
   name: 'AdminUser',
@@ -367,7 +367,7 @@ export default {
 .topbar { display: flex; flex-direction: column; gap: 10px; }
 .topbar-date  { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
 .topbar-title { font-size: 22px; font-weight: 600; letter-spacing: -.025em; color: #0f172a; }
-.topbar-title .accent { color: #6366f1; }
+.topbar-title .accent { color: #0f172a; }
 .topbar-right { display: flex; align-items: center; }
 
 .topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -455,7 +455,7 @@ export default {
   border-radius: 8px; padding: 7px 11px;
   color: #94a3b8; transition: border-color .18s, box-shadow .18s;
 }
-.search-box:focus-within { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.1); background: #fff; }
+.search-box:focus-within { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(99,102,241,.1); background: #fff; }
 .search-box input {
   border: none; outline: none; font-family: 'DM Sans', sans-serif;
   font-size: 13px; color: #1e293b; width: 100%; background: transparent;
@@ -489,7 +489,7 @@ export default {
   flex-shrink: 0; vertical-align: middle;
 }
 .row-avatar-img  { object-fit: cover; cursor: zoom-in; border: 2px solid #e2e8f0; transition: border-color .15s, transform .15s; }
-.row-avatar-img:hover { border-color: #6366f1; transform: scale(1.08); }
+.row-avatar-img:hover { border-color: #0f172a; transform: scale(1.08); }
 .row-avatar-initials { font-size: 13px; }
 
 /* Lightbox */
@@ -549,7 +549,7 @@ export default {
   font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
   cursor: pointer; transition: all .15s; white-space: nowrap;
 }
-.btn-action:hover { background: #6366f1; border-color: #6366f1; color: #fff; }
+.btn-action:hover { background: #0f172a; border-color: #0f172a; color: #fff; }
 
 .btn-rate {
   display: inline-flex; align-items: center; gap: 5px;
