@@ -7,15 +7,49 @@
       <div class="topbar">
         <div class="topbar-left">
           <p class="topbar-date">{{ today }}</p>
-          <h1 class="topbar-title">Load Cell <span class="accent">Management</span></h1>
+          <div class="title-wrap">
+            <h1 class="topbar-title">Load Cell <span class="accent">Management</span></h1>
+            <span v-if="isPolling" class="live-indicator"><span class="live-dot"></span> Live</span>
+          </div>
         </div>
         <div class="topbar-right">
+          <button class="btn-ghost" @click="showGuide = !showGuide">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Setup Guide
+          </button>
           <button class="btn-register" @click="openModal('add')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Register Sensor
           </button>
         </div>
       </div>
+
+      <!-- Setup Guide Banner -->
+      <transition name="slide">
+        <div class="setup-guide" v-if="showGuide">
+          <div class="guide-header" @click="showGuide = false">
+            <div class="guide-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              How to setup a Load Cell
+            </div>
+            <button class="btn-close-guide">✕</button>
+          </div>
+          <div class="guide-steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <p><strong>Set Unit Weight</strong><br/>Go to Inventory and edit a variant. Set its 'Unit Weight (g)' and 'Threshold'.</p>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <p><strong>Register Sensor</strong><br/>Click 'Register Sensor' here. Enter the UID (e.g. <code>ESP32-LC-01</code>) and Empty Weight.</p>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <p><strong>Assign & Power On</strong><br/>Click the link icon in the table to assign a variant, then power on the ESP32.</p>
+            </div>
+          </div>
+        </div>
+      </transition>
 
       <!-- Summary Cards -->
       <div class="summary-row">
@@ -82,6 +116,7 @@
                 <th>Sensor UID</th>
                 <th>Assigned Variant</th>
                 <th>Status</th>
+                <th class="col-num">Unit Weight</th>
                 <th class="col-num">Latest Weight</th>
                 <th class="col-num">Calc. Qty</th>
                 <th class="col-num">Threshold</th>
@@ -109,6 +144,11 @@
                     <span class="status-dot"></span>
                     <span class="status-text">{{ statusLabel(lc) }}</span>
                   </span>
+                </td>
+                <td class="col-num td-mono">
+                  <span v-if="lc.variant_unit_weight">{{ Number(lc.variant_unit_weight).toFixed(2) }}g</span>
+                  <span v-else-if="lc.unit_weight">{{ Number(lc.unit_weight).toFixed(2) }}g</span>
+                  <span v-else class="td-muted">—</span>
                 </td>
                 <td class="col-num td-mono">{{ lc.latest_weight != null ? Number(lc.latest_weight).toFixed(2) + 'g' : '—' }}</td>
                 <td class="col-num">
@@ -208,79 +248,142 @@
 
     <!-- Register / Edit Modal -->
     <Teleport to="body">
-      <div v-if="showModal" class="lc-modal-backdrop" @click.self="showModal = false">
-        <div class="lc-modal">
-          <div class="lc-modal-header">
-            <h2 class="lc-modal-title">{{ modalMode === 'edit' ? 'Edit Sensor' : 'Register Sensor' }}</h2>
-            <button class="lc-modal-close" @click="showModal = false">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <div class="lc-modal-body">
-            <div class="field">
-              <label class="field-label">Sensor UID <span class="req">*</span></label>
-              <input v-model="form.sensor_uid" class="field-input mono-input" placeholder="e.g. LC-001 or ESP32-A4B2C1" maxlength="100" />
-              <p v-if="formErrors.sensor_uid" class="field-error">{{ formErrors.sensor_uid }}</p>
+      <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+        <div class="modal-container">
+          <header class="modal-header">
+            <div class="modal-title-group">
+              <span class="modal-eyebrow">{{ modalMode === 'edit' ? 'Edit' : 'New' }} Sensor</span>
+              <h2>{{ modalMode === 'edit' ? 'Edit Sensor' : 'Register Sensor' }}</h2>
             </div>
-            <div class="field-row">
-              <div class="field">
-                <label class="field-label">Empty Weight (g)</label>
-                <input v-model.number="form.empty_weight" type="number" min="0" step="0.01" class="field-input" placeholder="0.00" />
-                <p class="field-hint">Weight of the empty container/shelf</p>
+            <button class="close-btn" @click="showModal = false">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </header>
+          
+          <form @submit.prevent="submitSensor" class="modal-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sensor UID</label>
+                <input v-model="form.sensor_uid" type="text" class="input-uppercase" placeholder="E.G. LC-001 OR ESP32-A4B2C1" maxlength="100" required @input="form.sensor_uid = form.sensor_uid.toUpperCase()" />
+                <p v-if="formErrors.sensor_uid" class="field-error">{{ formErrors.sensor_uid }}</p>
               </div>
-              <div class="field">
-                <label class="field-label">Unit Weight (g) <span class="req">*</span></label>
-                <input v-model.number="form.unit_weight" type="number" min="0" step="0.01" class="field-input" placeholder="0.00" />
-                <p class="field-hint">Weight of a single product unit</p>
+            </div>
+            <div class="form-row two-col">
+              <div class="form-group">
+                <label>Empty Weight (g)</label>
+                <input v-model.number="form.empty_weight" type="number" min="0" step="0.01" placeholder="0" class="input-normal" />
+                <span class="field-hint">Weight of empty container</span>
+              </div>
+              <div class="form-group">
+                <label>Unit Weight (g)</label>
+                <input v-model.number="form.unit_weight" type="number" min="0" step="0.01" placeholder="0.00" class="input-normal" required />
+                <span class="field-hint">Weight of single unit</span>
                 <p v-if="formErrors.unit_weight" class="field-error">{{ formErrors.unit_weight }}</p>
               </div>
             </div>
-            <div class="field">
-              <label class="field-label">Calibration Factor</label>
-              <input v-model.number="form.calibration_factor" type="number" step="0.0001" class="field-input" placeholder="e.g. 2038.5" />
-              <p class="field-hint">Hardware-specific calibration value (optional)</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Calibration Factor</label>
+                <input v-model.number="form.calibration_factor" type="number" step="0.0001" placeholder="e.g. 2038.5" class="input-normal" />
+                <span class="field-hint">Hardware-specific calibration (optional)</span>
+              </div>
             </div>
-          </div>
-          <div class="lc-modal-footer">
-            <button class="btn-ghost" @click="showModal = false">Cancel</button>
-            <button class="btn-primary" @click="submitSensor">
-              {{ modalMode === 'edit' ? 'Save Changes' : 'Register' }}
-            </button>
-          </div>
+            <div class="form-row" v-if="modalMode === 'add'">
+              <div class="form-group">
+                <label>Assign to Variant (optional)</label>
+                <div class="select-wrapper">
+                  <select v-model="form.assign_variant_id">
+                    <option :value="null">Do not assign yet</option>
+                    <option v-for="v in availableVariants" :key="v.id" :value="v.id">
+                      {{ v.product_name }} · {{ v.variant_name }}
+                    </option>
+                  </select>
+                  <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-cancel" @click="showModal = false">Cancel</button>
+              <button type="submit" class="btn-save">
+                {{ modalMode === 'edit' ? 'Save Changes' : 'Register Sensor' }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </Teleport>
 
     <!-- Assign Modal -->
     <Teleport to="body">
-      <div v-if="showAssignModal" class="lc-modal-backdrop" @click.self="showAssignModal = false">
-        <div class="lc-modal">
-          <div class="lc-modal-header">
-            <h2 class="lc-modal-title">Assign to Variant</h2>
-            <button class="lc-modal-close" @click="showAssignModal = false">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <div v-if="showAssignModal" class="modal-overlay" @click.self="showAssignModal = false">
+        <div class="modal-container">
+          <header class="modal-header">
+            <div class="modal-title-group">
+              <span class="modal-eyebrow">ASSIGN SENSOR</span>
+              <h2>Assign to Variant</h2>
+            </div>
+            <button class="close-btn" @click="showAssignModal = false">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
             </button>
-          </div>
-          <div class="lc-modal-body">
+          </header>
+          
+          <form @submit.prevent="doAssign" class="modal-form">
             <div class="assign-sensor-info">
               <span class="assign-label">Sensor</span>
               <span class="uid-chip">{{ assignTarget?.sensor_uid }}</span>
             </div>
-            <div class="field">
-              <label class="field-label">Select Variant <span class="req">*</span></label>
-              <select v-model="assignVariantId" class="field-input">
-                <option :value="null" disabled>Choose a variant…</option>
-                <option v-for="v in availableVariants" :key="v.id" :value="v.id">
-                  {{ v.product_name }} · {{ v.variant_name }} ({{ v.barcode }})
-                </option>
-              </select>
-              <p v-if="availableVariants.length === 0" class="field-hint" style="color:#f59e0b">No variants available — all are already assigned to load cells</p>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label>Select Variant</label>
+                <div class="select-wrapper">
+                  <select v-model="assignVariantId" required>
+                    <option :value="null" disabled>Choose a variant…</option>
+                    <option v-for="v in availableVariants" :key="v.id" :value="v.id">
+                      {{ v.product_name }} · {{ v.variant_name }} ({{ v.barcode }})
+                    </option>
+                  </select>
+                  <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="lc-modal-footer">
-            <button class="btn-ghost" @click="showAssignModal = false">Cancel</button>
-            <button class="btn-primary" :disabled="!assignVariantId" @click="doAssign">Assign</button>
-          </div>
+
+            <div v-if="selectedAssignVariant" class="assign-variant-details" style="margin-top:-6px; margin-bottom:18px;">
+              <div class="avd-row">
+                <span class="avd-label">Unit Weight:</span>
+                <span class="avd-val" :class="{'avd-err': !selectedAssignVariant.unit_weight}">
+                  {{ selectedAssignVariant.unit_weight ? selectedAssignVariant.unit_weight + 'g' : 'Not set!' }}
+                </span>
+              </div>
+              <div class="avd-row">
+                <span class="avd-label">Threshold:</span>
+                <span class="avd-val">{{ selectedAssignVariant.threshold || '0' }} units</span>
+              </div>
+              <p v-if="!selectedAssignVariant.unit_weight" class="field-hint" style="color:#ef4444; margin-top:6px;">
+                ⚠️ This variant has no unit weight. Quantity calculation will not work. Please set it in Inventory first, or use the sensor's fallback unit weight.
+              </p>
+            </div>
+            
+            <p v-if="availableVariants.length === 0" class="field-hint" style="color:#f59e0b; margin-bottom:18px;">No variants available — all are already assigned to load cells</p>
+
+            <div class="form-divider"></div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-cancel" @click="showAssignModal = false">Cancel</button>
+              <button type="submit" class="btn-save" :disabled="!assignVariantId">Assign</button>
+            </div>
+          </form>
         </div>
       </div>
     </Teleport>
@@ -362,10 +465,19 @@ export default {
 
       // Toast
       toast: { show: false, message: '' },
+
+      // State
+      showGuide: false,
+      isPolling: false,
+      pollInterval: null,
     }
   },
 
   computed: {
+    selectedAssignVariant() {
+      if (!this.assignVariantId) return null;
+      return this.availableVariants.find(v => v.id === this.assignVariantId);
+    },
     activeSensors() { return this.loadCells.filter(lc => lc.status === 'active').length },
     unassignedSensors() { return this.loadCells.filter(lc => lc.status === 'unassigned').length },
     belowThresholdCount() {
@@ -388,6 +500,23 @@ export default {
       } catch (e) { console.error(e) }
     },
 
+    startPolling() {
+      this.isPolling = true;
+      this.pollInterval = setInterval(async () => {
+        if (document.visibilityState === 'visible') {
+          await this.fetchLoadCells();
+        }
+      }, 5000); // 5 seconds
+    },
+
+    stopPolling() {
+      this.isPolling = false;
+      if (this.pollInterval) {
+        clearInterval(this.pollInterval);
+        this.pollInterval = null;
+      }
+    },
+
     async fetchAvailableVariants() {
       try {
         const { data } = await axios.get(`${API_BASE_URL}/api/load-cells/available-variants`)
@@ -396,7 +525,7 @@ export default {
     },
 
     // ── Register / Edit Modal ───────────────────────────────────
-    openModal(mode, lc = null) {
+    async openModal(mode, lc = null) {
       this.modalMode = mode
       this.modalTarget = lc
       this.formErrors = {}
@@ -406,9 +535,11 @@ export default {
           empty_weight: lc.empty_weight || 0,
           unit_weight: lc.unit_weight || '',
           calibration_factor: lc.calibration_factor || '',
+          assign_variant_id: null
         }
       } else {
-        this.form = { sensor_uid: '', empty_weight: 0, unit_weight: '', calibration_factor: '' }
+        this.form = { sensor_uid: '', empty_weight: 0, unit_weight: '', calibration_factor: '', assign_variant_id: null }
+        await this.fetchAvailableVariants()
       }
       this.showModal = true
     },
@@ -421,8 +552,15 @@ export default {
 
       try {
         if (this.modalMode === 'add') {
-          await axios.post(`${API_BASE_URL}/api/load-cells`, this.form)
-          this.showToast('Sensor registered')
+          const res = await axios.post(`${API_BASE_URL}/api/load-cells`, this.form)
+          if (this.form.assign_variant_id) {
+            await axios.patch(`${API_BASE_URL}/api/load-cells/${res.data.id}/assign`, {
+              variant_id: this.form.assign_variant_id
+            })
+            this.showToast('Sensor registered and assigned')
+          } else {
+            this.showToast('Sensor registered')
+          }
         } else {
           await axios.put(`${API_BASE_URL}/api/load-cells/${this.modalTarget.id}`, this.form)
           this.showToast('Sensor updated')
@@ -532,6 +670,11 @@ export default {
 
   mounted() {
     this.fetchLoadCells()
+    this.startPolling()
+  },
+
+  unmounted() {
+    this.stopPolling()
   },
 }
 </script>
@@ -540,64 +683,105 @@ export default {
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap');
 
 /* ── Modals ────────────────────────────────────────────── */
-.lc-modal-backdrop {
-  position: fixed; inset: 0; z-index: 10000;
-  background: rgba(15, 23, 42, 0.3);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px; backdrop-filter: blur(1px);
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10, 12, 18, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
 }
-.lc-modal {
-  position: relative; z-index: 10001;
-  background: #ffffff; border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  width: 100%; max-width: 500px;
-  animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-container {
+  background: #fff; width: 460px;
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+  animation: slideUp 0.2s cubic-bezier(0.34, 1.3, 0.64, 1);
+  position: relative;
 }
-@keyframes popIn {
-  from { opacity: 0; transform: scale(0.97) translateY(8px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0); }
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
-.lc-modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid #f1f5f9;
+/* Header */
+.modal-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid #f3f4f6;
 }
-.lc-modal-title { font-size: 15px; font-weight: 600; color: #0f172a; }
-.lc-modal-close {
-  width: 28px; height: 28px; border-radius: 6px; border: none;
-  background: #f1f5f9; color: #64748b; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .12s;
+.modal-eyebrow {
+  display: block; font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: #9ca3af; margin-bottom: 3px;
 }
-.lc-modal-close:hover { background: #e2e8f0; color: #0f172a; }
-.lc-modal-body  { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-.lc-modal-footer {
-  padding: 14px 20px; border-top: 1px solid #f1f5f9;
-  display: flex; justify-content: flex-end; gap: 8px;
+.modal-header h2 { font-size: 18px; font-weight: 600; color: #111827; margin: 0; letter-spacing: -0.02em; }
+.close-btn {
+  background: #f3f4f6; border: none; width: 30px; height: 30px;
+  border-radius: 50%; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  color: #6b7280; flex-shrink: 0; margin-top: 2px;
+  transition: background 0.15s, color 0.15s;
 }
+.close-btn:hover { background: #e5e7eb; color: #111827; }
 
-/* Fields */
-.field       { display: flex; flex-direction: column; gap: 6px; flex: 1; }
-.field-row   { display: flex; gap: 12px; }
-.field-label { font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
-.req         { color: #dc2626; }
-.field-input {
-  padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;
-  font-size: 13px; font-family: 'DM Sans', sans-serif; color: #334155;
-  outline: none; transition: border-color 0.12s; background: #ffffff; width: 100%;
-  box-sizing: border-box;
-}
-.field-input:focus { border-color: #6366f1; }
-.mono-input { font-family: 'DM Mono', monospace; letter-spacing: .02em; }
-.field-hint  { font-size: 11px; color: #94a3b8; }
-.field-error { font-size: 11.5px; color: #dc2626; }
+/* Form */
+.modal-form { padding: 24px 28px; }
+.form-row { margin-bottom: 18px; }
+.form-row.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+label { font-size: 12px; font-weight: 600; color: #374151; letter-spacing: 0.02em; }
 
-/* Assign */
+input[type="text"], input[type="number"] {
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #111827;
+  background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 9px 13px; outline: none; width: 100%; box-sizing: border-box;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+input[type="text"]:focus, input[type="number"]:focus {
+  border-color: #111827; background: #fff;
+  box-shadow: 0 0 0 3px rgba(17,24,39,0.07);
+}
+input::placeholder { color: #c4c9d4; }
+.input-uppercase { text-transform: uppercase; font-family: 'DM Mono', monospace !important; }
+
+/* Select */
+.select-wrapper { position: relative; }
+select {
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #111827;
+  background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 9px 36px 9px 13px; outline: none; width: 100%;
+  appearance: none; cursor: pointer; transition: border-color 0.18s; box-sizing: border-box;
+}
+select:focus { border-color: #111827; background: #fff; box-shadow: 0 0 0 3px rgba(17,24,39,0.07); }
+.select-arrow { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af; }
+
+.field-hint { font-size: 11px; color: #9ca3af; font-weight: 400; margin-top: 2px; }
+.field-error { font-size: 11.5px; color: #dc2626; margin-top: 2px;}
+.form-divider { height: 1px; background: #f3f4f6; margin: 20px 0; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.btn-cancel {
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  color: #6b7280; background: #f3f4f6; border: none;
+  padding: 9px 18px; border-radius: 8px; cursor: pointer; transition: background 0.15s;
+}
+.btn-cancel:hover { background: #e5e7eb; color: #374151; }
+.btn-save {
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  color: #fff; background: #10b981; border: none;
+  padding: 9px 20px; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  transition: background 0.15s, transform 0.12s;
+}
+.btn-save:hover:not(:disabled) { background: #059669; transform: translateY(-1px); }
+.btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Assign Info */
 .assign-sensor-info {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 14px; background: #f8fafc; border-radius: 8px;
-  border: 1px solid #f1f5f9;
+  border: 1px solid #e5e7eb; margin-bottom: 18px;
 }
 .assign-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
 </style>
@@ -839,6 +1023,68 @@ export default {
 .toast-enter-active, .toast-leave-active { transition: all .25s ease; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(10px); }
 
+/* Setup Guide */
+.setup-guide {
+  background: #fff; border: 1px solid #c7d2fe; border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08); overflow: hidden;
+  margin-bottom: 6px;
+}
+.guide-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: #eef2ff; cursor: pointer;
+}
+.guide-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600; color: #4338ca;
+}
+.btn-close-guide {
+  background: transparent; border: none; color: #6366f1;
+  font-size: 16px; cursor: pointer; padding: 4px;
+}
+.guide-steps {
+  display: grid; grid-template-columns: repeat(1, 1fr); gap: 16px;
+  padding: 16px;
+}
+.step {
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.step-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #6366f1; color: #fff; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.step p { font-size: 13px; color: #475569; line-height: 1.5; margin: 0; }
+.step p strong { color: #1e293b; }
+.step p code { background: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+
+/* Live indicator */
+.title-wrap { display: flex; align-items: center; gap: 12px; }
+.live-indicator {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 6px;
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  font-size: 11px; font-weight: 600; color: #16a34a;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #16a34a; animation: blink 1.5s infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Assign Variant Details */
+.assign-variant-details {
+  margin-top: 8px; padding: 12px; background: #f8fafc;
+  border-radius: 8px; border: 1px solid #e2e8f0;
+}
+.avd-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12.5px; padding: 4px 0;
+}
+.avd-label { color: #64748b; }
+.avd-val { font-weight: 600; color: #334155; }
+.avd-val.avd-err { color: #ef4444; }
+
 /* ── Responsive ── */
 @media (min-width: 600px) {
   .page { padding: 24px 24px 44px; gap: 18px; }
@@ -859,5 +1105,6 @@ export default {
   .summary-card { padding: 18px 20px; }
   .summary-val { font-size: 26px; }
   .toast { bottom: 28px; right: 28px; }
+  .guide-steps { grid-template-columns: repeat(3, 1fr); }
 }
 </style>
