@@ -241,6 +241,12 @@
                       </svg>
                       Attendance
                     </button>
+                    <button v-if="r.isCreated" class="btn-att" @click="viewPayslip(r)" title="View payslip">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                      </svg>
+                      Payslip
+                    </button>
                     <button
                       v-if="r.isCreated && !r.isReceived"
                       class="btn-recv-sm"
@@ -272,6 +278,12 @@
         @close="attModal.show = false"
       />
 
+      <PayslipModal
+        :show="payslipModal.show"
+        :payslip="payslipModal.data"
+        @close="payslipModal.show = false"
+      />
+
         <div class="empty-state" v-if="!loading && records.length === 0">
           No payroll records yet.
         </div>
@@ -295,11 +307,12 @@
 import axios from 'axios';
 import StaffSidebar from '@/components/sidebar/staffSidebar.vue';
 import AttendanceLogModal from '@/components/staff-payroll/AttendanceLogModal.vue';
+import PayslipModal from '@/components/admin-payroll/PayslipModal.vue';
 import API_BASE_URL from '@/services/api';
 
 export default {
   name: 'StaffPayroll',
-  components: { StaffSidebar, AttendanceLogModal },
+  components: { StaffSidebar, AttendanceLogModal, PayslipModal },
 
   data() {
     const now = new Date();
@@ -314,6 +327,7 @@ export default {
       filterYear: '',
       toast: { show: false, message: '', type: 'success' },
       attModal: { show: false, logs: [], staffName: '', monthLabel: '', hourlyRate: 0 },
+      payslipModal: { show: false, data: {} },
       rateHistory: [],
       showRateHistory: false,
     };
@@ -428,6 +442,32 @@ export default {
       } catch (err) {
         this.showToast('Failed to load attendance.', 'error');
       }
+    },
+
+    viewPayslip(record) {
+      const d = new Date(record.month);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const staffName = localStorage.getItem('userName') || 'Staff';
+      const staffID = record.userID || '0';
+
+      this.payslipModal.data = {
+        payslipNo: `PS-${y}-${m}-${staffID}`,
+        monthLabel: this.monthLabel(record.month),
+        generatedDate: record.created_at ? this.formatDate(record.created_at) : this.formatDate(new Date()),
+        paymentDate: record.isReceived ? this.formatDate(record.updated_at || new Date()) : 'Pending',
+        staffName: staffName,
+        role: 'Staff',
+        className: 'N/A', 
+        hourlyRate: record.hourlyRate || 0,
+        hoursWorked: record.hoursWorked || 0,
+        completedShifts: 'N/A', 
+        allowance: 0,
+        deductions: 0,
+        paymentMethod: 'Cash',
+        status: record.isReceived ? 'Paid' : 'Pending'
+      };
+      this.payslipModal.show = true;
     },
 
     showToast(message, type = 'success') {
