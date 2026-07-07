@@ -505,6 +505,9 @@ export default {
       this.pollInterval = setInterval(async () => {
         if (document.visibilityState === 'visible') {
           await this.fetchLoadCells();
+          if (this.showLogs && this.logSensor) {
+            await this.refreshLogs();
+          }
         }
       }, 5000); // 5 seconds
     },
@@ -624,13 +627,18 @@ export default {
     },
 
     // ── Logs ────────────────────────────────────────────────────
+    async refreshLogs() {
+      if (!this.logSensor) return;
+      try {
+        const { data } = await axios.get(`${API_BASE_URL}/api/load-cells/${this.logSensor.id}/logs?limit=30`)
+        this.logs = data
+      } catch (e) { console.error(e) }
+    },
+
     async viewLogs(lc) {
       this.logSensor = lc
-      try {
-        const { data } = await axios.get(`${API_BASE_URL}/api/load-cells/${lc.id}/logs?limit=30`)
-        this.logs = data
-        this.showLogs = true
-      } catch (e) { console.error(e) }
+      await this.refreshLogs()
+      this.showLogs = true
     },
 
     // ── Helpers ─────────────────────────────────────────────────

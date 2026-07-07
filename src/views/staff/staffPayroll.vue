@@ -83,33 +83,42 @@
         </div>
 
         <!-- Current month panel -->
-        <div class="panel" v-if="latestRecord">
+        <div class="panel">
           <div class="panel-header">
-            <div>
-              <p class="panel-title">Current Period</p>
-              <p class="panel-sub">{{ monthLabel(latestRecord.month) }}</p>
+            <div class="period-nav-wrap">
+              <button class="btn-nav" @click="prevMonth">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div class="period-titles">
+                <p class="panel-title">Payroll Period</p>
+                <p class="panel-sub">{{ monthLabel(viewingDate) }}</p>
+              </div>
+              <button class="btn-nav" @click="nextMonth" :disabled="isCurrentMonth">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
             </div>
-            <span class="badge" :class="statusClass(latestRecord)">{{ statusLabel(latestRecord) }}</span>
+            <span class="badge" v-if="viewingRecord.id !== 'dummy'" :class="statusClass(viewingRecord)">{{ statusLabel(viewingRecord) }}</span>
+            <span class="badge gray" v-else>No Data</span>
           </div>
 
           <div class="current-body">
             <!-- Hours + pay -->
             <div class="hours-block">
               <div class="big-val">
-                {{ Number(latestRecord.hoursWorked).toFixed(1) }}<span class="big-unit">h</span>
+                {{ Number(viewingRecord.hoursWorked).toFixed(1) }}<span class="big-unit">h</span>
               </div>
               <p class="hours-label">hours logged this month</p>
               <div class="bar-wrap">
-                <div class="bar-fill" :style="`width:${Math.min((latestRecord.hoursWorked/200)*100,100)}%`" />
+                <div class="bar-fill" :style="`width:${Math.min((viewingRecord.hoursWorked/200)*100,100)}%`" />
               </div>
               <div class="bar-legend"><span>0h</span><span>200h target</span></div>
-              <div class="pay-row" v-if="latestRecord.isCreated">
+              <div class="pay-row" v-if="viewingRecord.isCreated">
                 <span class="pay-label">Total Pay</span>
-                <span class="pay-val">{{ formatMoney(latestRecord.totalPay) }}</span>
+                <span class="pay-val">{{ formatMoney(viewingRecord.totalPay) }}</span>
               </div>
-              <div class="pay-row estimate" v-else-if="latestRecord.hourlyRate">
+              <div class="pay-row estimate" v-else>
                 <span class="pay-label">Estimated Pay</span>
-                <span class="pay-val">{{ formatMoney(latestRecord.hoursWorked * latestRecord.hourlyRate) }}</span>
+                <span class="pay-val">{{ formatMoney(viewingRecord.hoursWorked * (viewingRecord.hourlyRate || 0)) }}</span>
               </div>
             </div>
 
@@ -121,25 +130,31 @@
                   <div class="prog-dot filled" />
                   <span>Logged</span>
                 </div>
-                <div class="prog-line" :class="{ filled: latestRecord.isCreated }" />
-                <div class="prog-step" :class="{ active: latestRecord.isCreated }">
-                  <div class="prog-dot" :class="{ filled: latestRecord.isCreated }" />
+                <div class="prog-line" :class="{ filled: viewingRecord.isCreated }" />
+                <div class="prog-step" :class="{ active: viewingRecord.isCreated }">
+                  <div class="prog-dot" :class="{ filled: viewingRecord.isCreated }" />
                   <span>Generated</span>
                 </div>
-                <div class="prog-line" :class="{ filled: latestRecord.isReceived }" />
-                <div class="prog-step" :class="{ active: latestRecord.isReceived }">
-                  <div class="prog-dot" :class="{ filled: latestRecord.isReceived }" />
+                <div class="prog-line" :class="{ filled: viewingRecord.isReceived }" />
+                <div class="prog-step" :class="{ active: viewingRecord.isReceived }">
+                  <div class="prog-dot" :class="{ filled: viewingRecord.isReceived }" />
                   <span>Received</span>
                 </div>
               </div>
 
-              <div class="prog-note" v-if="!latestRecord.isCreated">
+              <div class="prog-note" v-if="viewingRecord.id === 'dummy'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                No payroll data recorded for this month yet.
+              </div>
+              <div class="prog-note" v-else-if="!viewingRecord.isCreated">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 Payroll is pending admin approval.
               </div>
-              <div class="prog-note success" v-else-if="latestRecord.isReceived">
+              <div class="prog-note success" v-else-if="viewingRecord.isReceived">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.5">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
@@ -154,18 +169,18 @@
 
               <!-- Mark received button -->
               <button
-                v-if="latestRecord.isCreated && !latestRecord.isReceived"
+                v-if="viewingRecord.isCreated && !viewingRecord.isReceived"
                 class="btn-received"
-                :disabled="markingId === latestRecord.id"
-                @click="markReceived(latestRecord)"
+                :disabled="markingId === viewingRecord.id"
+                @click="markReceived(viewingRecord)"
               >
-                <svg v-if="markingId === latestRecord.id" class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <svg v-if="markingId === viewingRecord.id" class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                {{ markingId === latestRecord.id ? 'Confirming…' : 'Mark as Received' }}
+                {{ markingId === viewingRecord.id ? 'Confirming…' : 'Mark as Received' }}
               </button>
             </div>
           </div>
@@ -330,6 +345,8 @@ export default {
       payslipModal: { show: false, data: {} },
       rateHistory: [],
       showRateHistory: false,
+      viewingYear: now.getFullYear(),
+      viewingMonth: now.getMonth(),
     };
   },
 
@@ -339,6 +356,31 @@ export default {
     totalEarned()  { return this.records.filter(r => r.isCreated).reduce((s, r) => s + Number(r.totalPay || 0), 0); },
     totalHours()   { return this.records.reduce((s, r) => s + Number(r.hoursWorked || 0), 0); },
     pendingCount() { return this.records.filter(r => !r.isCreated).length; },
+
+    viewingDate() {
+      return new Date(this.viewingYear, this.viewingMonth, 1);
+    },
+    isCurrentMonth() {
+      const now = new Date();
+      return this.viewingYear === now.getFullYear() && this.viewingMonth === now.getMonth();
+    },
+    viewingRecord() {
+      const found = this.records.find(r => {
+        const d = new Date(r.month);
+        return d.getFullYear() === this.viewingYear && d.getMonth() === this.viewingMonth;
+      });
+      if (found) return found;
+      
+      return {
+        id: 'dummy',
+        hoursWorked: 0,
+        hourlyRate: this.currentRate ? this.currentRate.rate : 0,
+        totalPay: 0,
+        isCreated: false,
+        isReceived: false,
+        month: this.viewingDate.toISOString(),
+      };
+    },
 
     yearOptions() {
       const years = [...new Set(this.records.map(r => new Date(r.month).getFullYear()))].sort((a, b) => b - a);
@@ -363,6 +405,24 @@ export default {
   },
 
   methods: {
+    prevMonth() {
+      if (this.viewingMonth === 0) {
+        this.viewingMonth = 11;
+        this.viewingYear--;
+      } else {
+        this.viewingMonth--;
+      }
+    },
+    nextMonth() {
+      if (this.isCurrentMonth) return;
+      if (this.viewingMonth === 11) {
+        this.viewingMonth = 0;
+        this.viewingYear++;
+      } else {
+        this.viewingMonth++;
+      }
+    },
+
     async fetchMyRates() {
       try {
         const token = localStorage.getItem('userToken');
@@ -536,6 +596,19 @@ export default {
 .badge.amber  { background: #fffbeb; color: #b45309; }
 .badge.indigo { background: #eef2ff; color: #4338ca; }
 .badge.green  { background: #f0fdf4; color: #15803d; }
+.badge.gray   { background: #f1f5f9; color: #64748b; }
+
+.period-nav-wrap { display: flex; align-items: center; gap: 12px; }
+.period-titles { display: flex; flex-direction: column; align-items: flex-start; }
+.btn-nav {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0;
+  background: #fff; color: #475569; cursor: pointer; transition: all .15s;
+}
+.btn-nav:hover:not(:disabled) { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
+.btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+
+
 
 /* Current body — stacked on mobile */
 .current-body { display: flex; flex-direction: column; gap: 16px; }
