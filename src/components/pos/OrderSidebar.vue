@@ -270,6 +270,7 @@ const formatCurrency = (value) =>
 .qty-input {
   width: 44px;
   height: 32px;
+  padding: 0;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   text-align: center;
@@ -279,6 +280,13 @@ const formatCurrency = (value) =>
   background: #f8fafc;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
+  -moz-appearance: textfield;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .qty-input:focus {
